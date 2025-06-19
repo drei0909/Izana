@@ -4,6 +4,21 @@ if (!isset($_SESSION['customer_ID'])) {
     header("Location: login.php");
     exit();
 }
+require_once('./classes/database.php');
+$db = new Database();
+$products = $db->getAllProducts();
+
+
+// Group products by category
+$grouped = [];
+foreach ($products as $p) {
+    $cat = $p['product_category'] ?? 'Other';
+    $grouped[$cat][] = [
+        $p['product_name'],
+        $p['product_price'],
+        $p['product_category'] == 1
+    ];
+}
 ?>
 
 <!DOCTYPE html>
@@ -183,51 +198,9 @@ if (!isset($_SESSION['customer_ID'])) {
     HTML;
   }
 
-  renderCategory("Hot Latte (12oz)", [
-    ['Caffe Americano', 70],
-    ['Latte', 90],
-    ['Cappuccino', 90],
-    ['Caramel Macchiato', 90]
-  ]);
-
-  renderCategory("Iced Latte (16oz)", [
-    ['Iced Caffe Americano', 90],
-    ['Iced White Chocolate Mocha', 100],
-    ['Iced Spanish Latte', 100, true],
-    ['Iced Caffe Latte', 100],
-    ['Iced Caffe Mocha', 100],
-    ['Iced Caramel Macchiato', 100],
-    ['Iced Strawberry Latte', 100],
-    ['Iced Sea Salt Latte', 110]
-  ]);
-
-  renderCategory("Frappe (16oz)", [
-    ['Dark Mocha', 120],
-    ['Coffee Jelly', 120],
-    ['Java Chip', 120],
-    ['Strawberries & Cream', 120],
-    ['Matcha', 120],
-    ['Dark Chocolate M&M', 100],
-    ['Red Velvet Oreo', 100]
-  ]);
-
-  renderCategory("Mango Supreme", [
-    ['Mango Supreme - Caramel (S)', 80, true],
-    ['Mango Supreme - Cream Cheese (S)', 80],
-    ['Mango Supreme - Cream Cheese (L)', 90, true],
-    ['Mango Supreme - Caramel (L)', 90]
-  ]);
-
-  renderCategory("Matcha (Ceremonial Grade) (16oz)", [
-    ['Matcha Latte', 120],
-    ['Matcha Strawberry Latte', 140]
-  ]);
-
-  renderCategory("Add-Ons & Extras", [
-    ['Pearl', 20],
-    ['Whip Cream', 20],
-    ['Espresso Shot', 30]
-  ]);
+foreach ($grouped as $category => $items) {
+    renderCategory($category, $items);
+  }
   ?>
 </div>
 
@@ -270,13 +243,21 @@ if (!isset($_SESSION['customer_ID'])) {
   </button>
 </div>
 
-
-
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 let cart = [];
+let productOptions = []; // will hold products from DB
+
+// Fetch products from backend
+fetch('get_products.php')
+  .then(response => response.json())
+  .then(data => {
+    productOptions = data;
+    console.log('Loaded products:', productOptions);
+  })
+  .catch(error => console.error('Error loading products:', error));
 
 document.querySelectorAll('.btn-coffee').forEach(btn => {
   btn.addEventListener('click', function () {
@@ -358,51 +339,8 @@ function removeCartItem(index) {
 function replaceCartItem(index) {
   const itemToReplace = cart[index];
 
- const options = [
-  // HOT LATTE
-  { name: 'Caffe Americano', price: 70 },
-  { name: 'Latte', price: 90 },
-  { name: 'Cappuccino', price: 90 },
-  { name: 'Caramel Macchiato', price: 90 },
-
-  // ICED LATTE
-  { name: 'Iced Caffe Americano', price: 90 },
-  { name: 'Iced White Chocolate Mocha', price: 100 },
-  { name: 'Iced Spanish Latte', price: 100 },
-  { name: 'Iced Caffe Latte', price: 100 },
-  { name: 'Iced Caffe Mocha', price: 100 },
-  { name: 'Iced Caramel Macchiato', price: 100 },
-  { name: 'Iced Strawberry Latte', price: 100 },
-  { name: 'Iced Sea Salt Latte', price: 110 },
-
-  // FRAPPE
-  { name: 'Dark Mocha', price: 120 },
-  { name: 'Coffee Jelly', price: 120 },
-  { name: 'Java Chip', price: 120 },
-  { name: 'Strawberries & Cream', price: 120 },
-  { name: 'Matcha', price: 120 },
-  { name: 'Dark Chocolate M&M', price: 100 },
-  { name: 'Red Velvet Oreo', price: 100 },
-
-  // MANGO SUPREME (S/L)
-  { name: 'Mango Supreme - Caramel (S)', price: 80 },
-  { name: 'Mango Supreme - Caramel (L)', price: 90 },
-  { name: 'Mango Supreme - Cream Cheese (S)', price: 80 },
-  { name: 'Mango Supreme - Cream Cheese (L)', price: 90 },
-
-  // MATCHA CEREMONIAL
-  { name: 'Matcha Latte', price: 120 },
-  { name: 'Matcha Strawberry Latte', price: 140 },
-
-  // ADD-ONS
-  { name: 'Pearl', price: 20 },
-  { name: 'Whip Cream', price: 20 },
-  { name: 'Espresso Shot', price: 30 }
-];
-
-
-  const optionsHTML = options.map((opt, i) =>
-    `<option value="${i}">${opt.name} - ₱${opt.price}</option>`
+  const optionsHTML = productOptions.map((opt, i) =>
+    `<option value="${i}">${opt.product_name} - ₱${opt.product_price}</option>`
   ).join('');
 
   Swal.fire({
@@ -416,17 +354,17 @@ function replaceCartItem(index) {
     }
   }).then(result => {
     if (result.isConfirmed) {
-      const newItem = options[result.value];
+      const newItem = productOptions[result.value];
       cart[index] = {
-        name: newItem.name,
-        price: newItem.price,
+        name: newItem.product_name,
+        price: parseFloat(newItem.product_price),
         quantity: itemToReplace.quantity
       };
       renderCart();
       Swal.fire({
         icon: 'success',
         title: 'Replaced!',
-        text: `${itemToReplace.name} replaced with ${newItem.name}.`,
+        text: `${itemToReplace.name} replaced with ${newItem.product_name}.`,
         timer: 1200,
         showConfirmButton: false
       });
