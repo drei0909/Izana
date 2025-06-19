@@ -118,50 +118,44 @@ if (!isset($_SESSION['customer_ID'])) {
       border-radius: 10px;
       border: 1px solid #ccc;
       padding: 5px;
-      text-align: center;
+      text-align: center; A
       margin: 10px auto;
       font-weight: 600;
     }
 
-    .btn-logout {
-      position: fixed;
-      top: 20px;
-      right: 20px;
-      background-color: transparent;
-      border: 2px solid #b07542;
-      padding: 8px 18px;
-      border-radius: 30px;
-      font-weight: 600;
-      color: #4b3a2f;
-      text-decoration: none;
-      z-index: 1000;
-    }
 
-    .btn-logout:hover {
-      background: #f8e5d0;
-    }
+    .btn-menu-toggle {
+  background-color:transparent;
+  color: white;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  padding: 8px 16px;
+}
 
-    #floatingCart {
-      position: fixed;
-      bottom: 20px;
-      right: 20px;
-      width: 300px;
-      background: rgba(255,255,255,0.95);
-      border-radius: 15px;
-      box-shadow: 0 6px 20px rgba(0,0,0,0.2);
-      padding: 15px;
-      z-index: 9999;
-      cursor: move;
-      color: #000;
-    }
+.dropdown-menu {
+  background-color: #fff9f3;
+  border-radius: 10px;
+  min-width: 180px;
+  font-size: 0.95rem;
+}
+
+.dropdown-item:hover {
+  background-color: #f5eee3;
+}
+
+.modal-content {
+  background-color: #fff;
+  color: #212529; /* Bootstrap dark text */
+}
+
   </style>
 </head>
 <body>
 
-<a href="login.php" class="btn-logout"><i class="fas fa-sign-out-alt me-2"></i>Logout</a>
-
 <div class="container-menu">
   <h2 class="title">Izana Coffee Menu</h2>
+
 
   <?php
   function renderCategory($title, $items) {
@@ -237,23 +231,53 @@ if (!isset($_SESSION['customer_ID'])) {
   ?>
 </div>
 
-<!-- Movable Floating Cart -->
-<div id="floatingCart" class="shadow-lg">
-  <h5 class="text-center fw-bold mb-3">🛒 Your Cart</h5>
-  <div id="cart-items" class="mb-3" style="max-height: 200px; overflow-y: auto;"></div>
-  <hr class="my-2">
-  <div id="cart-total" class="fw-bold text-end">Total: ₱0</div>
-  <div class="text-center mt-3">
-    <button id="checkoutBtn" class="btn btn-sm btn-success w-100">Checkout</button>
+<!-- Cart Modal -->
+<div class="modal fade" id="cartModal" tabindex="-1" aria-labelledby="cartModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-scrollable modal-sm">
+    <div class="modal-content">
+      <div class="modal-header bg-light">
+        <h5 class="modal-title" id="cartModalLabel">🛒 Your Cart</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="cart-items">
+        <div class="text-muted text-center">Your cart is empty.</div>
+      </div>
+      <div class="modal-footer d-flex justify-content-between align-items-center">
+        <div id="cart-total" class="fw-bold">Total: ₱0</div>
+        <button id="checkoutBtn" class="btn btn-success btn-sm">Checkout</button>
+      </div>
+    </div>
   </div>
 </div>
 
+
+
+<!-- Top-left menu dropdown -->
+<div class="dropdown position-fixed top-0 start-0 m-3" style="z-index: 1050;">
+  <button class="btn btn-menu-toggle dropdown-toggle" type="button" id="menuDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+    ☰ Menu
+  </button>
+  <ul class="dropdown-menu shadow" aria-labelledby="menuDropdown">
+    <li><a class="dropdown-item" href="profile.php"><i class="fas fa-user me-2"></i>Profile</a></li>
+    <li><hr class="dropdown-divider"></li>
+    <li><a class="dropdown-item text-danger" href="login.php"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+  </ul>
+</div>
+
+<div style="position: fixed; top: 20px; right: 20px; z-index: 1050;">
+  <button class="btn btn-outline-dark rounded-circle" data-bs-toggle="modal" data-bs-target="#cartModal" title="View Cart">
+    <i class="fas fa-shopping-cart fa-lg"></i>
+  </button>
+</div>
+
+
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 let cart = [];
 
-// Add to Cart
 document.querySelectorAll('.btn-coffee').forEach(btn => {
   btn.addEventListener('click', function () {
     const card = this.closest('.menu-card');
@@ -270,6 +294,7 @@ document.querySelectorAll('.btn-coffee').forEach(btn => {
     }
 
     renderCart();
+
     Swal.fire({
       icon: 'success',
       title: 'Added!',
@@ -280,9 +305,9 @@ document.querySelectorAll('.btn-coffee').forEach(btn => {
   });
 });
 
-// Render Cart
 function renderCart() {
   const cartDiv = document.getElementById('cart-items');
+  const totalDisplay = document.getElementById('cart-total');
   cartDiv.innerHTML = '';
   let total = 0;
 
@@ -295,17 +320,16 @@ function renderCart() {
     total += itemTotal;
 
     cartDiv.innerHTML += `
-      <div class="d-flex justify-content-between align-items-start mb-2 border-bottom pb-2">
+      <div class="mb-2 border-bottom pb-2">
         <div>
           <strong>${item.quantity}× ${item.name}</strong><br>
-          <small>₱${item.price} each</small><br>
+          <small>₱${item.price} each</small> <br>
           <small class="text-muted">₱${itemTotal}</small>
         </div>
-        <div class="text-end">
-          <button class="btn btn-sm btn-outline-danger mb-1" onclick="removeCartItem(${index})">
+        <div class="mt-1 d-flex gap-2">
+          <button class="btn btn-sm btn-outline-danger" onclick="removeCartItem(${index})">
             <i class="fas fa-trash-alt"></i>
           </button>
-          <br>
           <button class="btn btn-sm btn-outline-warning" onclick="replaceCartItem(${index})">
             <i class="fas fa-sync-alt"></i>
           </button>
@@ -314,14 +338,14 @@ function renderCart() {
     `;
   });
 
-  document.getElementById('cart-total').innerText = `Total: ₱${total}`;
+  totalDisplay.textContent = `Total: ₱${total}`;
 }
 
-// Remove from Cart
 function removeCartItem(index) {
   const itemName = cart[index].name;
   cart.splice(index, 1);
   renderCart();
+
   Swal.fire({
     icon: 'info',
     title: 'Removed',
@@ -331,45 +355,74 @@ function removeCartItem(index) {
   });
 }
 
-// Replace Item
 function replaceCartItem(index) {
   const itemToReplace = cart[index];
 
-  // Sample product list (you can generate dynamically from PHP too)
-  const options = [
-    { name: 'Latte', price: 90 },
-    { name: 'Caramel Macchiato', price: 90 },
-    { name: 'Matcha Strawberry Latte', price: 140 },
-    { name: 'Iced Spanish Latte', price: 100 },
-    { name: 'Pearl', price: 20 }
-  ];
+ const options = [
+  // HOT LATTE
+  { name: 'Caffe Americano', price: 70 },
+  { name: 'Latte', price: 90 },
+  { name: 'Cappuccino', price: 90 },
+  { name: 'Caramel Macchiato', price: 90 },
 
-  let selectHTML = '<select id="newItem" class="swal2-select">';
-  options.forEach((opt, i) => {
-    selectHTML += `<option value="${i}">${opt.name} - ₱${opt.price}</option>`;
-  });
-  selectHTML += '</select>';
+  // ICED LATTE
+  { name: 'Iced Caffe Americano', price: 90 },
+  { name: 'Iced White Chocolate Mocha', price: 100 },
+  { name: 'Iced Spanish Latte', price: 100 },
+  { name: 'Iced Caffe Latte', price: 100 },
+  { name: 'Iced Caffe Mocha', price: 100 },
+  { name: 'Iced Caramel Macchiato', price: 100 },
+  { name: 'Iced Strawberry Latte', price: 100 },
+  { name: 'Iced Sea Salt Latte', price: 110 },
+
+  // FRAPPE
+  { name: 'Dark Mocha', price: 120 },
+  { name: 'Coffee Jelly', price: 120 },
+  { name: 'Java Chip', price: 120 },
+  { name: 'Strawberries & Cream', price: 120 },
+  { name: 'Matcha', price: 120 },
+  { name: 'Dark Chocolate M&M', price: 100 },
+  { name: 'Red Velvet Oreo', price: 100 },
+
+  // MANGO SUPREME (S/L)
+  { name: 'Mango Supreme - Caramel (S)', price: 80 },
+  { name: 'Mango Supreme - Caramel (L)', price: 90 },
+  { name: 'Mango Supreme - Cream Cheese (S)', price: 80 },
+  { name: 'Mango Supreme - Cream Cheese (L)', price: 90 },
+
+  // MATCHA CEREMONIAL
+  { name: 'Matcha Latte', price: 120 },
+  { name: 'Matcha Strawberry Latte', price: 140 },
+
+  // ADD-ONS
+  { name: 'Pearl', price: 20 },
+  { name: 'Whip Cream', price: 20 },
+  { name: 'Espresso Shot', price: 30 }
+];
+
+
+  const optionsHTML = options.map((opt, i) =>
+    `<option value="${i}">${opt.name} - ₱${opt.price}</option>`
+  ).join('');
 
   Swal.fire({
-    title: 'Replace Item',
-    html: `<p>Replacing <strong>${itemToReplace.name}</strong></p>${selectHTML}`,
+    title: `Replace ${itemToReplace.name}`,
+    html: `<select id="replace-select" class="swal2-select">${optionsHTML}</select>`,
     confirmButtonText: 'Replace',
     showCancelButton: true,
-    confirmButtonColor: '#b07542'
+    preConfirm: () => {
+      const selected = document.getElementById('replace-select').value;
+      return selected;
+    }
   }).then(result => {
     if (result.isConfirmed) {
-      const selectedIndex = document.getElementById('newItem').value;
-      const newItem = options[selectedIndex];
-
-      // Replace but keep quantity
+      const newItem = options[result.value];
       cart[index] = {
         name: newItem.name,
         price: newItem.price,
         quantity: itemToReplace.quantity
       };
-
       renderCart();
-
       Swal.fire({
         icon: 'success',
         title: 'Replaced!',
@@ -381,11 +434,10 @@ function replaceCartItem(index) {
   });
 }
 
-// Checkout button behavior
 document.addEventListener("DOMContentLoaded", () => {
   const checkoutBtn = document.getElementById("checkoutBtn");
   if (checkoutBtn) {
-    checkoutBtn.addEventListener("click", function () {
+    checkoutBtn.addEventListener("click", () => {
       if (cart.length === 0) {
         Swal.fire({
           icon: 'warning',
@@ -394,43 +446,19 @@ document.addEventListener("DOMContentLoaded", () => {
           confirmButtonColor: '#b07542'
         });
       } else {
-        // You can redirect or submit here
-        window.location.href = 'checkout.php';
+        Swal.fire({
+          icon: 'success',
+          title: 'Proceeding to Checkout...',
+          timer: 1000,
+          showConfirmButton: false
+        }).then(() => {
+          window.location.href = 'checkout.php';
+        });
       }
     });
   }
 });
-
-// Make floating cart draggable
-(function dragElement(el) {
-  let pos1 = 0, pos2 = 0, pos3 = 0, pos4 = 0;
-  el.onmousedown = dragMouseDown;
-
-  function dragMouseDown(e) {
-    e.preventDefault();
-    pos3 = e.clientX;
-    pos4 = e.clientY;
-    document.onmouseup = closeDrag;
-    document.onmousemove = elementDrag;
-  }
-
-  function elementDrag(e) {
-    e.preventDefault();
-    pos1 = pos3 - e.clientX;
-    pos2 = pos4 - e.clientY;
-    pos3 = e.clientX;
-    pos4 = e.clientY;
-    el.style.top = (el.offsetTop - pos2) + "px";
-    el.style.left = (el.offsetLeft - pos1) + "px";
-  }
-
-  function closeDrag() {
-    document.onmouseup = null;
-    document.onmousemove = null;
-  }
-})(document.getElementById("floatingCart"));
 </script>
-
 
 </body>
 </html>
