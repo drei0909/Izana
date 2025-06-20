@@ -18,6 +18,12 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
     } elseif (is_array($result)) {
         $_SESSION['customer_ID'] = $result['customer_id'];
         $_SESSION['customer_FN'] = $result['customer_FN'];
+        $_SESSION['is_new'] = $result['is_new'];
+
+        if ($result['is_new']) {
+            $_SESSION['show_promo'] = true;
+        }
+
         header("Location: menu.php");
         exit();
     } else {
@@ -25,6 +31,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
     }
 }
 ?>
+
+<!DOCTYPE html>
+<html>
+<head>
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+</head>
+<body>
+  <?php echo $alert; ?>
+  <!-- login form here -->
+</body>
+</html>
+
+
 
 
 <!DOCTYPE html>

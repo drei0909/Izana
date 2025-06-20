@@ -78,12 +78,7 @@ $customer_name = $_SESSION['customer_FN'] ?? 'Guest';
       font-size: 1rem;
     }
 
-    select.form-select {
-      border-radius: 8px;
-      font-family: 'Quicksand', sans-serif;
-    }
-
-    .form-label, .form-control {
+    select.form-select, .form-label, .form-control {
       font-family: 'Quicksand', sans-serif;
     }
 
@@ -94,7 +89,7 @@ $customer_name = $_SESSION['customer_FN'] ?? 'Guest';
 </head>
 <body>
 
-<!-- Back button top-left corner -->
+<!-- Back button -->
 <div class="position-absolute top-0 start-0 m-3">
   <a href="menu.php" class="btn btn-back">&larr; Back to Menu</a>
 </div>
@@ -140,6 +135,18 @@ $customer_name = $_SESSION['customer_FN'] ?? 'Guest';
     </table>
 
     <form action="place_order.php" method="post" enctype="multipart/form-data">
+      
+      <!-- Order Type -->
+      <div class="mb-3">
+        <label for="order_type" class="payment-label">Select Order Type:</label>
+        <select class="form-select" name="order_type" id="order_type" required>
+          <option value="">-- Choose Order Type --</option>
+          <option value="Dine-in">Dine-in</option>
+          <option value="Take-out">Take-out</option>
+        </select>
+      </div>
+
+      <!-- Payment Method -->
       <div class="mb-3">
         <label for="payment_method" class="payment-label">Select Payment Method:</label>
         <select class="form-select" name="payment_method" id="payment_method" required>
@@ -149,20 +156,29 @@ $customer_name = $_SESSION['customer_FN'] ?? 'Guest';
         </select>
       </div>
 
+      <!-- GCash Receipt Upload -->
       <div class="mb-4" id="gcash_upload" style="display: none;">
         <label for="gcash_receipt" class="form-label">Upload GCash Receipt:</label>
         <input type="file" class="form-control" name="gcash_receipt" id="gcash_receipt" accept=".jpg,.jpeg,.png" />
       </div>
+
+
+
+<div class="mb-3">
+  <label for="promo_code" class="form-label">Promo Code</label>
+  <input type="text" name="promo_code" class="form-control" placeholder="Enter code (e.g. IZANA10)">
+</div>
+
 
       <button type="submit" class="btn btn-place-order">Place Order</button>
     </form>
   <?php endif; ?>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<!-- Scripts -->
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
-  // GCash receipt toggle
+  // Toggle GCash receipt field
   document.getElementById('payment_method').addEventListener('change', function () {
     const upload = document.getElementById('gcash_upload');
     const receipt = document.getElementById('gcash_receipt');
@@ -175,11 +191,10 @@ $customer_name = $_SESSION['customer_FN'] ?? 'Guest';
     }
   });
 
-  // Block order if GCash and no receipt
+  // Block submission if GCash selected and no file uploaded
   document.querySelector('form').addEventListener('submit', function (e) {
     const payment = document.getElementById('payment_method').value;
     const receipt = document.getElementById('gcash_receipt');
-
     if (payment === 'GCash' && (!receipt.files || receipt.files.length === 0)) {
       e.preventDefault();
       Swal.fire({
@@ -191,7 +206,7 @@ $customer_name = $_SESSION['customer_FN'] ?? 'Guest';
     }
   });
 
-  // SweetAlert for successful order
+  // SweetAlert if order was successful
   <?php if (isset($_SESSION['order_success']) && $_SESSION['order_success']): ?>
     Swal.fire({
       icon: 'success',
@@ -201,9 +216,17 @@ $customer_name = $_SESSION['customer_FN'] ?? 'Guest';
     });
     <?php unset($_SESSION['order_success']); ?>
   <?php endif; ?>
+  
+  <?php if (isset($_SESSION['promo_applied_successfully']) && $_SESSION['promo_applied_successfully']): ?>
+    Swal.fire({
+      icon: 'info',
+      title: 'Promo Applied!',
+      text: 'You’ve successfully claimed 10% off with WELCOME10!',
+      confirmButtonColor: '#b07542'
+    });
+    <?php unset($_SESSION['promo_applied_successfully']); ?>
+    <?php endif; ?>
 </script>
-
-
 
 </body>
 </html>

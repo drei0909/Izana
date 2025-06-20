@@ -4,16 +4,22 @@ if (!isset($_SESSION['customer_ID'])) {
     header("Location: login.php");
     exit();
 }
+
 require_once('./classes/database.php');
 $db = new Database();
 $products = $db->getAllProducts();
 
+// ✅ Check if the logged-in customer is new (for welcome promo)
+if (isset($_SESSION['is_new']) && $_SESSION['is_new']) {
+    $_SESSION['show_promo'] = true;
+}
 
-// Group products by category
+// ✅ Group products by category  
 $grouped = [];
 foreach ($products as $p) {
     $cat = $p['product_category'] ?? 'Other';
     $grouped[$cat][] = [
+        $p['product_id'],
         $p['product_name'],
         $p['product_price'],
         $p['product_category'] == 1
@@ -171,22 +177,45 @@ foreach ($products as $p) {
 <div class="container-menu">
   <h2 class="title">Izana Coffee Menu</h2>
 
+<?php if (isset($_SESSION['is_new']) && $_SESSION['is_new']) : ?>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+Swal.fire({
+    icon: 'info',
+    title: '🎉 Welcome!',
+    text: 'claim your ₱30 off for your first cup discount using code: FIRSTCUP',
+    confirmButtonColor: '#b07542'
+});
+</script>
+<?php unset($_SESSION['is_new']); endif; ?>
+
+<?php if (isset($_SESSION['promo_applied_successfully']) && $_SESSION['promo_applied_successfully']): ?>
+Swal.fire({
+  icon: 'info',
+  title: 'Promo Applied!',
+  text: 'You’ve successfully claimed 10% off with WELCOME10!',
+  confirmButtonColor: '#b07542'
+});
+<?php unset($_SESSION['promo_applied_successfully']); ?>
+<?php endif; ?>
+
 
   <?php
-  function renderCategory($title, $items) {
+ function renderCategory($title, $items) {
     echo "<div class='category-title'>{$title}</div><div class='row'>";
     foreach ($items as $item) {
-      echo card($item[0], $item[1], $item[2] ?? false);
+      echo card($item[0], $item[1], $item[2], $item[3] ?? false);
     }
     echo "</div>";
-  }
+}
 
-  function card($name, $price, $best = false) {
+
+  function card($productID, $name, $price, $best = false) {
     $img = "uploads/default-drink.jpg";
     $bestLabel = $best ? "<div class='badge-best'>Best Seller</div>" : "";
     return <<<HTML
     <div class="col-md-4">
-      <div class="menu-card">
+      <div class="menu-card" data-product-id="$productID">
         <img src="$img" alt="$name">
         <div class="menu-name">$name</div>
         <div class="menu-price">₱$price</div>
@@ -196,7 +225,7 @@ foreach ($products as $p) {
       </div>
     </div>
     HTML;
-  }
+}
 
 foreach ($grouped as $category => $items) {
     renderCategory($category, $items);
@@ -243,48 +272,86 @@ foreach ($grouped as $category => $items) {
   </button>
 </div>
 
+
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 let cart = [];
-let productOptions = []; // will hold products from DB
+let productOptions = [];
 
 // Fetch products from backend
-fetch('get_products.php')
-  .then(response => response.json())
-  .then(data => {
-    productOptions = data;
-    console.log('Loaded products:', productOptions);
-  })
-  .catch(error => console.error('Error loading products:', error));
+document.addEventListener("DOMContentLoaded", () => {
+  fetch('get_products.php')
+    .then(response => response.json())
+    .then(data => {
+      productOptions = data;
+      console.log('Loaded products:', productOptions);
+      attachAddToCartListeners(); // Only attach listeners after products are ready
+    })
+    .catch(error => console.error('Error loading products:', error));
 
-document.querySelectorAll('.btn-coffee').forEach(btn => {
-  btn.addEventListener('click', function () {
-    const card = this.closest('.menu-card');
-    const name = card.querySelector('.menu-name').textContent.trim();
-    const price = parseFloat(card.querySelector('.menu-price').textContent.replace(/[₱,]/g, ''));
-    const qtyInput = card.querySelector('input[type="number"]');
-    const quantity = parseInt(qtyInput.value) || 1;
+  const checkoutBtn = document.getElementById("checkoutBtn");
+  if (checkoutBtn) {
+    checkoutBtn.addEventListener("click", () => {
+      if (cart.length === 0) {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Cart is Empty!',
+          text: 'Add something to checkout.',
+          confirmButtonColor: '#b07542'
+        });
+      } else {
+        // Save cart to session before redirect
+        fetch('save_cart.php', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(cart)
+        }).then(() => {
+          Swal.fire({
+            icon: 'success',
+            title: 'Proceeding to Checkout...',
+            timer: 1000,
+            showConfirmButton: false
+          }).then(() => {
+            window.location.href = 'checkout.php';
+          });
+        });
+      }
+    });
+  }
+});
 
-    const existing = cart.find(item => item.name === name);
-    if (existing) {
-      existing.quantity += quantity;
-    } else {
-      cart.push({ name, price, quantity });
-    }
+function attachAddToCartListeners() {
+  document.querySelectorAll('.btn-coffee').forEach(btn => {
+    btn.addEventListener('click', function () {
+      const card = this.closest('.menu-card');
+      const name = card.querySelector('.menu-name').textContent.trim();
+      const price = parseFloat(card.querySelector('.menu-price').textContent.replace(/[₱,]/g, ''));
+      const qtyInput = card.querySelector('input[type="number"]');
+      const quantity = parseInt(qtyInput.value) || 1;
+const productID = parseInt(card.getAttribute('data-product-id'));
 
-    renderCart();
+const existing = cart.find(item => item.id === productID);
+if (existing) {
+  existing.quantity += quantity;
+} else {
+  cart.push({ id: productID, name, price, quantity });
+}
 
-    Swal.fire({
-      icon: 'success',
-      title: 'Added!',
-      text: `${quantity} × ${name} added to cart.`,
-      timer: 1200,
-      showConfirmButton: false
+
+      renderCart();
+
+      Swal.fire({
+        icon: 'success',
+        title: 'Added!',
+        text: `${quantity} × ${name} added to cart.`,
+        timer: 1200,
+        showConfirmButton: false
+      });
     });
   });
-});
+}
 
 function renderCart() {
   const cartDiv = document.getElementById('cart-items');
@@ -294,6 +361,8 @@ function renderCart() {
 
   if (cart.length === 0) {
     cartDiv.innerHTML = `<div class="text-muted text-center">Your cart is empty.</div>`;
+    totalDisplay.textContent = `Total: ₱0`;
+    return;
   }
 
   cart.forEach((item, index) => {
@@ -303,9 +372,9 @@ function renderCart() {
     cartDiv.innerHTML += `
       <div class="mb-2 border-bottom pb-2">
         <div>
-          <strong>${item.quantity}× ${item.name}</strong><br>
-          <small>₱${item.price} each</small> <br>
-          <small class="text-muted">₱${itemTotal}</small>
+          <strong>${item.quantity}× ${escapeHtml(item.name)}</strong><br>
+          <small>₱${item.price.toFixed(2)} each</small><br>
+          <small class="text-muted">₱${itemTotal.toFixed(2)}</small>
         </div>
         <div class="mt-1 d-flex gap-2">
           <button class="btn btn-sm btn-outline-danger" onclick="removeCartItem(${index})">
@@ -319,7 +388,7 @@ function renderCart() {
     `;
   });
 
-  totalDisplay.textContent = `Total: ₱${total}`;
+  totalDisplay.textContent = `Total: ₱${total.toFixed(2)}`;
 }
 
 function removeCartItem(index) {
@@ -340,26 +409,27 @@ function replaceCartItem(index) {
   const itemToReplace = cart[index];
 
   const optionsHTML = productOptions.map((opt, i) =>
-    `<option value="${i}">${opt.product_name} - ₱${opt.product_price}</option>`
+    `<option value="${i}">${escapeHtml(opt.product_name)} - ₱${parseFloat(opt.product_price).toFixed(2)}</option>`
   ).join('');
 
   Swal.fire({
-    title: `Replace ${itemToReplace.name}`,
+    title: `Replace ${escapeHtml(itemToReplace.name)}`,
     html: `<select id="replace-select" class="swal2-select">${optionsHTML}</select>`,
     confirmButtonText: 'Replace',
     showCancelButton: true,
     preConfirm: () => {
-      const selected = document.getElementById('replace-select').value;
-      return selected;
+      return document.getElementById('replace-select').value;
     }
   }).then(result => {
     if (result.isConfirmed) {
       const newItem = productOptions[result.value];
       cart[index] = {
-        name: newItem.product_name,
-        price: parseFloat(newItem.product_price),
-        quantity: itemToReplace.quantity
-      };
+  id: newItem.product_id,
+  name: newItem.product_name,
+  price: parseFloat(newItem.product_price),
+  quantity: itemToReplace.quantity
+};
+
       renderCart();
       Swal.fire({
         icon: 'success',
@@ -372,31 +442,18 @@ function replaceCartItem(index) {
   });
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  const checkoutBtn = document.getElementById("checkoutBtn");
-  if (checkoutBtn) {
-    checkoutBtn.addEventListener("click", () => {
-      if (cart.length === 0) {
-        Swal.fire({
-          icon: 'warning',
-          title: 'Cart is Empty!',
-          text: 'Add something to checkout.',
-          confirmButtonColor: '#b07542'
-        });
-      } else {
-        Swal.fire({
-          icon: 'success',
-          title: 'Proceeding to Checkout...',
-          timer: 1000,
-          showConfirmButton: false
-        }).then(() => {
-          window.location.href = 'checkout.php';
-        });
-      }
-    });
-  }
-});
+function escapeHtml(text) {
+  const map = {
+    '&': '&amp;',
+    '<': '&lt;',
+    '>': '&gt;',
+    '"': '&quot;',
+    "'": '&#039;',
+  };
+  return text.replace(/[&<>"']/g, m => map[m]);
+}
 </script>
+
 
 </body>
 </html>
