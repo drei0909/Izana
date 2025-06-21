@@ -79,10 +79,17 @@ class Database {
         $total += $item['price'] * $item['quantity'];
     }
 
-    $stmt = $this->conn->prepare("INSERT INTO order (customer_id, total, payment_method, receipt, status) VALUES (?, ?, ?, ?, ?)");
-    $stmt->execute([$customerID, $total, $paymentMethod, $receiptPath, $status]);
+    if ($pointsRedeemed >= 5) {
+    $pointDiscount = 50;
+    $totalAmount = max(0, $totalAmount - $pointDiscount);
+}
+
+    $stmt = $this->conn->prepare("INSERT INTO order (customer_id, total, payment_method, receipt,  promo_discount, point_discount, status) VALUES (?, ?, ?, ?, ?)");
+    $stmt->execute([$customerID, $total, $paymentMethod, $receiptPath,  $promoDiscount, $pointDiscount, $status]);
     return $this->conn->lastInsertId();
 }
+
+
 //insertitam
 public function insertOrderItem($orderID, $productID, $quantity, $price) {
     $stmt = $this->conn->prepare("INSERT INTO order_item (order_id, product_id, quantity, price) VALUES (?, ?, ?, ?)");
@@ -91,63 +98,134 @@ public function insertOrderItem($orderID, $productID, $quantity, $price) {
 
 
 //placeOrder method
-public function placeOrder($customerID, $orderType, $cart, $paymentMethod, $receiptPath = null, $promoCode = null) {
+public function placeOrder($customerID, $orderType, $cart, $paymentMethod, $receiptPath = null, $promoCode = null, $pointsRedeemed = 0) {
     $totalAmount = 0;
+    $promoDiscount = 0;
+$pointDiscount = 0;
 
-    // Calculate total amount
+    // Calculate total order total
     foreach ($cart as $item) {
-        $totalAmount += $item['price'] * $item['quantity'];
+        $itemPrice = floatval($item['price']);
+        $itemQty   = intval($item['quantity']);
+        $totalAmount += $itemPrice * $itemQty;
     }
 
-    // Normalize promo code
-    $promoCode = strtoupper(trim($promoCode));
+    $appliedPromoID = null; // for storing promo_id
+    $promoCode = $promoCode ? strtoupper(trim($promoCode)) : null;
 
-    // Promo Logic: Apply 10% discount for WELCOME10 if customer is new and hasn't used it yet
-    if ($promoCode === 'WELCOME10' && isset($_SESSION['is_new']) && $_SESSION['is_new']) {
-        // Check if promo has already been used by this customer
-        $stmt = $this->conn->prepare("SELECT COUNT(*) FROM customer_promotion WHERE customer_id = ? AND promo_code = ?");
-        $stmt->execute([$customerID, $promoCode]);
+    // Promo logic using the promotion table
+    if ($promoCode) {
+        // Fetch promo details from DB
+        $stmt = $this->conn->prepare("SELECT * FROM promotion WHERE promo_code = ? AND is_active = 1 AND (expiry_date IS NULL OR expiry_date >= CURDATE())");
+        $stmt->execute([$promoCode]);
+        $promo = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        if ($stmt->fetchColumn() == 0) {
-            $discount = $totalAmount * 0.10;
-            $totalAmount -= $discount;
+        if ($promo) {
+            $promoID       = $promo['promo_id'];
+            $discountType  = $promo['discount_type'];
+            $discountValue = $promo['discount_value'];
+            $minOrder      = $promo['minimum_order_amount'];
+            $maxUses       = $promo['max_uses'];
 
-            // Insert into customer_promotion table
-            $stmt = $this->conn->prepare("INSERT INTO customer_promotion (customer_id, promo_code) VALUES (?, ?)");
-            $stmt->execute([$customerID, $promoCode]);
+            // Check if customer already used this promo
+            $stmt = $this->conn->prepare("SELECT COUNT(*) FROM customer_promotion WHERE customer_id = ? AND promo_id = ?");
+            $stmt->execute([$customerID, $promoID]);
+            $alreadyUsed = $stmt->fetchColumn();
+
+            if (!$alreadyUsed && $totalAmount >= $minOrder) {
+                // Apply discount
+                if ($discountType === 'percent') {
+                    $discount = ($discountValue / 100) * $totalAmount;
+                } elseif ($discountType === 'fixed') {
+                    $discount = $discountValue;
+                } else {
+                    $discount = 0;
+                }
+$promoDiscount = $discount;
+$totalAmount -= $promoDiscount;
+                $appliedPromoID = $promoID;
+
+                // Record promo usage
+                $stmt = $this->conn->prepare("INSERT INTO customer_promotion (customer_id, promo_id) VALUES (?, ?)");
+                $stmt->execute([$customerID, $promoID]);
+
+                $_SESSION['promo_applied_successfully'] = true;
+            }
         }
     }
 
-    // Insert into Order table
-    $stmt = $this->conn->prepare("INSERT INTO `order` (customer_id, order_type, total_amount, receipt) VALUES (?, ?, ?, ?)");
-    $stmt->execute([$customerID, $orderType, $totalAmount, $receiptPath]);
-    $orderID = $this->conn->lastInsertId();
+    // Insert order
+   if ($pointsRedeemed >= 5) {
+    $pointDiscount = 50;
+    $totalAmount = max(0, $totalAmount - $pointDiscount);
+}
 
-    // Insert each item into Order_Item table
+$stmt = $this->conn->prepare("INSERT INTO `order` 
+    (customer_id, order_type, total_amount, receipt, promo_discount, point_discount) 
+    VALUES (?, ?, ?, ?, ?, ?)");
+$stmt->execute([$customerID, $orderType, $totalAmount, $receiptPath, $promoDiscount, $pointDiscount]);
+
+$orderID = $this->conn->lastInsertId();
+    // Insert order items
     foreach ($cart as $item) {
-        if (!isset($item['id'])) continue;
+        if (!isset($item['id'], $item['quantity'], $item['price'])) continue;
         $this->insertOrderItem($orderID, $item['id'], $item['quantity'], $item['price']);
     }
 
-    // Insert into Payment table
+    // Insert payment
     $stmt = $this->conn->prepare("INSERT INTO payment (order_id, payment_method, payment_amount) VALUES (?, ?, ?)");
     $stmt->execute([$orderID, $paymentMethod, $totalAmount]);
 
-    // Reward Points Logic: Earn 1 point per ₱100 spent
-    $pointsEarned = floor($totalAmount / 100);
-    if ($pointsEarned > 0) {
-        $stmt = $this->conn->prepare("INSERT INTO reward_transaction (customer_id, points_earned, reward_type, points_redeemed) VALUES (?, ?, 'Earned', 0)");
-        $stmt->execute([$customerID, $pointsEarned]);
-    }
+    
+   // Calculate points earned AFTER all discounts (totalAmount should already be final)
+$pointsEarned = max(0, floor($totalAmount / 100)); // 1 point per ₱100
 
-    // Mark customer as no longer new after their first order
-    $stmt = $this->conn->prepare("UPDATE Customer SET is_new = 0 WHERE customer_id = ?");
+// Insert redeemed points if any
+if ($pointsRedeemed > 0) {
+    try {
+        $stmt = $this->conn->prepare("
+            INSERT INTO reward_transaction 
+                (customer_id, points_earned, reward_type, points_redeemed) 
+            VALUES 
+                (?, 0, 'Redeemed', ?)
+        ");
+        $stmt->execute([$customerID, $pointsRedeemed]);
+    } catch (PDOException $e) {
+        error_log("Failed to insert redeemed points: " . $e->getMessage());
+    }
+}
+
+$pointsEarned = max(0, floor($totalAmount / 100));
+
+
+
+// Only earn points if no points were redeemed
+if ($pointsRedeemed == 0) {
+    $pointsEarned = max(0, floor($totalAmount / 100));
+    if ($pointsEarned > 0) {
+        try {
+            $stmt = $this->conn->prepare("
+                INSERT INTO reward_transaction 
+                    (customer_id, points_earned, reward_type, points_redeemed) 
+                VALUES 
+                    (?, ?, 'Earned', 0)
+            ");
+            $stmt->execute([$customerID, $pointsEarned]);
+        } catch (PDOException $e) {
+            error_log("Failed to insert earned points: " . $e->getMessage());
+        }
+    }
+}
+
+
+
+    // Mark as not new (first order logic)
+    $stmt = $this->conn->prepare("UPDATE customer SET is_new = 0 WHERE customer_id = ?");
     $stmt->execute([$customerID]);
     $_SESSION['is_new'] = 0;
 
     return $orderID;
 }
-
 
 
 public function getProductIdByName($productName) {
@@ -156,6 +234,139 @@ public function getProductIdByName($productName) {
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
     return $row ? $row['product_id'] : null;
 }
+
+public function getAvailablePromos($customerID) {
+    $stmt = $this->conn->prepare("SELECT * FROM promotion");
+    $stmt->execute();
+    $allPromos = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Filter promos the customer hasn't used
+    $available = [];
+    foreach ($allPromos as $promo) {
+        $check = $this->conn->prepare("SELECT COUNT(*) FROM customer_promotion WHERE customer_id = ? AND promo_id = ?");
+        $check->execute([$customerID, $promo['promo_code']]);
+        if ($check->fetchColumn() == 0) {
+            $available[] = $promo;
+        }
+    }
+    return $available;
+}
+
+public function getCustomerPoints($customerID) {
+    try {
+        $stmt = $this->conn->prepare("
+            SELECT COALESCE(SUM(points_earned - points_redeemed), 0) AS total_points
+            FROM reward_transaction
+            WHERE customer_id = ?
+        ");
+        $stmt->execute([$customerID]);
+        $result = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $result ? intval($result['total_points']) : 0;
+    } catch (PDOException $e) {
+        error_log("Error fetching customer points: " . $e->getMessage());
+        return 0;
+    }
+}
+
+public function getCustomerByID($customerID) {
+    $stmt = $this->conn->prepare("SELECT * FROM customer WHERE customer_id = ?");
+    $stmt->execute([$customerID]);
+    return $stmt->fetch(PDO::FETCH_ASSOC);
+}
+
+public function getCustomerOrders($customerID) {
+    $stmt = $this->conn->prepare("SELECT * FROM `order` WHERE customer_id = ? ORDER BY order_date DESC");
+    $stmt->execute([$customerID]);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+public function getOrderItem($orderID) {
+    $stmt = $this->conn->prepare("
+        SELECT oi.quantity, oi.price, p.product_name 
+        FROM order_item oi 
+        JOIN product p ON oi.product_id = p.product_id 
+        WHERE oi.order_id = ?
+    ");
+   $stmt->execute([$orderID]);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+public function getPaymentByOrderID($orderID) {
+    $stmt = $this->conn->prepare("SELECT * FROM payment WHERE order_id = ?");
+    $stmt->execute([$orderID]);
+    return $stmt->fetch(PDO::FETCH_ASSOC);
+}
+
+public function updateCustomerInfo($customerID, $newUsername, $newEmail, $newPassword = null) {
+    try {
+        // Check for duplicate username or email
+        $check = $this->conn->prepare("SELECT customer_id FROM customer WHERE (customer_username = :username OR customer_email = :email) AND customer_id != :id");
+        $check->execute([
+            ':username' => $newUsername,
+            ':email' => $newEmail,
+            ':id' => $customerID
+        ]);
+
+        if ($check->fetch()) {
+            return 'duplicate';
+        }
+
+        // Validate email format
+        if (!filter_var($newEmail, FILTER_VALIDATE_EMAIL)) {
+            return 'invalid_email';
+        }
+
+        // Build SQL dynamically based on password presence
+        $fields = "customer_username = :username, customer_email = :email";
+        $params = [
+            ':username' => $newUsername,
+            ':email' => $newEmail,
+            ':id' => $customerID
+        ];
+
+        if (!empty($newPassword)) {
+            $fields .= ", customer_password = :password";
+            $params[':password'] = password_hash($newPassword, PASSWORD_BCRYPT);
+        }
+
+        $sql = "UPDATE customer SET $fields WHERE customer_id = :id";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute($params);
+
+        return 'success';
+    } catch (PDOException $e) {
+        error_log("Update failed: " . $e->getMessage());
+        return 'error';
+    }
+}
+
+public function getTotalCustomers() {
+    $stmt = $this->conn->query("SELECT COUNT(*) FROM customer");
+    return $stmt->fetchColumn();
+}
+
+public function loginAdmin_L($username, $password) {
+    $conn = $this->conn;
+
+    $stmt = $conn->prepare("SELECT * FROM admin WHERE admin_username = ?");
+    $stmt->execute([$username]);
+    $admin = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$admin) {
+        return 'no_user';
+    }
+
+    if (!password_verify($password, $admin['admin_password'])) {
+        return 'wrong_password';
+    }
+
+    return $admin; // ✅ Login successful
+}
+
+
+
+
+
 
 
 

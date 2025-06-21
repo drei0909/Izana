@@ -126,8 +126,22 @@ $db = new database();
       border-radius: 20px;
       color: #fff;
     }
+
+<style>
+.transparent-navbar {
+  background-color: rgba(0, 0, 0, 0.3) !important;
+  backdrop-filter: blur(8px);
+  transition: background-color 0.3s ease;
+}
+</style>
+
+
+
+
+
   </style>
 </head>
+
 <body>
 
 <!-- Header with Nav -->
@@ -137,15 +151,27 @@ $db = new database();
       <a class="navbar-brand" href="#">IZANA</a>
       <div class="ms-auto d-flex gap-3">
         <a class="nav-link" href="registration.php">Register</a>
-        <a class="nav-link" href="Login.php">Login</a>
+
+        <!-- Login Dropdown -->
+        <div class="dropdown">
+          <a class="nav-link dropdown-toggle" href="#" id="loginDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            Login
+          </a>
+          <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="loginDropdown">
+            <li><a class="dropdown-item" href="login.php">Customer Login</a></li>
+            <li><a class="dropdown-item" href="admin_L.php">Admin Login</a></li>
+          </ul>
+        </div>
       </div>
     </div>
   </nav>
-  <div class="header-content">
+
+  <div class="header-content text-center">
     <h1>Where Every Sip Feels Like Home</h1>
     <a href="menu.php" class="btn">Order Now</a>
   </div>
 </header>
+
 
 <!-- Features -->
 <section class="features container">
@@ -193,6 +219,8 @@ $db = new database();
     <p class="mt-4 small">&copy; <?= date('Y') ?> IZANA. All rights reserved.</p>
   </div>
 </footer>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 </body>
 </html>
