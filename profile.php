@@ -86,7 +86,7 @@ $orders = $db->getCustomerOrders($customerID);
 </ul>
 
         <li class="nav-item"><a class="nav-link" href="menu.php">Menu</a></li>
-        <li class="nav-item"><a class="nav-link" href="logout.php">Logout</a></li>
+        <li class="nav-item"><a class="nav-link" href="login.php">Logout</a></li>
       </ul>
     </div>
   </div>
