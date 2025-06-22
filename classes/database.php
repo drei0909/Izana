@@ -392,18 +392,18 @@ public function getAllOrder() {
 
 
 // Add Product
-public function addProduct($productName, $productPrice, $productCategory, $imagePath) {
-    $sql = "INSERT INTO product (product_name, product_price, product_category, image_path) VALUES (?, ?, ?, ?)";
-    $stmt = $this->conn->prepare($sql);
-    return $stmt->execute([$productName, $productPrice, $productCategory, $imagePath]);
+public function addProduct($name, $price, $category, $stock, $imagePath) {
+    $stmt = $this->conn->prepare("INSERT INTO product (product_name, product_price, product_category, stock_quantity, image_path) VALUES (?, ?, ?, ?, ?)");
+    return $stmt->execute([$name, $price, $category, $stock, $imagePath]);
 }
 
+
 // Update Product
-public function updateProduct($productId, $productName, $productPrice, $productCategory, $imagePath = null) {
-    if ($imagePath) {
-        $sql = "UPDATE product SET product_name = ?, product_price = ?, product_category = ?, image_path = ? WHERE product_id = ?";
+public function updateProduct($productId, $productName, $productPrice, $productCategory, $stockQuantity) {
+    if ($stockQuantity) {
+        $sql = "UPDATE product SET product_name = ?, product_price = ?, product_category = ?, stock_quantity = ? WHERE product_id = ?";
         $stmt = $this->conn->prepare($sql);
-        return $stmt->execute([$productName, $productPrice, $productCategory, $imagePath, $id]);
+        return $stmt->execute([$productName, $productPrice, $productCategory, $stockQuantity, $productId]);
     } else {
         $sql = "UPDATE product SET product_name = ?, product_price = ?, product_category = ? WHERE product_id = ?";
         $stmt = $this->conn->prepare($sql);
@@ -412,11 +412,104 @@ public function updateProduct($productId, $productName, $productPrice, $productC
 }
 
 // Delete Product
-public function deleteProduct($productId) {
-    $sql = "DELETE FROM product WHERE product_id = ?";
-    $stmt = $this->conn->prepare($sql);
-    return $stmt->execute([$productId]);
+public function deleteProduct($product_id) {
+    try {
+        // First, delete related records from order_item (if no ON DELETE CASCADE)
+        $stmt1 = $this->conn->prepare("DELETE FROM order_item WHERE product_id = ?");
+        $stmt1->execute([$product_id]);
+
+        // Then delete the product itself
+        $stmt2 = $this->conn->prepare("DELETE FROM product WHERE product_id = ?");
+        return $stmt2->execute([$product_id]);
+    } catch (PDOException $e) {
+        error_log("Delete Error: " . $e->getMessage());
+        return false;
+    }
 }
+
+
+
+public function getProductById($productId) {
+    $stmt = $this->conn->prepare("SELECT * FROM product WHERE product_id = ?");
+    $stmt->execute([$productId]);
+    return $stmt->fetch(PDO::FETCH_ASSOC);
+}
+
+public function getSalesReport($start = null, $end = null) {
+    $sql = "SELECT o.order_id, o.order_type, o.order_date,
+                   c.customer_FN, c.customer_LN,
+                   p.payment_method, p.payment_amount
+            FROM `order` o
+            LEFT JOIN customer c ON o.customer_id = c.customer_id
+            LEFT JOIN payment p ON o.order_id = p.order_id
+            WHERE 1";
+
+    $params = [];
+
+    if ($start && $end) {
+        $sql .= " AND DATE(o.order_date) BETWEEN ? AND ?";
+        $params[] = $start;
+        $params[] = $end;
+    }
+
+    $sql .= " ORDER BY o.order_date DESC";
+    $stmt = $this->conn->prepare($sql);
+    $stmt->execute($params);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+
+
+public function getSalesChartData($start, $end, $period = 'daily') {
+  $dateExpr = $period=='weekly'
+    ? "YEAR(o.order_date), WEEK(o.order_date,1)"
+    : "DATE(o.order_date)";
+  $labelExpr = $period=='weekly'
+    ? "CONCAT(YEAR(o.order_date),'‑W',WEEK(o.order_date,1))"
+    : "DATE(o.order_date)";
+  $sql = "SELECT $labelExpr AS label, SUM(p.payment_amount) AS total
+          FROM `order` o
+          LEFT JOIN payment p ON p.order_id = o.order_id
+          WHERE 1";
+  $params = [];
+  if ($start&&$end){$sql.=" AND DATE(o.order_date) BETWEEN ? AND ?"; $params=[$start,$end];}
+  $sql.=" GROUP BY $dateExpr ORDER BY MIN(o.order_date)";
+  $stmt = $this->conn->prepare($sql);
+  $stmt->execute($params);
+  return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+public function getAdminById($admin_ID) {
+    $stmt = $this->conn->prepare("SELECT * FROM admin WHERE admin_ID = ?");
+    $stmt->execute([$admin_ID]);
+    return $stmt->fetch(PDO::FETCH_ASSOC);
+}
+
+public function updateAdminProfile($admin_ID, $firstName, $lastName) {
+    $stmt = $this->conn->prepare("UPDATE admin SET admin_FN = ?, admin_LN = ? WHERE admin_ID = ?");
+    return $stmt->execute([$firstName, $lastName, $admin_ID]);
+}
+
+public function updateAdminPassword($admin_ID, $hashedPassword) {
+    $stmt = $this->conn->prepare("UPDATE admin SET password = ? WHERE admin_ID = ?");
+    return $stmt->execute([$hashedPassword, $admin_ID]);
+}
+
+
+public function getTotalOrders() {
+    $stmt = $this->conn->query("SELECT COUNT(*) FROM `order`");
+    return $stmt->fetchColumn();
+}
+
+public function getTotalSales() {
+    $stmt = $this->conn->query("SELECT SUM(total_amount) FROM `order`");
+    $total = $stmt->fetchColumn();
+    return $total ?? 0;
+}
+
+
+
+
 
 
 

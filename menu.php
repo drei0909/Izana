@@ -22,7 +22,8 @@ foreach ($products as $p) {
         $p['product_id'],
         $p['product_name'],
         $p['product_price'],
-        $p['product_category'] == 1
+        $p['product_category'] == 1,
+         $p['stock_quantity'] ?? 0
     ];
 }
 ?>
@@ -210,8 +211,8 @@ Swal.fire({
 }
 
 
-  function card($productID, $name, $price, $best = false) {
-    $img = "uploads/default-drink.jpg";
+  function card($productID, $name, $price, $best = false, $stock = 0) {
+    $img = "uploads/t.jpg";
     $bestLabel = $best ? "<div class='badge-best'>Best Seller</div>" : "";
     return <<<HTML
     <div class="col-md-4">

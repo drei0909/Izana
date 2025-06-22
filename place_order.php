@@ -87,41 +87,30 @@ if ($redeemPoints) {
 $promoDiscount = 0;
 $promoID = null;
 
-if (strtoupper($promoCode) === 'FIRSTCUP') {
-    // Check if the customer already has any order
-  $stmt = $db->conn->prepare("SELECT COUNT(*) FROM `order` WHERE customer_id = ?");
-    $stmt->execute([$customerID]);
-    $orderCount = $stmt->fetchColumn();
+// Only run promo logic if a code is selected
+if (!empty($promoCode)) {
+    // Fetch promo details
+    $stmt = $db->conn->prepare("SELECT * FROM promotion WHERE promo_code = ? AND is_active = 1 AND expiry_date >= CURDATE()");
+    $stmt->execute([$promoCode]);
+    $promo = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    if ($orderCount > 0) {
-        $_SESSION['error'] = "Sorry! The FIRSTCUP promo is for new customers only.";
-        header("Location: checkout.php");
-        exit();
-    }
+    if ($promo) {
+        $promoID = $promo['promo_id'];
 
-    // Apply the discount
-    $promoDiscount = min($promo['discount_value'], $totalAmount);
-    $totalAmount -= $promoDiscount;
+        // Check if already used
+        $stmt = $db->conn->prepare("SELECT COUNT(*) FROM Customer_Promotion WHERE customer_id = ? AND promo_id = ?");
+        $stmt->execute([$customerID, $promoID]);
+        $alreadyUsed = $stmt->fetchColumn();
 
-    // Log that promo was used
-    $stmt = $db->conn->prepare("INSERT INTO Customer_Promotion (customer_id, promo_id) VALUES (?, ?)");
-    $stmt->execute([$customerID, $promoID]);
+        if ($alreadyUsed > 0) {
+            $_SESSION['error'] = "Promo already used.";
+            header("Location: checkout.php");
+            exit();
+        }
 
-    $_SESSION['promo_applied_successfully'] = true;
-}
-
-
-    $promoID = $promo['promo_id'];
-
-    // Check if already used
-    $stmt = $db->conn->prepare("SELECT COUNT(*) FROM Customer_Promotion WHERE customer_id = ? AND promo_id = ?");
-    $stmt->execute([$customerID, $promoID]);
-    $alreadyUsed = $stmt->fetchColumn();
-
-    if ($alreadyUsed == 0) {
+        // Handle FIRSTCUP separately
         if ($promoCode === 'FIRSTCUP') {
-            // ✅ Restrict FIRSTCUP to new users only
-            $stmt = $db->conn->prepare("SELECT COUNT(*) FROM order WHERE customer_id = ?");
+            $stmt = $db->conn->prepare("SELECT COUNT(*) FROM `order` WHERE customer_id = ?");
             $stmt->execute([$customerID]);
             $orderCount = $stmt->fetchColumn();
 
@@ -131,38 +120,36 @@ if (strtoupper($promoCode) === 'FIRSTCUP') {
                 exit();
             }
 
-            // Apply promo
-            $promoDiscount = min($promo['discount_value'], $totalAmount); // assume it's fixed ₱
-            $totalAmount = max(0, $totalAmount - $promoDiscount);
-
-            // Save promo use
-            $stmt = $db->conn->prepare("INSERT INTO Customer_Promotion (customer_id, promo_id) VALUES (?, ?)");
-            $stmt->execute([$customerID, $promoID]);
-
-            $_SESSION['promo_applied_successfully'] = true;
+            // Apply fixed discount
+            $promoDiscount = min($promo['discount_value'], $totalAmount);
         } else {
-            // ✅ For other promo codes (not FIRSTCUP)
+            // Apply general promos
             if ($totalAmount >= $promo['minimum_order_amount']) {
                 if ($promo['discount_type'] === 'percent') {
                     $promoDiscount = $totalAmount * ($promo['discount_value'] / 100);
                 } else {
                     $promoDiscount = $promo['discount_value'];
                 }
-
-                $totalAmount = max(0, $totalAmount - $promoDiscount);
-
-                // Save promo use
-                $stmt = $db->conn->prepare("INSERT INTO Customer_Promotion (customer_id, promo_id) VALUES (?, ?)");
-                $stmt->execute([$customerID, $promoID]);
-
-                $_SESSION['promo_applied_successfully'] = true;
             } else {
                 $_SESSION['error'] = "Minimum order not met for this promo.";
                 header("Location: checkout.php");
                 exit();
             }
         }
+
+        // Deduct and save
+        $totalAmount = max(0, $totalAmount - $promoDiscount);
+        $stmt = $db->conn->prepare("INSERT INTO Customer_Promotion (customer_id, promo_id) VALUES (?, ?)");
+        $stmt->execute([$customerID, $promoID]);
+
+        $_SESSION['promo_applied_successfully'] = true;
+
+    } else {
+        $_SESSION['error'] = "Invalid or expired promo code.";
+        header("Location: checkout.php");
+        exit();
     }
+}
 
 
 // Finalize order
