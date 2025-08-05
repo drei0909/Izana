@@ -202,16 +202,6 @@ $currentPoints = $result['total_points'] ?? 0;
 </div>
 
 
-<?php if (isset($_SESSION['error'])): ?>
-<script>
-Swal.fire({
-  icon: 'error',
-  title: 'Oops!',
-  text: '<?= addslashes($_SESSION["error"]); ?>',
-  confirmButtonColor: '#b07542'
-});
-</script>
-<?php unset($_SESSION['error']); endif; ?>
 
 
 

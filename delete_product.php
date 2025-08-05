@@ -9,7 +9,7 @@ if (!isset($_SESSION['admin_ID'])) {
 }
 
 if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
-    die("❌ Invalid request: No valid product ID provided.");
+    die(" Invalid request: No valid product ID provided.");
 }
 
 $product_id = intval($_GET['id']);
@@ -18,7 +18,7 @@ $db = new Database();
 // Fetch product to get image path
 $product = $db->getProductById($product_id);
 if (!$product) {
-    die("❌ Product not found.");
+    die(" Product not found.");
 }
 
 // Delete the product using the function (which now handles foreign key properly)
@@ -36,6 +36,6 @@ if ($deleted) {
     header("Location: manage_products.php?deleted=success");
     exit();
 } else {
-    die("❌ Failed to delete the product. It may still be linked to an order.");
+    die(" Failed to delete the product. It may still be linked to an order.");
 }
 ?>

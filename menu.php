@@ -1,20 +1,20 @@
 <?php
 session_start();
+
 if (!isset($_SESSION['customer_ID'])) {
     header("Location: login.php");
     exit();
 }
-
 require_once('./classes/database.php');
 $db = new Database();
 $products = $db->getAllProducts();
 
-// ✅ Check if the logged-in customer is new (for welcome promo)
+// Check if the logged-in customer is new (for welcome promo)
 if (isset($_SESSION['is_new']) && $_SESSION['is_new']) {
     $_SESSION['show_promo'] = true;
 }
 
-// ✅ Group products by category  
+//  Group products by category  
 $grouped = [];
 foreach ($products as $p) {
     $cat = $p['product_category'] ?? 'Other';

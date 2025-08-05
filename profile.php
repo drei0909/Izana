@@ -56,7 +56,7 @@ $orders = $db->getCustomerOrders($customerID);
 </head>
 <body>
 
-<!-- ✅ Navbar -->
+<!-- Navbar -->
 <nav class="navbar navbar-expand-lg navbar-dark fixed-top transparent-navbar">
   <div class="container-fluid">
     <a class="navbar-brand" href="#">Izana Coffee</a>
@@ -86,7 +86,6 @@ $orders = $db->getCustomerOrders($customerID);
 </ul>
 
         <li class="nav-item"><a class="nav-link" href="menu.php">Menu</a></li>
-        <li class="nav-item"><a class="nav-link" href="login.php">Logout</a></li>
       </ul>
     </div>
   </div>
@@ -95,7 +94,7 @@ $orders = $db->getCustomerOrders($customerID);
 <div class="container mt-4">
   <h2 class="mb-4">👤 Owner Profile</h2>
 
-  <!-- ✅ Customer Info Card -->
+  <!-- Customer Info Card -->
   <div class="card mb-4">
     <div class="card-body">
       <h5 class="card-title"><?= htmlspecialchars($customer['customer_FN'] . ' ' . $customer['customer_LN']) ?></h5>
@@ -106,7 +105,7 @@ $orders = $db->getCustomerOrders($customerID);
     </div>
   </div>
 
-  <!-- ✅ Previous Orders -->
+  <!-- Previous Orders -->
   <h4 class="mb-3">📦 Previous Orders</h4>
   <?php if ($orders): ?>
     <?php foreach ($orders as $order): ?>
@@ -137,7 +136,7 @@ $orders = $db->getCustomerOrders($customerID);
   <?php endif; ?>
 </div>
 
-<!-- ✅ Edit Modal -->
+<!--Edit Modal -->
 <div class="modal fade" id="editModal" tabindex="-1" aria-labelledby="editModalLabel" aria-hidden="true">
   <div class="modal-dialog">
     <form action="update_profile.php" method="POST">

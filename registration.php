@@ -151,7 +151,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['register'])) {
     }
 
     .text-center a {
-      color: #4b3a2f;
+      color:white;
       font-weight: 600;
       text-decoration: none;
     }

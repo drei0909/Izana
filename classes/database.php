@@ -509,6 +509,19 @@ public function getTotalSales() {
 
 
 
+// Check if username exists
+public function isUsernameExists($username) {
+    $stmt = $this->conn->prepare("SELECT COUNT(*) FROM customer WHERE customer_username = ?");
+    $stmt->execute([$username]);
+    return $stmt->fetchColumn() > 0;
+}
+
+// Check if email exists
+public function isEmailExists($email) {
+    $stmt = $this->conn->prepare("SELECT COUNT(*) FROM customer WHERE customer_email = ?");
+    $stmt->execute([$email]);
+    return $stmt->fetchColumn() > 0;
+}
 
 
 

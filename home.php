@@ -168,7 +168,7 @@ $db = new database();
 
   <div class="header-content text-center">
     <h1>Where Every Sip Feels Like Home</h1>
-    <a href="menu.php" class="btn">Order Now</a>
+    <a href="menu_preview.php" class="btn">Menu View</a>
   </div>
 </header>
 
