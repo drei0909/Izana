@@ -523,7 +523,26 @@ public function isEmailExists($email) {
     return $stmt->fetchColumn() > 0;
 }
 
+function getOrderById($orderId) {
+    global $pdo;
+    $stmt = $pdo->prepare("SELECT o.*, c.customer_name 
+                           FROM `order` o 
+                           JOIN customers c ON o.customer_ID = c.customer_ID 
+                           WHERE o.order_ID = :orderId");
+    $stmt->execute(['orderId' => $orderId]);
+    return $stmt->fetch(PDO::FETCH_ASSOC);
+}
 
+function updateOrderStatus($orderId, $newStatus) {
+    global $pdo;
+    $allowedStatuses = ['Pending', 'Preparing', 'Ready for Pickup', 'Completed'];
+    if (!in_array($newStatus, $allowedStatuses)) {
+        return false; // ❌ Invalid status
+    }
+
+    $stmt = $pdo->prepare("UPDATE `order` SET order_status = :status WHERE order_ID = :orderId");
+    return $stmt->execute(['status' => $newStatus, 'orderId' => $orderId]);
+}
 
 
 }

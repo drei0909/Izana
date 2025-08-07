@@ -73,11 +73,12 @@ $orders = $db->getAllOrder();
                 <td><?= htmlspecialchars($order['customer_FN'] . ' ' . $order['customer_LN']) ?></td>
                 <td>₱<?= number_format($order['total_amount'], 2) ?></td>
                 <td>
-                  <?php if (!empty($order['receipt'])): ?>
-                    <a href="uploads/<?= htmlspecialchars($order['receipt']) ?>" target="_blank" class="receipt-link">View</a>
-                  <?php else: ?>
-                    <span class="text-muted">No receipt</span>
-                  <?php endif; ?>
+                 <?php if (!empty($order['receipt'])): ?>
+   <a href="uploads/receipts/<?= htmlspecialchars($order['receipt']) ?>" target="_blank" class="receipt-link">View</a>
+
+<?php else: ?>
+    <span class="text-muted">No receipt</span>
+<?php endif; ?>
                 </td>
                 <td><?= date("F j, Y h:i A", strtotime($order['order_date'])) ?></td>
               </tr>

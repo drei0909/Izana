@@ -29,12 +29,11 @@ if (!$paymentMethod || !in_array($paymentMethod, ['Cash', 'GCash'])) {
 }
 
 // Handle GCash receipt
-$receiptPath = null;
 if ($paymentMethod === 'GCash') {
     if (isset($_FILES['gcash_receipt']) && $_FILES['gcash_receipt']['error'] === 0) {
-        $ext = pathinfo($_FILES['gcash_receipt']['name'], PATHINFO_EXTENSION);
+        $ext = strtolower(pathinfo($_FILES['gcash_receipt']['name'], PATHINFO_EXTENSION));
         $allowed = ['jpg', 'jpeg', 'png'];
-        if (!in_array(strtolower($ext), $allowed)) {
+        if (!in_array($ext, $allowed)) {
             $_SESSION['error'] = "Invalid file type. Only JPG, JPEG, or PNG allowed.";
             header("Location: checkout.php");
             exit();
@@ -44,20 +43,25 @@ if ($paymentMethod === 'GCash') {
             mkdir('uploads/receipts', 0777, true);
         }
 
-        $target = 'uploads/receipts/' . uniqid('gcash_', true) . '.' . $ext;
+        $filename = uniqid('gcash_', true) . '.' . $ext;
+        $target = 'uploads/receipts/' . $filename;
+
         if (!move_uploaded_file($_FILES['gcash_receipt']['tmp_name'], $target)) {
             $_SESSION['error'] = "Failed to upload receipt.";
             header("Location: checkout.php");
             exit();
         }
 
-        $receiptPath = $target;
+        // ✅ store only the file name in DB
+        $receiptPath = $filename;
     } else {
         $_SESSION['error'] = "Please upload a valid GCash receipt.";
         header("Location: checkout.php");
         exit();
     }
 }
+
+
 
 // Calculate total
 $totalAmount = 0;
