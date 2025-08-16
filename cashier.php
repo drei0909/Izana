@@ -8,15 +8,36 @@ if (!isset($_SESSION['admin_ID'])) {
 require_once('./classes/database.php');
 $db = new Database();
 
+$keyword = $_GET['search'] ?? '';
+
 try {
-    $stmt = $db->conn->query("
-        SELECT o.*, c.customer_FN, c.customer_LN, p.payment_method 
-        FROM `order` o 
-        JOIN customer c ON o.customer_ID = c.customer_ID 
-        LEFT JOIN payment p ON o.order_id = p.order_id 
-        WHERE o.order_status != 'completed' 
-        ORDER BY o.order_date DESC
-    ");
+    if (!empty($keyword)) {
+        $stmt = $db->conn->prepare("
+            SELECT o.*, c.customer_FN, c.customer_LN, p.payment_method 
+            FROM `order` o 
+            JOIN customer c ON o.customer_ID = c.customer_ID 
+            LEFT JOIN payment p ON o.order_id = p.order_id 
+            WHERE o.order_status != 'completed'
+              AND (
+                  o.order_id LIKE :keyword
+                  OR CONCAT(c.customer_FN, ' ', c.customer_LN) LIKE :keyword
+                  OR c.customer_FN LIKE :keyword
+                  OR c.customer_LN LIKE :keyword
+                  OR c.customer_email LIKE :keyword
+              )
+            ORDER BY o.order_date DESC
+        ");
+        $stmt->execute([':keyword' => "%$keyword%"]);
+    } else {
+        $stmt = $db->conn->query("
+            SELECT o.*, c.customer_FN, c.customer_LN, p.payment_method 
+            FROM `order` o 
+            JOIN customer c ON o.customer_ID = c.customer_ID 
+            LEFT JOIN payment p ON o.order_id = p.order_id 
+            WHERE o.order_status != 'completed' 
+            ORDER BY o.order_date DESC
+        ");
+    }
     $orders = $stmt->fetchAll(PDO::FETCH_ASSOC);
 } catch (PDOException $e) {
     die("Error fetching orders: " . $e->getMessage());
@@ -53,15 +74,70 @@ try {
     .table td, .table th {
       color: #fff;
     }
+
+     .sidebar {
+      height: 100vh;
+      background-color: rgba(52, 58, 64, 0.95);
+    }
+    .sidebar .nav-link {
+      color: #ffffff;
+    }
+    .sidebar .nav-link.active,
+    .sidebar .nav-link:hover {
+      background-color: #6c757d;
+    }
+    .admin-header {
+      background-color: rgba(255,255,255,0.9);
+      padding: 15px 20px;
+      border-bottom: 1px solid #dee2e6;
+    }
+    .dashboard-content {
+      padding: 25px;
+      background-color: rgba(255, 255, 255, 0.95);
+      min-height: 100vh;
+    }
+    .card {
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+
   </style>
 </head>
 <body>
 
-<a href="admin.php" class="btn btn-warning btn-back">Back</a>
-
+<div class="d-flex">
+  <!-- Sidebar -->
+  <div class="sidebar d-flex flex-column p-3 text-white" style="width: 250px;">
+    <h4 class="text-white mb-4"><i ></i>Izana Admin</h4>
+    <ul class="nav nav-pills flex-column">
+      <li><a href="admin.php" class="nav-link active"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</a></li>
+      <li><a href="view_customers.php" class="nav-link"><i class=></i>View Customers</a></li>
+      <li><a href="view_orders.php" class="nav-link"><i class=></i>View Orders</a></li>
+      <li><a href="manage_products.php" class="nav-link"><i class=></i>Manage Products</a></li>
+       <li><a href="cashier.php" class="nav-link"><i class=></i>Cashier</a></li>
+      <li><a href="sales_report.php" class="nav-link"><i class=></i>Sales Report</a></li>
+      <li><a href="edit_profile.php" class="nav-link"><i class=></i>Edit Profile</a></li>
+      <li><a href="admin_L.php" class="nav-link text-danger"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+    </ul>
+  </div>
 
 <div class="container mt-5">
   <h3><i class="fas fa-cash-register"></i> Cashier Panel</h3>
+
+  <!-- Filter/Search Bar -->
+<form method="GET" class="d-flex justify-content-center mb-4">
+    <input type="text" 
+           name="search" 
+           class="form-control w-50 me-2" 
+           placeholder="Search orders..." 
+           value="<?= htmlspecialchars($keyword) ?>">
+    <button type="submit" class="btn btn-primary me-2">
+        <i class="fas fa-search"></i> Filter
+    </button>
+    <a href="cashier.php" class="btn btn-secondary">
+        <i class="fas fa-undo"></i> Reset
+    </a>
+</form>
+
 
   <div class="table-responsive">
     <table class="table table-dark table-bordered table-hover">

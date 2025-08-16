@@ -40,10 +40,53 @@ $products = $db->getAllProducts();
       top: 20px;
       left: 20px;
     }
+
+ .sidebar {
+      height: 100vh;
+      background-color: rgba(52, 58, 64, 0.95);
+    }
+    .sidebar .nav-link {
+      color: #ffffff;
+    }
+    .sidebar .nav-link.active,
+    .sidebar .nav-link:hover {
+      background-color: #6c757d;
+    }
+    .admin-header {
+      background-color: rgba(255,255,255,0.9);
+      padding: 15px 20px;
+      border-bottom: 1px solid #dee2e6;
+    }
+    .dashboard-content {
+      padding: 25px;
+      background-color: rgba(255, 255, 255, 0.95);
+      min-height: 100vh;
+    }
+    .card {
+      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    }
+    
   </style>
 </head>
 <body>
-  <a href="admin.php" class="btn btn-warning btn-back"><i class="fas fa-arrow-left"></i> Back</a>
+
+<div class="d-flex">
+  <!-- Sidebar -->
+  <div class="sidebar d-flex flex-column p-3 text-white" style="width: 250px;">
+    <h4 class="text-white mb-4"><i ></i>Izana Admin</h4>
+    <ul class="nav nav-pills flex-column">
+      <li><a href="admin.php" class="nav-link active"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</a></li>
+      <li><a href="view_customers.php" class="nav-link"><i class="fas fa-users me-2"></i>View Customers</a></li>
+      <li><a href="view_orders.php" class="nav-link"><i class="fas fa-receipt  me-2"></i>View Orders</a></li>
+      <li><a href="manage_products.php" class="nav-link"><i class="fas fa-mug-hot me-2"></i>Manage Products</a></li>
+       <li><a href="cashier.php" class="nav-link"><i class="fas fa-cash-register me-2"></i>Cashier</a></li>
+      <li><a href="sales_report.php" class="nav-link"><i class="fas fa-chart-line me-2"></i>Sales Report</a></li>
+      <li><a href="edit_profile.php" class="nav-link"><i class="fas fa-user-edit me-2"></i>Edit Profile</a></li>
+      <li><a href="admin_L.php" class="nav-link text-danger"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+    </ul>
+  </div>
+
+ 
   <div class="container container-bg mt-5">
     <h2 class="text-center mb-4">Manage Products</h2>
 

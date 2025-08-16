@@ -544,6 +544,60 @@ function updateOrderStatus($orderId, $newStatus) {
     return $stmt->execute(['status' => $newStatus, 'orderId' => $orderId]);
 }
 
-
+public function searchCustomer($keyword) {
+    if (empty($keyword)) {
+        $sql = "SELECT * FROM customer ORDER BY created_at DESC";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute();
+    } else {
+        $sql = "SELECT * FROM customer
+                WHERE CONCAT(customer_FN, ' ', customer_LN) LIKE :keyword
+                   OR customer_FN LIKE :keyword
+                   OR customer_LN LIKE :keyword
+                   OR customer_email LIKE :keyword
+                ORDER BY created_at DESC";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute([':keyword' => "%$keyword%"]);
+    }
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
+
+public function searchOrder($keyword) {
+    if (empty($keyword)) {
+        $sql = "SELECT o.*, c.customer_FN, c.customer_LN, c.customer_email
+                FROM `order` o
+                JOIN customer c ON o.customer_id = c.customer_id
+                ORDER BY o.order_date DESC";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute();
+    } else {
+        $sql = "SELECT o.*, c.customer_FN, c.customer_LN, c.customer_email
+                FROM `order` o
+                JOIN customer c ON o.customer_id = c.customer_id
+                WHERE o.order_id LIKE :keyword
+                   OR CONCAT(c.customer_FN, ' ', c.customer_LN) LIKE :keyword
+                   OR c.customer_FN LIKE :keyword
+                   OR c.customer_LN LIKE :keyword
+                   OR c.customer_email LIKE :keyword
+                ORDER BY o.order_date DESC";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute([':keyword' => "%$keyword%"]);
+    }
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+
+    public function cashierLogin($username, $password) {
+        $sql = "SELECT * FROM cashier WHERE username = ?";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute([$username]);
+        $cashier = $stmt->fetch();
+        if ($cashier && password_verify($password, $cashier['password'])) {
+            return $cashier;
+        }
+        return false;
+    }
+}
+
+
 ?>

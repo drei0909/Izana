@@ -160,6 +160,7 @@ $db = new database();
           <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="loginDropdown">
             <li><a class="dropdown-item" href="login.php">Customer Login</a></li>
             <li><a class="dropdown-item" href="admin_L.php">Admin Login</a></li>
+             <li><a class="dropdown-item" href="cashier_login.php">Cashier Login</a></li>
           </ul>
         </div>
       </div>
