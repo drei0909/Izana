@@ -9,19 +9,33 @@ if (!isset($_SESSION['admin_ID'])) {
 
 $db = new Database();
 
+// ✅ Get search input
 $search = $_GET['search'] ?? '';
-$orders = $db->searchOrder($search); // new function in Database class
+
+$limit = 20; // rows per page
+$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
+if ($page < 1) $page = 1;
+$offset = ($page - 1) * $limit;
+
+// ✅ Fetch orders with pagination
+$orders = $db->getOrders($search, $limit, $offset);
+
+// ✅ Count total orders for pagination
+$total_orders = $db->countOrders($search);
+$total_pages = ceil($total_orders / $limit);
+if ($total_pages < 1) $total_pages = 1;
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
-<head>
+<head>A
   <meta charset="UTF-8">
   <title>View Orders</title>
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
   <style>
     body {
-      background: url('uploads/bgg.jpg') no-repeat center center fixed;
+      background: url('uploads/bgg.jpg  ') no-repeat center center fixed;
       background-size: cover;
       color: #fff;
     }
@@ -37,20 +51,7 @@ $orders = $db->searchOrder($search); // new function in Database class
     .table-dark th {
       background-color: #343a40 !important;
     }
-    .btn-back {
-      position: absolute;
-      top: 20px;
-      left: 20px;
-    }
-    a.receipt-link {
-      color: #ffc107;
-      text-decoration: underline;
-    }
-    a.receipt-link:hover {
-      color: #ffca2c;
-    }
-
-.sidebar {
+    .sidebar {
       height: 100vh;
       background-color: rgba(52, 58, 64, 0.95);
     }
@@ -61,20 +62,23 @@ $orders = $db->searchOrder($search); // new function in Database class
     .sidebar .nav-link:hover {
       background-color: #6c757d;
     }
-    .admin-header {
-      background-color: rgba(255,255,255,0.9);
-      padding: 15px 20px;
-      border-bottom: 1px solid #dee2e6;
+    /* ✅ Pornhub-style pagination */
+    .pagination .page-item .page-link {
+      border-radius: 50%;
+      margin: 0 3px;
+      color: #fff;
+      background-color: #1c1c1c;
+      border: none;
+      font-weight: bold;
     }
-    .dashboard-content {
-      padding: 25px;
-      background-color: rgba(255, 255, 255, 0.95);
-      min-height: 100vh;
+    .pagination .page-item.active .page-link {
+      background-color: #ff9000; /* Pornhub orange */
+      border-color: #ff9000;
     }
-    .card {
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
+    .pagination .page-item .page-link:hover {
+      background-color: #333;
+      color: #ff9000;
     }
-    
   </style>
 </head>
 
@@ -87,15 +91,13 @@ $orders = $db->searchOrder($search); // new function in Database class
       <li><a href="view_customers.php" class="nav-link"><i class="fas fa-users me-2"></i>View Customers</a></li>
       <li><a href="view_orders.php" class="nav-link"><i class="fas fa-receipt  me-2"></i>View Orders</a></li>
       <li><a href="manage_products.php" class="nav-link"><i class="fas fa-mug-hot me-2"></i>Manage Products</a></li>
-       <li><a href="cashier.php" class="nav-link"><i class="fas fa-cash-register me-2"></i>Cashier</a></li>
+      <li><a href="cashier.php" class="nav-link"><i class="fas fa-cash-register me-2"></i>Cashier</a></li>
+      <li><a href="manage_cashier.php" class="nav-link"><i class="fas fa-cash-register me-2"></i>Manage Cashier</a></li>
       <li><a href="sales_report.php" class="nav-link"><i class="fas fa-chart-line me-2"></i>Sales Report</a></li>
       <li><a href="edit_profile.php" class="nav-link"><i class="fas fa-user-edit me-2"></i>Edit Profile</a></li>
       <li><a href="admin_L.php" class="nav-link text-danger"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
     </ul>
   </div>
-
-
-
 
   <div class="container mt-5 container-bg">
     <h2 class="mb-4 text-center"><i class="fas fa-shopping-cart"></i> Order List</h2>
@@ -149,6 +151,58 @@ $orders = $db->searchOrder($search); // new function in Database class
         </tbody>
       </table>
     </div>
+
+    <!-- ✅ Pagination -->
+    <nav>
+      <ul class="pagination justify-content-center pagination-lg">
+        <!-- Prev -->
+        <li class="page-item <?= ($page <= 1) ? 'disabled' : '' ?>">
+          <a class="page-link" href="?search=<?= urlencode($search) ?>&page=<?= max(1, $page - 1) ?>">Prev</a>
+        </li>
+
+        <?php
+        // ✅ Show max 5 page numbers
+        $start = max(1, $page - 2);
+        $end = min($total_pages, $page + 2);
+
+        if ($end - $start < 4) {
+            if ($start == 1) {
+                $end = min(5, $total_pages);
+            } elseif ($end == $total_pages) {
+                $start = max(1, $total_pages - 4);
+            }
+        }
+
+        // First page + ellipsis
+        if ($start > 1) {
+            echo '<li class="page-item"><a class="page-link" href="?search=' . urlencode($search) . '&page=1">1</a></li>';
+            if ($start > 2) {
+                echo '<li class="page-item disabled"><span class="page-link">...</span></li>';
+            }
+        }
+
+        // Middle pages
+        for ($i = $start; $i <= $end; $i++) {
+            $active = ($i == $page) ? 'active' : '';
+            echo "<li class='page-item $active'><a class='page-link' href='?search=" . urlencode($search) . "&page=$i'>$i</a></li>";
+        }
+
+        // Last page + ellipsis
+        if ($end < $total_pages) {
+            if ($end < $total_pages - 1) {
+                echo '<li class="page-item disabled"><span class="page-link">...</span></li>';
+            }
+            echo "<li class='page-item'><a class='page-link' href='?search=" . urlencode($search) . "&page=$total_pages'>$total_pages</a></li>";
+        }
+        ?>
+
+        <!-- Next -->
+        <li class="page-item <?= ($page >= $total_pages) ? 'disabled' : '' ?>">
+          <a class="page-link" href="?search=<?= urlencode($search) ?>&page=<?= min($total_pages, $page + 1) ?>">Next</a>
+        </li>
+      </ul>
+    </nav>
   </div>
+</div>
 </body>
 </html>

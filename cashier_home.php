@@ -30,29 +30,45 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
 
         $change = $payment_method === 'Cash' ? max($cash_received - $total_price, 0) : 0;
 
-        // Insert into order
-        $sql = "INSERT INTO `order` (customer_id, order_type, total_amount, receipt) VALUES (?, ?, ?, NULL)";
-        $stmt = $db->conn->prepare($sql);
+        try {
+            $db->conn->beginTransaction();
 
-        if ($stmt->execute([$cashier_ID, $order_type, $total_price])) {
-            $order_ID = $db->conn->lastInsertId();
+   $stmtOrder = $db->conn->prepare("
+    INSERT INTO `order` 
+    (customer_id, order_type, order_channel, total_amount, receipt, order_status)
+    VALUES (NULL, ?, 'walk-in', ?, NULL, 'Completed')
+");
+
+$stmtOrder->execute([$order_type, $total_price]); // <-- This line was missing
+
+$order_ID = $db->conn->lastInsertId();
+
 
             // Insert order items
-            $sql_item = "INSERT INTO `order_item` (order_id, product_id, quantity, price) VALUES (?, ?, ?, ?)";
-            $stmt_item = $db->conn->prepare($sql_item);
+            $stmtItem = $db->conn->prepare("
+                INSERT INTO `order_item` (order_id, product_id, quantity, price) 
+                VALUES (?, ?, ?, ?)
+            ");
             foreach ($cart as $item) {
-                $stmt_item->execute([$order_ID, $item['id'], $item['quantity'], $item['price']]);
+                $stmtItem->execute([$order_ID, $item['id'], $item['quantity'], $item['price']]);
             }
 
             // Insert payment
-            $sql_payment = "INSERT INTO `payment` (order_id, payment_method, payment_amount) VALUES (?, ?, ?)";
-            $stmt_payment = $db->conn->prepare($sql_payment);
-            $stmt_payment->execute([$order_ID, $payment_method, $total_price]);
+            $stmtPayment = $db->conn->prepare("
+                INSERT INTO payment (order_id, payment_method, payment_amount)
+                VALUES (?, ?, ?)
+            ");
+            $stmtPayment->execute([$order_ID, $payment_method, $total_price]);
+
+            $db->conn->commit();
 
             $success_message = "Order placed successfully!";
             $change_amount = number_format($change, 2);
-        } else {
-            $error_message = "Failed to place order.";
+            $cart = []; // Clear cart after successful order
+
+        } catch (Exception $e) {
+            $db->conn->rollBack();
+            $error_message = "Failed to place order: " . $e->getMessage();
         }
     } else {
         $error_message = "Cart is empty!";

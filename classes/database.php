@@ -252,21 +252,6 @@ public function getAvailablePromos($customerID) {
     return $available;
 }
 
-public function getCustomerPoints($customerID) {
-    try {
-        $stmt = $this->conn->prepare("
-            SELECT COALESCE(SUM(points_earned - points_redeemed), 0) AS total_points
-            FROM reward_transaction
-            WHERE customer_id = ?
-        ");
-        $stmt->execute([$customerID]);
-        $result = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $result ? intval($result['total_points']) : 0;
-    } catch (PDOException $e) {
-        error_log("Error fetching customer points: " . $e->getMessage());
-        return 0;
-    }
-}
 
 public function getCustomerByID($customerID) {
     $stmt = $this->conn->prepare("SELECT * FROM customer WHERE customer_id = ?");
@@ -544,23 +529,36 @@ function updateOrderStatus($orderId, $newStatus) {
     return $stmt->execute(['status' => $newStatus, 'orderId' => $orderId]);
 }
 
-public function searchCustomer($keyword) {
-    if (empty($keyword)) {
-        $sql = "SELECT * FROM customer ORDER BY created_at DESC";
-        $stmt = $this->conn->prepare($sql);
-        $stmt->execute();
-    } else {
-        $sql = "SELECT * FROM customer
-                WHERE CONCAT(customer_FN, ' ', customer_LN) LIKE :keyword
-                   OR customer_FN LIKE :keyword
-                   OR customer_LN LIKE :keyword
-                   OR customer_email LIKE :keyword
-                ORDER BY created_at DESC";
-        $stmt = $this->conn->prepare($sql);
-        $stmt->execute([':keyword' => "%$keyword%"]);
-    }
+public function searchCustomers($search, $limit, $offset) {
+    $sql = "SELECT * FROM customer
+            WHERE customer_FN LIKE :search 
+               OR customer_LN LIKE :search 
+               OR customer_email LIKE :search
+            ORDER BY created_at DESC
+            LIMIT :limit OFFSET :offset";
+    
+    $stmt = $this->conn->prepare($sql);
+    $stmt->bindValue(':search', "%$search%", PDO::PARAM_STR);
+    $stmt->bindValue(':limit', (int)$limit, PDO::PARAM_INT);
+    $stmt->bindValue(':offset', (int)$offset, PDO::PARAM_INT);
+    $stmt->execute();
+    
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
+
+public function countCustomers($search) {
+    $sql = "SELECT COUNT(*) FROM customer 
+            WHERE customer_FN LIKE :search 
+               OR customer_LN LIKE :search 
+               OR customer_email LIKE :search";
+    
+    $stmt = $this->conn->prepare($sql);
+    $stmt->bindValue(':search', "%$search%", PDO::PARAM_STR);
+    $stmt->execute();
+    
+    return (int)$stmt->fetchColumn();
+}
+
 
 public function searchOrder($keyword) {
     if (empty($keyword)) {
@@ -597,7 +595,111 @@ public function searchOrder($keyword) {
         }
         return false;
     }
+
+
+
+ // Get total walk-in orders
+    public function getTotalWalkInOrders() {
+        $stmt = $this->conn->query("SELECT COUNT(*) FROM `order` WHERE order_type = 'walk-in'");
+        return $stmt->fetchColumn();
+    }
+
+    // Get total walk-in sales
+    public function getTotalWalkInSales() {
+        $stmt = $this->conn->query("SELECT SUM(total_amount) FROM `order` WHERE order_type = 'walk-in'");
+        return $stmt->fetchColumn() ?? 0;
+    
+}
+
+public function getOrders($search = '', $limit = 5, $offset = 0) {
+    $sql = "SELECT o.*, c.customer_FN, c.customer_LN
+            FROM `order` o
+            JOIN customer c ON o.customer_ID = c.customer_ID
+            WHERE o.order_id LIKE :search
+               OR c.customer_FN LIKE :search
+               OR c.customer_LN LIKE :search
+            ORDER BY o.order_date DESC
+            LIMIT :limit OFFSET :offset";
+
+    $stmt = $this->conn->prepare($sql);
+    $stmt->bindValue(':search', "%$search%", PDO::PARAM_STR);
+    $stmt->bindValue(':limit', (int)$limit, PDO::PARAM_INT);
+    $stmt->bindValue(':offset', (int)$offset, PDO::PARAM_INT);
+    $stmt->execute();
+
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
 
+public function countOrders($search = '') {
+    $sql = "SELECT COUNT(*) as total
+            FROM `order` o
+            JOIN customer c ON o.customer_ID = c.customer_ID
+            WHERE o.order_id LIKE :search
+               OR c.customer_FN LIKE :search
+               OR c.customer_LN LIKE :search";
+
+    $stmt = $this->conn->prepare($sql);
+    $stmt->bindValue(':search', "%$search%", PDO::PARAM_STR);
+    $stmt->execute();
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    return $row ? (int)$row['total'] : 0;
+}
+
+// ✅ Fetch paginated orders (only non-completed)
+public function getCashierOrders($search = '', $limit = 5, $offset = 0) {
+    $sql = "SELECT o.order_id, o.customer_ID, o.order_date, o.order_status, 
+                   o.total_amount, o.order_type, o.receipt, 
+                   c.customer_FN, c.customer_LN, c.customer_email,
+                   p.payment_method
+            FROM `order` o
+            JOIN customer c ON o.customer_ID = c.customer_ID
+            LEFT JOIN payment p ON o.order_id = p.order_id
+            WHERE o.order_status != 'completed'
+              AND (
+                  o.order_id LIKE :search
+                  OR CONCAT(c.customer_FN, ' ', c.customer_LN) LIKE :search
+                  OR c.customer_FN LIKE :search
+                  OR c.customer_LN LIKE :search
+                  OR c.customer_email LIKE :search
+              )
+            ORDER BY o.order_date DESC
+            LIMIT :limit OFFSET :offset";
+
+    $stmt = $this->conn->prepare($sql);
+    $stmt->bindValue(':search', "%$search%", PDO::PARAM_STR);
+    $stmt->bindValue(':limit', (int)$limit, PDO::PARAM_INT);
+    $stmt->bindValue(':offset', (int)$offset, PDO::PARAM_INT);
+    $stmt->execute();
+
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+// ✅ Count total orders (for pagination)
+public function countCashierOrders($search = '') {
+    $sql = "SELECT COUNT(*) as total
+            FROM `order` o
+            JOIN customer c ON o.customer_ID = c.customer_ID
+            WHERE o.order_status != 'completed'
+              AND (
+                  o.order_id LIKE :search
+                  OR CONCAT(c.customer_FN, ' ', c.customer_LN) LIKE :search
+                  OR c.customer_FN LIKE :search
+                  OR c.customer_LN LIKE :search
+                  OR c.customer_email LIKE :search
+              )";
+
+    $stmt = $this->conn->prepare($sql);
+    $stmt->bindValue(':search', "%$search%", PDO::PARAM_STR);
+    $stmt->execute();
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    return $row ? (int)$row['total'] : 0;
+}
+
+
+
+
+}
 ?>

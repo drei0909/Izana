@@ -8,13 +8,16 @@ if (!isset($_SESSION['customer_ID'])) {
     exit();
 }
 
-$customerID = $_SESSION['customer_ID'];
+$customerID   = $_SESSION['customer_ID'];
 $customerName = $_SESSION['customer_FN'] ?? 'Guest';
-$cart = $_SESSION['cart'] ?? [];
+$cart         = $_SESSION['cart'] ?? [];
 
-$promoCode = isset($_POST['promo_code']) ? strtoupper(trim($_POST['promo_code'])) : null;
-$orderType = $_POST['order_type'] ?? null;
-$paymentMethod = $_POST['payment_method'] ?? null;
+// Get POST data
+$orderType     = $_POST['order_type'] ?? null; // Dine-in / Take-out
+$paymentMethod = $_POST['payment_method'] ?? null; // Cash / GCash (used only for receipt handling)
+
+// ✅ Set order_channel automatically as 'online'
+$orderChannel = 'online';
 
 // Validate order type and payment method
 if (!$orderType || !in_array($orderType, ['Dine-in', 'Take-out'])) {
@@ -29,6 +32,7 @@ if (!$paymentMethod || !in_array($paymentMethod, ['Cash', 'GCash'])) {
 }
 
 // Handle GCash receipt
+$receiptPath = null;
 if ($paymentMethod === 'GCash') {
     if (isset($_FILES['gcash_receipt']) && $_FILES['gcash_receipt']['error'] === 0) {
         $ext = strtolower(pathinfo($_FILES['gcash_receipt']['name'], PATHINFO_EXTENSION));
@@ -52,7 +56,6 @@ if ($paymentMethod === 'GCash') {
             exit();
         }
 
-        // ✅ store only the file name in DB
         $receiptPath = $filename;
     } else {
         $_SESSION['error'] = "Please upload a valid GCash receipt.";
@@ -61,108 +64,72 @@ if ($paymentMethod === 'GCash') {
     }
 }
 
-
-
 // Calculate total
 $totalAmount = 0;
 foreach ($cart as $item) {
     $totalAmount += $item['price'] * $item['quantity'];
 }
 
-// Redeem points
-$redeemPoints = isset($_POST['redeem_points']);
-$pointsRedeemed = 0;
-$pointDiscount = 0;
+try {
+    $db->conn->beginTransaction();
 
-if ($redeemPoints) {
-    $stmt = $db->conn->prepare("SELECT SUM(points_earned - points_redeemed) AS total_points FROM reward_transaction WHERE customer_id = ?");
-    $stmt->execute([$customerID]);
-    $result = $stmt->fetch(PDO::FETCH_ASSOC);
-    $availablePoints = $result['total_points'] ?? 0;
+    // Insert into order table
+    $stmt = $db->conn->prepare("
+        INSERT INTO `order` 
+        (customer_id, total_amount, order_type, order_channel, receipt, order_status)
+        VALUES (?, ?, ?, ?, ?, 'Pending')
+    ");
+    $stmt->execute([
+        $customerID,
+        $totalAmount,
+        $orderType,
+        $orderChannel, // 'online'
+        $receiptPath
+    ]);
 
-    if ($availablePoints >= 5) {
-        $pointsRedeemed = 5;
-        $pointDiscount = 50;
-        $totalAmount = max(0, $totalAmount - $pointDiscount);
+    $orderID = $db->conn->lastInsertId();
+
+    // Insert into order_item table
+    $stmtItem = $db->conn->prepare("
+        INSERT INTO order_item (order_id, product_id, quantity, price)
+        VALUES (?, ?, ?, ?)
+    ");
+    foreach ($cart as $item) {
+        $stmtItem->execute([
+            $orderID,
+            $item['id'],        // assuming 'id' is product_id
+            $item['quantity'],
+            $item['price']
+        ]);
     }
+
+    // Insert into payment table
+    $stmtPayment = $db->conn->prepare("
+        INSERT INTO payment (order_id, payment_method, payment_amount)
+        VALUES (?, ?, ?)
+    ");
+    $stmtPayment->execute([
+        $orderID,
+        $paymentMethod,
+        $totalAmount
+    ]);
+
+    $db->conn->commit();
+
+    // Save last order ID in session
+    $_SESSION['last_order_id'] = $orderID;
+
+    // Cleanup
+    unset($_SESSION['cart']);
+    $_SESSION['order_success'] = true;
+
+    header("Location: checkout.php");
+    exit();
+
+} catch (Exception $e) {
+    $db->conn->rollBack();
+    $_SESSION['error'] = "Failed to place order: " . $e->getMessage();
+    header("Location: checkout.php");
+    exit();
 }
-
-// Promo code logic
-$promoDiscount = 0;
-$promoID = null;
-
-// Only run promo logic if a code is selected
-if (!empty($promoCode)) {
-    // Fetch promo details
-    $stmt = $db->conn->prepare("SELECT * FROM promotion WHERE promo_code = ? AND is_active = 1 AND expiry_date >= CURDATE()");
-    $stmt->execute([$promoCode]);
-    $promo = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    if ($promo) {
-        $promoID = $promo['promo_id'];
-
-        // Check if already used
-        $stmt = $db->conn->prepare("SELECT COUNT(*) FROM Customer_Promotion WHERE customer_id = ? AND promo_id = ?");
-        $stmt->execute([$customerID, $promoID]);
-        $alreadyUsed = $stmt->fetchColumn();
-
-        if ($alreadyUsed > 0) {
-            $_SESSION['error'] = "Promo already used.";
-            header("Location: checkout.php");
-            exit();
-        }
-
-        // Handle FIRSTCUP separately
-        if ($promoCode === 'FIRSTCUP') {
-            $stmt = $db->conn->prepare("SELECT COUNT(*) FROM `order` WHERE customer_id = ?");
-            $stmt->execute([$customerID]);
-            $orderCount = $stmt->fetchColumn();
-
-            if ($orderCount > 0) {
-                $_SESSION['error'] = "Sorry! The FIRSTCUP promo is for new customers only.";
-                header("Location: checkout.php");
-                exit();
-            }
-
-            // Apply fixed discount
-            $promoDiscount = min($promo['discount_value'], $totalAmount);
-        } else {
-            // Apply general promos
-            if ($totalAmount >= $promo['minimum_order_amount']) {
-                if ($promo['discount_type'] === 'percent') {
-                    $promoDiscount = $totalAmount * ($promo['discount_value'] / 100);
-                } else {
-                    $promoDiscount = $promo['discount_value'];
-                }
-            } else {
-                $_SESSION['error'] = "Minimum order not met for this promo.";
-                header("Location: checkout.php");
-                exit();
-            }
-        }
-
-        // Deduct and save
-        $totalAmount = max(0, $totalAmount - $promoDiscount);
-        $stmt = $db->conn->prepare("INSERT INTO Customer_Promotion (customer_id, promo_id) VALUES (?, ?)");
-        $stmt->execute([$customerID, $promoID]);
-
-        $_SESSION['promo_applied_successfully'] = true;
-
-    } else {
-        $_SESSION['error'] = "Invalid or expired promo code.";
-        header("Location: checkout.php");
-        exit();
-    }
-}
-
-
-// Finalize order
-$orderID = $db->placeOrder($customerID, $orderType, $cart, $paymentMethod, $receiptPath, $promoCode, $pointsRedeemed);
-
-// Cleanup
-unset($_SESSION['cart']);
-$_SESSION['order_success'] = true;
-
-header("Location: checkout.php");
-exit();
 ?>

@@ -12,20 +12,7 @@
   $customer_name = $_SESSION['customer_FN'] ?? 'Guest';
   $customerID = $_SESSION['customer_ID'];
 
-  // Fetch active promos
-  $promoQuery = $db->conn->query("SELECT * FROM promotion WHERE is_active = 1 AND expiry_date >= CURDATE()");
-  $promoCodes = $promoQuery->fetchAll(PDO::FETCH_ASSOC);
-
-  // Fetch current reward points
-  $currentPoints = 0;
-  $stmt = $db->conn->prepare("
-      SELECT SUM(points_earned - points_redeemed) AS total_points
-      FROM reward_transaction
-      WHERE customer_id = ?
-  ");
-  $stmt->execute([$customerID]);
-  $result = $stmt->fetch(PDO::FETCH_ASSOC);
-  $currentPoints = $result['total_points'] ?? 0;
+  
 
   // ✅ Fetch latest order status if available
   $orderStatus = null;
@@ -128,6 +115,8 @@
       </div>
     <?php else: ?>
       <form action="place_order.php" method="post" enctype="multipart/form-data">
+        <input type="hidden" name="order_channel" value="online">
+
         <table class="table table-bordered align-middle">
           <thead>
             <tr>
@@ -182,31 +171,7 @@
           <input type="file" class="form-control" name="gcash_receipt" id="gcash_receipt" accept=".jpg,.jpeg,.png" />
         </div>
 
-        <!-- Promo Code -->
-        <div class="mb-3">
-          <label class="form-label">Available Promos:</label>
-          <select name="promo_code" id="promo_code" class="form-select">
-            <option value="">-- Select Promo Code --</option>
-            <?php foreach ($promoCodes as $promo): ?>
-              <option 
-                value="<?= htmlspecialchars($promo['promo_code']); ?>"
-                data-type="<?= $promo['discount_type']; ?>"
-                data-value="<?= $promo['discount_value']; ?>"
-                data-min="<?= $promo['minimum_order_amount']; ?>"
-              >
-                <?= $promo['promo_code'] . ' - ' . $promo['description']; ?>
-              </option>
-            <?php endforeach; ?>
-          </select>
-        </div>
-
-        <!-- Reward Points -->
-        <div class="form-check mb-3">
-          <input class="form-check-input" type="checkbox" name="redeem_points" id="redeem_points" value="1" <?= ($currentPoints >= 1 ? '' : 'disabled'); ?>>
-          <label class="form-check-label" for="redeem_points">
-            Redeem 5 Points for ₱50 Off (You have <?= $currentPoints; ?> points)
-          </label>
-        </div>
+       
 
         <button type="submit" class="btn btn-place-order">Place Order</button>
       </form>
