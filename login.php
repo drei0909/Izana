@@ -5,6 +5,9 @@ $alert = '';
 
 session_start();
 
+$username = '';
+$password = ''; // not preserved for security reasons
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
     $username = $_POST['username'];
     $password = $_POST['password'];
@@ -33,20 +36,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
 ?>
 
 <!DOCTYPE html>
-<html>
-<head>
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-</head>
-<body>
-  <?php echo $alert; ?>
-  <!-- login form here -->
-</body>
-</html>
-
-
-
-
-<!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
@@ -65,7 +54,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
       padding: 0;
       color: #f7f1eb;
     }
-
     .login-container {
       max-width: 500px;
       margin: 80px auto;
@@ -76,7 +64,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
       box-shadow: 0 12px 30px rgba(0,0,0,0.3);
       backdrop-filter: blur(8px);
     }
-
     .title {
       font-family: 'Playfair Display', serif;
       font-size: 2.3rem;
@@ -85,20 +72,13 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
       margin-bottom: 25px;
       text-shadow: 1px 1px 0 #f2e1c9;
     }
-
     .icon-box {
       text-align: center;
       font-size: 3rem;
       color: #b07542;
       margin-bottom: 10px;
     }
-
-    .form-label {
-      font-weight: 600;
-      color: #f5e9dc;
-      font-size: 0.95rem;
-    }
-
+    .form-label { font-weight: 600; color: #f5e9dc; font-size: 0.95rem; }
     .form-control {
       border-radius: 30px;
       padding: 12px;
@@ -106,12 +86,10 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
       border: 1px solid #d2b79e;
       color: #4b3a2f;
     }
-
     .form-control:focus {
       box-shadow: 0 0 0 0.2rem rgba(166, 124, 82, 0.25);
       border-color: #b4875b;
     }
-
     .btn-coffee {
       background-color: #b07542;
       color: #fff;
@@ -123,11 +101,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
       letter-spacing: 1px;
       transition: all 0.3s ease-in-out;
     }
-
-    .btn-coffee:hover {
-      background-color: #8a5c33;
-    }
-
+    .btn-coffee:hover { background-color: #8a5c33; }
     .back-home {
       position: absolute;
       top: 20px;
@@ -141,28 +115,11 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
       text-decoration: none;
       transition: all 0.3s ease-in-out;
     }
-
-    .back-home:hover {
-      background: rgba(255, 255, 255, 0.15);
-      color: white;
-      text-decoration: none;
-    }
-
-    .text-center a {
-      color:white;
-      font-weight: 600;
-      text-decoration: none;
-    }
-
-    .text-center a:hover {
-      text-decoration: underline;
-    }
-
+    .back-home:hover { background: rgba(255, 255, 255, 0.15); color: white; text-decoration: none; }
+    .text-center a { color:white; font-weight: 600; text-decoration: none; }
+    .text-center a:hover { text-decoration: underline; }
     @media (max-width: 576px) {
-      .login-container {
-        margin: 30px 15px;
-        padding: 30px 25px;
-      }
+      .login-container { margin: 30px 15px; padding: 30px 25px; }
     }
   </style>
 </head>
@@ -175,14 +132,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
     <i class="fas fa-mug-hot"></i>
   </div>
   <h2 class="title">Welcome Back</h2>
-  <form method="POST" action="">
+  <form method="POST" action="" autocomplete="off">
     <div class="mb-3">
       <label for="username" class="form-label">Username</label>
-      <input type="text" name="username" class="form-control" required>
+      <input type="text" name="username" class="form-control" required 
+             value="<?= htmlspecialchars($username) ?>" autocomplete="off">
     </div>
     <div class="mb-3">
       <label for="password" class="form-label">Password</label>
-      <input type="password" name="password" class="form-control" required>
+      <input type="password" name="password" class="form-control" required autocomplete="new-password">
     </div>
     <button type="submit" name="login" class="btn-coffee mt-2">Login</button>
   </form>

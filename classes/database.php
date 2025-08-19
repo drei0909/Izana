@@ -66,11 +66,13 @@ class Database {
 }
 
     // Get all products
-    public function getAllProducts() {
-        $sql = "SELECT * FROM product";
-        $stmt = $this->conn->query($sql);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    }
+  public function getAllProducts() {
+    $stmt = $this->conn->prepare("SELECT * FROM product");
+    $stmt->execute();
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+
 
     public function insertOrder($customerID, $paymentMethod, $receiptPath, $status) {
     $cart = $_SESSION['cart'] ?? [];
@@ -697,6 +699,8 @@ public function countCashierOrders($search = '') {
 
     return $row ? (int)$row['total'] : 0;
 }
+
+
 
 
 

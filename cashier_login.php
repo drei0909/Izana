@@ -4,8 +4,10 @@ require_once('./classes/database.php');
 $db = new Database();
 $alert = '';
 
+$username = ''; // default empty
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
-    $username = trim($_POST['username']);
+    $username = trim($_POST['username']); // keep entered username
     $password = $_POST['password'];
 
     // Use the cashierLogin() method from your Database class
@@ -130,14 +132,17 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
     <i class="fas fa-cash-register"></i>
   </div>
   <h2 class="title">Cashier Login</h2>
-  <form method="POST" action="">
+  <form method="POST" action="" autocomplete="off">
     <div class="mb-3">
       <label for="username" class="form-label">Username</label>
-      <input type="text" name="username" class="form-control" required>
+      <input type="text" name="username" class="form-control" 
+             value="<?= htmlspecialchars($username) ?>" 
+             autocomplete="new-username" required>
     </div>
     <div class="mb-3">
       <label for="password" class="form-label">Password</label>
-      <input type="password" name="password" class="form-control" required>
+      <input type="password" name="password" class="form-control" 
+             autocomplete="new-password" required>
     </div>
     <button type="submit" name="login" class="btn-coffee mt-2">Login</button>
   </form>

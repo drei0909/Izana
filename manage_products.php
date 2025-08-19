@@ -8,7 +8,7 @@ if (!isset($_SESSION['admin_ID'])) {
 }
 
 $db = new Database();
-$products = $db->getAllProducts();
+$products = $db->getAllProducts(); // make sure getAllProducts() fetches "is_active"
 ?>
 <!DOCTYPE html>
 <html lang="en">
@@ -40,8 +40,7 @@ $products = $db->getAllProducts();
       top: 20px;
       left: 20px;
     }
-
- .sidebar {
+    .sidebar {
       height: 100vh;
       background-color: rgba(52, 58, 64, 0.95);
     }
@@ -52,20 +51,9 @@ $products = $db->getAllProducts();
     .sidebar .nav-link:hover {
       background-color: #6c757d;
     }
-    .admin-header {
-      background-color: rgba(255,255,255,0.9);
-      padding: 15px 20px;
-      border-bottom: 1px solid #dee2e6;
+    .inactive-row {
+      opacity: 0.5;
     }
-    .dashboard-content {
-      padding: 25px;
-      background-color: rgba(255, 255, 255, 0.95);
-      min-height: 100vh;
-    }
-    .card {
-      box-shadow: 0 0 10px rgba(0,0,0,0.1);
-    }
-    
   </style>
 </head>
 <body>
@@ -73,17 +61,17 @@ $products = $db->getAllProducts();
 <div class="d-flex">
   <!-- Sidebar -->
   <div class="sidebar d-flex flex-column p-3 text-white" style="width: 250px;">
-    <h4 class="text-white mb-4"><i ></i>Izana Admin</h4>
+    <h4 class="text-white mb-4">Izana Admin</h4>
     <ul class="nav nav-pills flex-column">
-      <li><a href="admin.php" class="nav-link active"></i>Dashboard</a></li>
-      <li><a href="view_customers.php" class="nav-link"></i>View Customers</a></li>
-      <li><a href="view_orders.php" class="nav-link"></i>View Orders</a></li>
-      <li><a href="manage_products.php" class="nav-link"></i>Manage Products</a></li>
-      <li><a href="cashier.php" class="nav-link"></i>Cashier</a></li>
-      <li><a href="manage_cashier.php" class="nav-link"></i>Manage Cashier</a></li>
-      <li><a href="sales_report.php" class="nav-link"></i>Sales Report</a></li>
-      <li><a href="edit_profile.php" class="nav-link"></i>Edit Profile</a></li>
-      <li><a href="admin_L.php" class="nav-link text-danger"></i>Logout</a></li>
+      <li><a href="admin.php" class="nav-link active">Dashboard</a></li>
+      <li><a href="view_customers.php" class="nav-link">View Customers</a></li>
+      <li><a href="view_orders.php" class="nav-link">View Orders</a></li>
+      <li><a href="manage_products.php" class="nav-link">Manage Products</a></li>
+      <li><a href="cashier.php" class="nav-link">Cashier</a></li>
+      <li><a href="manage_cashier.php" class="nav-link">Manage Cashier</a></li>
+      <li><a href="sales_report.php" class="nav-link">Sales Report</a></li>
+      <li><a href="edit_profile.php" class="nav-link">Edit Profile</a></li>
+      <li><a href="admin_L.php" class="nav-link text-danger">Logout</a></li>
     </ul>
   </div>
  
@@ -91,10 +79,7 @@ $products = $db->getAllProducts();
     <h2 class="text-center mb-4">Manage Products</h2>
 
     <div class="d-flex justify-content-between mb-3">
-      <div>
-       
-      </div>
-
+      <div></div>
       <div>
         <a href="add_product.php" class="btn btn-success">Add New Product</a>
       </div>
@@ -109,13 +94,14 @@ $products = $db->getAllProducts();
             <th>Price (₱)</th>
             <th>Category</th>
             <th>Image</th>
+            <th>Status</th>
             <th>Actions</th>
           </tr>
         </thead>
         <tbody>
           <?php if (!empty($products)): ?>
             <?php foreach ($products as $product): ?>
-              <tr>
+              <tr class="<?= $product['is_active'] ? '' : 'inactive-row' ?>">
                 <td><?= htmlspecialchars($product['product_id']) ?></td>
                 <td><?= htmlspecialchars($product['product_name']) ?></td>
                 <td>₱<?= number_format($product['product_price'], 2) ?></td>
@@ -128,14 +114,26 @@ $products = $db->getAllProducts();
                   <?php endif; ?>
                 </td>
                 <td>
+                  <?php if ($product['is_active']): ?>
+                    <span class="badge bg-success">Active</span>
+                  <?php else: ?>
+                    <span class="badge bg-secondary">Inactive</span>
+                  <?php endif; ?>
+                </td>
+                <td>
                   <a href="edit_product.php?id=<?= $product['product_id'] ?>" class="btn btn-warning btn-sm">Edit</a>
                   <a href="delete_product.php?id=<?= $product['product_id'] ?>" class="btn btn-danger btn-sm" onclick="return confirm('Delete this product?')">Delete</a>
+                  <?php if ($product['is_active']): ?>
+                    <a href="toggle_product.php?id=<?= $product['product_id'] ?>&status=0" class="btn btn-secondary btn-sm">Deactivate</a>
+                  <?php else: ?>
+                    <a href="toggle_product.php?id=<?= $product['product_id'] ?>&status=1" class="btn btn-success btn-sm">Activate</a>
+                  <?php endif; ?>
                 </td>
               </tr>
             <?php endforeach; ?>
           <?php else: ?>
             <tr>
-              <td colspan="6" class="text-center">No products found.</td>
+              <td colspan="7" class="text-center">No products found.</td>
             </tr>
           <?php endif; ?>
         </tbody>
@@ -143,12 +141,12 @@ $products = $db->getAllProducts();
     </div>
   </div>
 
-  <?php if (isset($_GET['edited']) && $_GET['edited'] === 'success'): ?>
+  <?php if (isset($_GET['updated']) && $_GET['updated'] === 'success'): ?>
   <script>
   Swal.fire({
     icon: 'success',
-    title: 'Product Updated!',
-    text: 'Changes saved successfully.',
+    title: 'Product Status Updated!',
+    text: 'Product activation status has been changed.',
     confirmButtonColor: '#28a745'
   });
   </script>

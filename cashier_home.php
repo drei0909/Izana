@@ -107,7 +107,7 @@ body { background: #fff8f0; font-family: 'Quicksand', sans-serif; }
     <a class="navbar-brand" href="#"><i class="fas fa-mug-saucer me-2"></i> Coffee Shop</a>
     <div class="ms-auto">
         <span class="navbar-text me-3"><i class="fa fa-user"></i> <?= htmlspecialchars($cashier_name) ?></span>
-        <a href="cashier_logout.php" class="btn btn-danger btn-sm"><i class="fa fa-sign-out-alt"></i> Logout</a>
+        <a href="cashier_login.php" class="btn btn-danger btn-sm"><i class="fa fa-sign-out-alt"></i> Logout</a>
     </div>
 </nav>
 

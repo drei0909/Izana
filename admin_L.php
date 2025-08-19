@@ -4,8 +4,10 @@ require_once('./classes/database.php');
 $db = new database();
 $alert = '';
 
+$username = ''; // default empty
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
-    $username = $_POST['username'];
+    $username = $_POST['username']; // keep the typed username
     $password = $_POST['password'];
 
     $result = $db->loginAdmin_L($username, $password);
@@ -134,14 +136,25 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
     <i class="fas fa-user-shield"></i>
   </div>
   <h2 class="title">Admin Login</h2>
-  <form method="POST" action="">
+  <form method="POST" action="" autocomplete="off">
     <div class="mb-3">
       <label for="username" class="form-label">Username</label>
-      <input type="text" name="username" class="form-control" required>
+      <input 
+        type="text" 
+        name="username" 
+        class="form-control" 
+        required 
+        autocomplete="new-username"
+        value="<?= htmlspecialchars($username) ?>">
     </div>
     <div class="mb-3">
       <label for="password" class="form-label">Password</label>
-      <input type="password" name="password" class="form-control" required>
+      <input 
+        type="password" 
+        name="password" 
+        class="form-control" 
+        required 
+        autocomplete="new-password">
     </div>
     <button type="submit" name="login" class="btn-coffee mt-2">Login</button>
   </form>

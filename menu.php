@@ -5,29 +5,36 @@ if (!isset($_SESSION['customer_ID'])) {
     header("Location: login.php");
     exit();
 }
+
 require_once('./classes/database.php');
 $db = new Database();
+
+/**
+ * IMPORTANT:
+ * getAllProducts() must return the column `is_active` (1 or 0).
+ * If your column name is different, change it below accordingly.
+ */
 $products = $db->getAllProducts();
 
-// Check if the logged-in customer is new (for welcome promo)
+// New customer promo flag
 if (isset($_SESSION['is_new']) && $_SESSION['is_new']) {
     $_SESSION['show_promo'] = true;
 }
 
-//  Group products by category  
+// Group products by category
 $grouped = [];
 foreach ($products as $p) {
     $cat = $p['product_category'] ?? 'Other';
     $grouped[$cat][] = [
-        $p['product_id'],
+        (int)$p['product_id'],
         $p['product_name'],
-        $p['product_price'],
-        $p['product_category'] == 1,
-         $p['stock_quantity'] ?? 0
+        (float)$p['product_price'],
+        ($p['product_category'] == 1),                 // your “best seller” flag, kept as-is
+        isset($p['stock_quantity']) ? (int)$p['stock_quantity'] : 0,
+        isset($p['is_active']) ? (int)$p['is_active'] : 1 // 1=active, 0=inactive
     ];
 }
 ?>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -38,139 +45,139 @@ foreach ($products as $p) {
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Quicksand:wght@400;600&display=swap" rel="stylesheet">
   <style>
-    body {
-      background: url('uploads/bgg.jpg') no-repeat center center fixed;
-      background-size: cover;
-      font-family: 'Quicksand', sans-serif;
-      color: #f7f1eb;
-    }
+/* RESET + GLOBAL */
+body {
+  margin: 0;
+  font-family: 'Quicksand', sans-serif;
+  background: linear-gradient(160deg, #e6e6e6 0%, #cfcfcf 50%, #1c1c1c 100%);
+  color: #2b2b2b;
+  min-height: 100vh;
+}
 
-    .container-menu {
-      max-width: 1200px;
-      margin: 80px auto;
-      background: rgba(255, 248, 230, 0.15);
-      border: 1.5px solid rgba(255, 255, 255, 0.3);
-      border-radius: 18px;
-      padding: 40px;
-      box-shadow: 0 12px 30px rgba(0,0,0,0.3);
-      backdrop-filter: blur(8px);
-    }
+/* Inactive products (deactivated) */
+.menu-card.faded {
+  opacity: 0.5;
+  filter: grayscale(100%);
+  pointer-events: none; /* prevents clicks on any inner element */
+}
+.menu-card.faded .btn-coffee {
+  background: #aaa;
+  cursor: not-allowed;
+}
 
-    .title {
-      font-family: 'Playfair Display', serif;
-      font-size: 2.5rem;
-      text-align: center;
-      color: #fff8f3;
-      margin-bottom: 30px;
-      text-shadow: 1px 1px 0 #f2e1c9;
-    }
+/* MAIN CONTAINER */
+.container-menu {
+  max-width: 1200px;
+  margin: 70px auto;
+  background: #fff;
+  border-radius: 16px;
+  padding: 40px;
+  box-shadow: 0 12px 30px rgba(0,0,0,0.2);
+}
 
-    .category-title {
-      font-size: 1.8rem;
-      font-weight: bold;
-      margin-top: 30px;
-      margin-bottom: 20px;
-      color: #fff8f3;
-      border-bottom: 2px solid #fff;
-      padding-bottom: 5px;
-    }
-
-    .menu-card {
-      background: rgba(255, 255, 255, 0.1);
-      border: 1px solid rgba(255, 255, 255, 0.3);
-      border-radius: 15px;
-      padding: 20px;
-      margin-bottom: 25px;
-      text-align: center;
-      box-shadow: 0 8px 20px rgba(0,0,0,0.2);
-      backdrop-filter: blur(6px);
-      transition: transform 0.3s ease;
-    }
-
-    .menu-card:hover {
-      transform: translateY(-5px);
-    }
-
-    .menu-card img {
-      width: 100%;
-      max-height: 180px;
-      object-fit: cover;
-      border-radius: 12px;
-      margin-bottom: 15px;
-    }
-
-    .menu-name {
-      font-size: 1.2rem;
-      font-weight: 600;
-      color: #fffaf2;
-    }
-
-    .menu-price {
-      color: #f2d9be;
-      margin-bottom: 10px;
-    }
-
-    .btn-coffee {
-      background-color: #b07542;
-      color: #fff;
-      font-weight: 600;
-      border: none;
-      padding: 10px 20px;
-      border-radius: 30px;
-      transition: all 0.3s ease-in-out;
-    }
-
-    .btn-coffee:hover {
-      background-color: #8a5c33;
-    }
-
-    .badge-best {
-      background-color: #f5b041;
-      color: #000;
-      font-weight: 700;
-      font-size: 0.75rem;
-      margin-top: 5px;
-      padding: 5px 10px;
-      border-radius: 50px;
-      display: inline-block;
-    }
-
-    .quantity-input {
-      width: 60px;
-      border-radius: 10px;
-      border: 1px solid #ccc;
-      padding: 5px;
-      text-align: center; A
-      margin: 10px auto;
-      font-weight: 600;
-    }
-
-
-    .btn-menu-toggle {
-  background-color:transparent;
-  color: white;
+/* TITLES */
+.title {
+  font-family: 'Playfair Display', serif;
+  font-size: 2.5rem;
+  text-align: center;
+  color: #4e342e;
+  margin-bottom: 35px;
+  border-bottom: 3px solid #b07542;
+  padding-bottom: 10px;
+}
+.category-title {
+  font-size: 1.6rem;
   font-weight: 600;
+  margin: 40px 0 20px;
+  color: #1c1c1c;
+  border-left: 6px solid #b07542;
+  padding-left: 10px;
+}
+
+/* PRODUCT CARDS */
+.menu-card {
+  background: #f8f8f8;
+  border: 1px solid #ddd;
+  border-radius: 14px;
+  padding: 18px;
+  margin-bottom: 25px;
+  text-align: center;
+  transition: all 0.3s ease;
+}
+.menu-card:hover {
+  transform: translateY(-4px);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.15);
+}
+.menu-card img {
+  width: 100%;
+  max-height: 180px;
+  object-fit: cover;
+  border-radius: 12px;
+  margin-bottom: 15px;
+}
+.menu-name { font-size: 1.2rem; font-weight: 600; color: #2b2b2b; }
+.menu-price { color: #b07542; font-weight: 600; margin-bottom: 10px; }
+
+/* BUTTONS */
+.btn-coffee {
+  background-color: #4e342e;
+  color: #fff;
+  font-weight: 600;
+  border: none;
+  padding: 8px 20px;
+  border-radius: 25px;
+  transition: all 0.3s;
+}
+.btn-coffee:hover { background-color: #2b1d17; }
+
+/* BADGES */
+.badge-best {
+  background-color: #b07542;
+  color: #fff;
+  font-weight: 600;
+  font-size: 0.75rem;
+  padding: 4px 10px;
+  border-radius: 20px;
+  display: inline-block;
+  margin-top: 6px;
+}
+
+/* INPUT */
+.quantity-input {
+  width: 60px;
+  border-radius: 8px;
+  border: 1px solid #aaa;
+  padding: 5px;
+  text-align: center;
+  margin: 10px auto;
+  font-weight: 600;
+}
+
+/* DROPDOWN MENU */
+.btn-menu-toggle {
+  background-color: #4e342e;
+  color: white;
   border: none;
   border-radius: 8px;
   padding: 8px 16px;
 }
-
+.btn-menu-toggle:hover { background-color: #2b1d17; }
 .dropdown-menu {
-  background-color: #fff9f3;
+  background-color: #f9f9f9;
   border-radius: 10px;
   min-width: 180px;
   font-size: 0.95rem;
 }
+.dropdown-item:hover { background-color: #eee; }
 
-.dropdown-item:hover {
-  background-color: #f5eee3;
-}
+/* CART MODAL */
+.modal-content { background-color: #f9f9f9; border-radius: 12px; }
+.modal-header { background-color: #1c1c1c; color: #fff; border-top-left-radius: 12px; border-top-right-radius: 12px; }
+.modal-footer { border-top: 1px solid #ddd; }
 
-.modal-content {
-  background-color: #fff;
-  color: #212529; /* Bootstrap dark text */
-}
-
+/* CART BUTTON */
+button[data-bs-target="#cartModal"] { background: #b07542; color: white; border: none; }
+button[data-bs-target="#cartModal"]:hover { background: #8a5c33; }
   </style>
 </head>
 <body>
@@ -191,47 +198,59 @@ Swal.fire({
 <?php unset($_SESSION['is_new']); endif; ?>
 
 <?php if (isset($_SESSION['promo_applied_successfully']) && $_SESSION['promo_applied_successfully']): ?>
+<script>
 Swal.fire({
   icon: 'info',
   title: 'Promo Applied!',
   text: 'You’ve successfully claimed 10% off with WELCOME10!',
   confirmButtonColor: '#b07542'
 });
-<?php unset($_SESSION['promo_applied_successfully']); ?>
-<?php endif; ?>
+</script>
+<?php unset($_SESSION['promo_applied_successfully']); endif; ?>
 
-
-  <?php
- function renderCategory($title, $items) {
-    echo "<div class='category-title'>{$title}</div><div class='row'>";
+<?php
+// ---------- PHP rendering helpers ----------
+function renderCategory($title, $items) {
+    echo "<div class='category-title'>".htmlspecialchars($title)."</div><div class='row'>";
     foreach ($items as $item) {
-      echo card($item[0], $item[1], $item[2], $item[3] ?? false);
+        // item: [id, name, price, best, stock, status]
+        echo card($item[0], $item[1], $item[2], $item[3] ?? false, $item[4] ?? 0, $item[5] ?? 1);
     }
     echo "</div>";
 }
 
-
-  function card($productID, $name, $price, $best = false, $stock = 0) {
+function card($productID, $name, $price, $best = false, $stock = 0, $status = 1) {
     $img = "uploads/t.jpg";
     $bestLabel = $best ? "<div class='badge-best'>Best Seller</div>" : "";
+    $inactiveClass = ($status == 0) ? "faded" : "";
+    $btnHtml = ($status == 0)
+        ? "<button class='btn btn-coffee mt-2' disabled>Unavailable</button>"
+        : "<button class='btn btn-coffee mt-2'>Add</button>";
+    $disabledAttr = ($status == 0) ? 'disabled' : '';
+    $priceFmt = number_format((float)$price, 2);
+
+    // escape name for HTML
+    $safeName = htmlspecialchars($name);
+
     return <<<HTML
     <div class="col-md-4">
-      <div class="menu-card" data-product-id="$productID">
-        <img src="$img" alt="$name">
-        <div class="menu-name">$name</div>
-        <div class="menu-price">₱$price</div>
-        $bestLabel
-        <input type="number" min="1" max="99" value="1" class="quantity-input" name="quantity_$name">
-        <button class="btn btn-coffee mt-2">Add</button>
+      <div class="menu-card {$inactiveClass}" data-product-id="{$productID}">
+        <img src="{$img}" alt="{$safeName}">
+        <div class="menu-name">{$safeName}</div>
+        <div class="menu-price">₱{$priceFmt}</div>
+        {$bestLabel}
+        <input type="number" min="1" max="99" value="1" class="quantity-input" name="quantity_{$safeName}" {$disabledAttr}>
+        {$btnHtml}
       </div>
     </div>
-    HTML;
+HTML;
 }
 
+// Render all categories
 foreach ($grouped as $category => $items) {
     renderCategory($category, $items);
-  }
-  ?>
+}
+?>
 </div>
 
 <!-- Cart Modal -->
@@ -253,8 +272,6 @@ foreach ($grouped as $category => $items) {
   </div>
 </div>
 
-
-
 <!-- Top-left menu dropdown -->
 <div class="dropdown position-fixed top-0 start-0 m-3" style="z-index: 1050;">
   <button class="btn btn-menu-toggle dropdown-toggle" type="button" id="menuDropdown" data-bs-toggle="dropdown" aria-expanded="false">
@@ -273,24 +290,21 @@ foreach ($grouped as $category => $items) {
   </button>
 </div>
 
-
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script>
 let cart = [];
 let productOptions = [];
 
-// Fetch products from backend
+// Fetch products for "replace item" options
 document.addEventListener("DOMContentLoaded", () => {
   fetch('get_products.php')
-    .then(response => response.json())
+    .then(r => r.json())
     .then(data => {
       productOptions = data;
-      console.log('Loaded products:', productOptions);
-      attachAddToCartListeners(); // Only attach listeners after products are ready
+      attachAddToCartListeners();
     })
-    .catch(error => console.error('Error loading products:', error));
+    .catch(err => console.error('Error loading products:', err));
 
   const checkoutBtn = document.getElementById("checkoutBtn");
   if (checkoutBtn) {
@@ -303,7 +317,6 @@ document.addEventListener("DOMContentLoaded", () => {
           confirmButtonColor: '#b07542'
         });
       } else {
-        // Save cart to session before redirect
         fetch('save_cart.php', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -326,20 +339,21 @@ document.addEventListener("DOMContentLoaded", () => {
 function attachAddToCartListeners() {
   document.querySelectorAll('.btn-coffee').forEach(btn => {
     btn.addEventListener('click', function () {
+      if (this.disabled) return; // extra guard
+
       const card = this.closest('.menu-card');
       const name = card.querySelector('.menu-name').textContent.trim();
       const price = parseFloat(card.querySelector('.menu-price').textContent.replace(/[₱,]/g, ''));
       const qtyInput = card.querySelector('input[type="number"]');
       const quantity = parseInt(qtyInput.value) || 1;
-const productID = parseInt(card.getAttribute('data-product-id'));
+      const productID = parseInt(card.getAttribute('data-product-id'));
 
-const existing = cart.find(item => item.id === productID);
-if (existing) {
-  existing.quantity += quantity;
-} else {
-  cart.push({ id: productID, name, price, quantity });
-}
-
+      const existing = cart.find(item => item.id === productID);
+      if (existing) {
+        existing.quantity += quantity;
+      } else {
+        cart.push({ id: productID, name, price, quantity });
+      }
 
       renderCart();
 
@@ -409,7 +423,10 @@ function removeCartItem(index) {
 function replaceCartItem(index) {
   const itemToReplace = cart[index];
 
-  const optionsHTML = productOptions.map((opt, i) =>
+  // Optional: filter out inactive products if your JSON contains is_active/status
+  const options = productOptions.filter(p => (p.is_active ?? p.status ?? 1) == 1);
+
+  const optionsHTML = options.map((opt, i) =>
     `<option value="${i}">${escapeHtml(opt.product_name)} - ₱${parseFloat(opt.product_price).toFixed(2)}</option>`
   ).join('');
 
@@ -418,18 +435,16 @@ function replaceCartItem(index) {
     html: `<select id="replace-select" class="swal2-select">${optionsHTML}</select>`,
     confirmButtonText: 'Replace',
     showCancelButton: true,
-    preConfirm: () => {
-      return document.getElementById('replace-select').value;
-    }
+    preConfirm: () => document.getElementById('replace-select').value
   }).then(result => {
     if (result.isConfirmed) {
-      const newItem = productOptions[result.value];
+      const newItem = options[result.value];
       cart[index] = {
-  id: newItem.product_id,
-  name: newItem.product_name,
-  price: parseFloat(newItem.product_price),
-  quantity: itemToReplace.quantity
-};
+        id: newItem.product_id,
+        name: newItem.product_name,
+        price: parseFloat(newItem.product_price),
+        quantity: itemToReplace.quantity
+      };
 
       renderCart();
       Swal.fire({
@@ -444,17 +459,10 @@ function replaceCartItem(index) {
 }
 
 function escapeHtml(text) {
-  const map = {
-    '&': '&amp;',
-    '<': '&lt;',
-    '>': '&gt;',
-    '"': '&quot;',
-    "'": '&#039;',
-  };
+  const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
   return text.replace(/[&<>"']/g, m => map[m]);
 }
 </script>
-
 
 </body>
 </html>

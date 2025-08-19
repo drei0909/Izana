@@ -68,23 +68,23 @@ $orders = $db->getCustomerOrders($customerID);
         <li class="nav-item dropdown">
           <a class="nav-link dropdown-toggle" href="#" role="button" data-bs-toggle="dropdown">Orders</a>
           <ul class="dropdown-menu dropdown-menu-end dropdown-menu-scrollable p-2" style="min-width: 300px;">
-  <input type="text" class="form-control mb-2" id="orderSearchInput" placeholder="Search Order #..." onkeyup="filterOrders()">
+            <input type="text" class="form-control mb-2" id="orderSearchInput" placeholder="Search Order #..." onkeyup="filterOrders()">
 
-  <div id="ordersList">
-    <?php if ($orders): ?>
-      <?php foreach ($orders as $order): ?>
-        <li>
-          <a class="dropdown-item order-item" href="#order<?= $order['order_id'] ?>">
-            Order #<?= $order['order_id'] ?> - ₱<?= number_format($order['total_amount'], 2) ?>
-          </a>
+            <div id="ordersList">
+              <?php if ($orders): ?>
+                <?php foreach ($orders as $order): ?>
+                  <li>
+                    <a class="dropdown-item order-item" href="#order<?= $order['order_id'] ?>">
+                      Order #<?= $order['order_id'] ?> - ₱<?= number_format($order['total_amount'], 2) ?>
+                    </a>
+                  </li>
+                <?php endforeach; ?>
+              <?php else: ?>
+                <li><span class="dropdown-item text-muted">No Orders</span></li>
+              <?php endif; ?>
+            </div>
+          </ul>
         </li>
-      <?php endforeach; ?>
-    <?php else: ?>
-      <li><span class="dropdown-item text-muted">No Orders</span></li>
-    <?php endif; ?>
-  </div>
-</ul>
-
         <li class="nav-item"><a class="nav-link" href="menu.php">Menu</a></li>
       </ul>
     </div>
@@ -115,12 +115,6 @@ $orders = $db->getCustomerOrders($customerID);
         </div>
         <div><strong>Date:</strong> <?= date('F j, Y', strtotime($order['order_date'])) ?></div>
         <div><strong>Payment Receipt:</strong> <?= htmlspecialchars($order['receipt']) ?: 'N/A' ?></div>
-        <?php if ($order['promo_discount'] > 0): ?>
-          <div><strong>Promo Discount:</strong> ₱<?= number_format($order['promo_discount'], 2) ?></div>
-        <?php endif; ?>
-        <?php if ($order['point_discount'] > 0): ?>
-          <div><strong>Point Discount:</strong> ₱<?= number_format($order['point_discount'], 2) ?></div>
-        <?php endif; ?>
         <div class="order-items mt-2">
           <strong>Items:</strong>
           <ul>
@@ -189,9 +183,6 @@ function filterOrders() {
 }
 </script>
 
-
-
-
 <?php if (isset($_GET['success'])): ?>
 <script>
 Swal.fire({
@@ -235,7 +226,6 @@ Swal.fire({
 });
 </script>
 <?php endif; ?>
-
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 </body>
