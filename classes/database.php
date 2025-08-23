@@ -33,8 +33,8 @@ class Database {
     }
 
     // Insert user with hashed password
-    $sql = "INSERT INTO Customer (customer_FN, customer_LN, customer_username, customer_email, customer_password, is_new)
-            VALUES (:fn, :ln, :username, :email, :password, 1)";
+    $sql = "INSERT INTO Customer (customer_FN, customer_LN, customer_username, customer_email, customer_password)
+            VALUES (:fn, :ln, :username, :email, :password)";
     $stmt = $this->conn->prepare($sql);
     $stmt->execute([
         ':fn' => $fn,
