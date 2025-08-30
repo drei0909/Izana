@@ -10,6 +10,7 @@ if (!isset($_SESSION['admin_ID'])) {
 
 $admin_ID = $_SESSION['admin_ID'];
 $admin = $db->getAdminById($admin_ID);
+$adminName = htmlspecialchars($_SESSION['admin_FN'] ?? 'Admin');
 
 $success = $error = "";
 
@@ -41,84 +42,170 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 }
 ?>
-
-
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Edit Profile</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <title>Edit Profile | Izana Coffee</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-  <script src="https://kit.fontawesome.com/a076d05399.js" crossorigin="anonymous"></script>
   <style>
     body {
-      background: url('uploads/bgg.jpg') no-repeat center center fixed;
-      background-size: cover;
-      min-height: 100vh;
-      backdrop-filter: blur(3px);
+      font-family: 'Quicksand', sans-serif;
+      background: #e0e0e0;
+      color: #2b2b2b;
+      margin: 0;
+      height: 100vh;
+      overflow: hidden;
+    }
+    .wrapper {
       display: flex;
-      justify-content: center;
-      align-items: center;
+      height: 100vh;
+      overflow: hidden;
+    }
+    .sidebar {
+      width: 250px;
+      background: #1c1c1c;
+      color: #fff;
+      flex-shrink: 0;
+      overflow-y: auto;
+    }
+    .sidebar .nav-link {
+      color: #bdbdbd;
+      font-weight: 500;
+      margin-bottom: 10px;
+      padding: 10px 15px;
+      border-radius: 12px;
+      transition: all 0.3s ease;
+    }
+    .sidebar .nav-link.active,
+    .sidebar .nav-link:hover {
+      background-color: #6f4e37;
+      color: #fff;
+      transform: translateX(6px);
+    }
+    .main {
+      flex-grow: 1;
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+    }
+    .admin-header {
+      background: #f4f4f4;
+      padding: 15px 25px;
+      border-bottom: 1px solid #d6d6d6;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+    }
+    .dashboard-content {
+      flex-grow: 1;
+      overflow-y: auto;
       padding: 20px;
     }
-    .profile-container {
-      background: rgba(255, 255, 255, 0.96);
-      border-radius: 12px;
-      padding: 30px;
-      max-width: 500px;
-      width: 100%;
-      box-shadow: 0 0 20px rgba(0,0,0,0.2);
-      position: relative;
+    .section-title {
+      border-left: 6px solid #6f4e37;
+      padding-left: 12px;
+      margin: 30px 0 20px;
+      font-weight: 700;
+      color: #333;
+      text-transform: uppercase;
+      letter-spacing: 1px;
     }
-    .profile-container h4 {
-      margin-bottom: 20px;
-      color: #343a40;
+    .card {
+      border: none;
+      border-radius: 15px;
+      background: #f4f4f4;
+      box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+      max-width: 600px;
+      margin: auto;
     }
-    .back-btn {
-      position: absolute;
-      top: 15px;
-      left: 15px;
-      font-size: 1.1rem;
-    }
-    .btn-success {
-      background-color: #28a745;
-      border-color: #28a745;
-    }
-    .btn-success:hover {
-      background-color: #218838;
+    @media (max-width: 992px) {
+      .sidebar {
+        position: fixed;
+        height: 100%;
+        z-index: 1000;
+        transform: translateX(-100%);
+        transition: transform 0.3s ease;
+      }
+      .sidebar.show {
+        transform: translateX(0);
+      }
+      .toggle-btn {
+        display: inline-block;
+        cursor: pointer;
+        font-size: 1.5rem;
+      }
     }
   </style>
 </head>
 <body>
+<div class="wrapper">
+  <!-- Sidebar -->
+  <div class="sidebar p-3" id="sidebar">
+    <h4 class="text-white mb-4 text-center"><i class="fas fa-mug-hot me-2"></i>Izana Admin</h4>
+    <ul class="nav nav-pills flex-column">
+      <li><a href="admin.php" class="nav-link"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</a></li>
+      <li><a href="view_customers.php" class="nav-link"><i class="fas fa-users me-2"></i>View Customers</a></li>
+      <li><a href="view_orders.php" class="nav-link"><i class="fas fa-receipt me-2"></i>View Orders</a></li>
+      <li><a href="manage_products.php" class="nav-link"><i class="fas fa-mug-hot me-2"></i>Manage Products</a></li>
+      <li><a href="cashier.php" class="nav-link"><i class="fas fa-cash-register me-2"></i>Online Cashier</a></li>
+      <li><a href="manage_cashier.php" class="nav-link"><i class="fas fa-users-cog me-2"></i>POS</a></li>
+      <li><a href="sales_report.php" class="nav-link"><i class="fas fa-chart-line me-2"></i>Sales Report</a></li>
+      <li><a href="edit_profile.php" class="nav-link active"><i class="fas fa-user-edit me-2"></i>Edit Profile</a></li>
+      <li><a href="Logout_A.php" class="nav-link text-danger"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+    </ul>
+  </div>
 
-<div class="profile-container">
-  <a href="admin.php" class="btn btn-sm btn-outline-dark back-btn"><i class="fas fa-arrow-left"></i> Back</a>
-  <h4 class="text-center"><i class="fas fa-user-cog"></i> Edit Profile</h4>
+  <!-- Main -->
+  <div class="main">
+    <!-- Header -->
+    <div class="admin-header d-flex justify-content-between align-items-center">
+      <div class="d-flex align-items-center gap-3">
+        <span class="toggle-btn d-lg-none text-dark" onclick="toggleSidebar()"><i class="fas fa-bars"></i></span>
+        <h5 class="mb-0">Welcome, <?= $adminName ?></h5>
+      </div>
+      <span class="text-muted"><i class="fas fa-user-shield me-1"></i>Admin Panel</span>
+    </div>
 
-  <form method="POST">
-    <div class="mb-3">
-      <label for="admin_FN" class="form-label">First Name</label>
-      <input type="text" name="admin_FN" class="form-control" value="<?= htmlspecialchars($admin['admin_FN']) ?>" required>
+    <!-- Content -->
+    <div class="dashboard-content">
+      <div class="container-fluid">
+        <h4 class="section-title"><i class="fas fa-user-cog me-2"></i>Edit Profile</h4>
+        <div class="card p-4">
+          <form method="POST">
+            <div class="mb-3">
+              <label for="admin_FN" class="form-label">First Name</label>
+              <input type="text" name="admin_FN" class="form-control" value="<?= htmlspecialchars($admin['admin_FN']) ?>" required>
+            </div>
+            <div class="mb-3">
+              <label for="admin_LN" class="form-label">Last Name</label>
+              <input type="text" name="admin_LN" class="form-control" value="<?= htmlspecialchars($admin['admin_LN']) ?>" required>
+            </div>
+            <hr>
+            <h6>Change Password <small class="text-muted">(optional)</small></h6>
+            <div class="mb-3">
+              <label for="new_password" class="form-label">New Password</label>
+              <input type="password" name="new_password" class="form-control">
+            </div>
+            <div class="mb-3">
+              <label for="confirm_password" class="form-label">Confirm Password</label>
+              <input type="password" name="confirm_password" class="form-control">
+            </div>
+            <button type="submit" class="btn btn-success w-100"><i class="fas fa-save"></i> Update Profile</button>
+          </form>
+        </div>
+      </div>
     </div>
-    <div class="mb-3">
-      <label for="admin_LN" class="form-label">Last Name</label>
-      <input type="text" name="admin_LN" class="form-control" value="<?= htmlspecialchars($admin['admin_LN']) ?>" required>
-    </div>
-    <hr>
-    <h6>Change Password <small class="text-muted">(optional)</small></h6>
-    <div class="mb-3">
-      <label for="new_password" class="form-label">New Password</label>
-      <input type="password" name="new_password" class="form-control">
-    </div>
-    <div class="mb-3">
-      <label for="confirm_password" class="form-label">Confirm Password</label>
-      <input type="password" name="confirm_password" class="form-control">
-    </div>
-    <button type="submit" class="btn btn-success w-100"><i class="fas fa-save"></i> Update Profile</button>
-  </form>
+  </div>
 </div>
+
+<script>
+  function toggleSidebar() {
+    document.getElementById("sidebar").classList.toggle("show");
+  }
+</script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 <?php if ($success): ?>
 <script>
@@ -139,6 +226,5 @@ Swal.fire({
 });
 </script>
 <?php endif; ?>
-
 </body>
 </html>

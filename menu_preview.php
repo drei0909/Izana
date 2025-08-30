@@ -220,7 +220,7 @@ foreach ($products as $p) {
 </div>
 
 <footer>
-  <p>If you want to place an order, please <a href="register.php">Register</a> or <a href="login.php">Login</a> first.</p>
+  <p>If you want to place an order, please <a href="registration.php">Register</a> or <a href="login.php">Login</a> first.</p>
 </footer>
 
 </body>

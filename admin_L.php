@@ -178,10 +178,7 @@ body::before {
         autocomplete="new-password">
     </div>
     <button type="submit" name="login" class="btn-coffee mt-2">Login</button>
-  </form>
-  <div class="text-center mt-3">
-    <a href="registration_A.php">Create new admin account</a>
-  </div>
+  </form>   
 </div>
 
 </body>

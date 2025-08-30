@@ -81,153 +81,71 @@ class Database {
         $total += $item['price'] * $item['quantity'];
     }
 
-    if ($pointsRedeemed >= 5) {
-    $pointDiscount = 50;
-    $totalAmount = max(0, $totalAmount - $pointDiscount);
-}
-
-    $stmt = $this->conn->prepare("INSERT INTO order (customer_id, total, payment_method, receipt,  promo_discount, point_discount, status) VALUES (?, ?, ?, ?, ?)");
-    $stmt->execute([$customerID, $total, $paymentMethod, $receiptPath,  $promoDiscount, $pointDiscount, $status]);
+    $stmt = $this->conn->prepare("INSERT INTO order (customer_id, total, payment_method, receipt, status) VALUES (?, ?, ?)");
+    $stmt->execute([$customerID, $total, $paymentMethod, $receiptPath, $status]);
     return $this->conn->lastInsertId();
 }
 
 
 //insertitam
 public function insertOrderItem($orderID, $productID, $quantity, $price) {
-    $stmt = $this->conn->prepare("INSERT INTO order_item (order_id, product_id, quantity, price) VALUES (?, ?, ?, ?)");
-    $stmt->execute([$orderID, $productID, $quantity, $price]);
+    $stmt = $this->conn->prepare("INSERT INTO order_item (order_id, product_id, price) VALUES (?, ?, ?)");
+    $stmt->execute([$orderID, $productID, $price]);
 }
 
 
-//placeOrder method
-public function placeOrder($customerID, $orderType, $cart, $paymentMethod, $receiptPath = null, $promoCode = null, $pointsRedeemed = 0) {
+// placeOrder method (schema-correct, no promotions, no order_type)
+public function placeOrder($customerID, $cart, $paymentMethod, $receiptPath = null, $orderChannel = 'online') {
+    if (empty($cart)) {
+        throw new Exception("Cart is empty.");
+    }
+    if ($paymentMethod !== 'GCash') {
+        throw new Exception("Only GCash is allowed.");
+    }
+
+    // Calculate total
     $totalAmount = 0;
-    $promoDiscount = 0;
-$pointDiscount = 0;
-
-    // Calculate total order total
     foreach ($cart as $item) {
-        $itemPrice = floatval($item['price']);
-        $itemQty   = intval($item['quantity']);
-        $totalAmount += $itemPrice * $itemQty;
+        $totalAmount += floatval($item['price']) * intval($item['quantity']);
     }
 
-    $appliedPromoID = null; // for storing promo_id
-    $promoCode = $promoCode ? strtoupper(trim($promoCode)) : null;
-
-    // Promo logic using the promotion table
-    if ($promoCode) {
-        // Fetch promo details from DB
-        $stmt = $this->conn->prepare("SELECT * FROM promotion WHERE promo_code = ? AND is_active = 1 AND (expiry_date IS NULL OR expiry_date >= CURDATE())");
-        $stmt->execute([$promoCode]);
-        $promo = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        if ($promo) {
-            $promoID       = $promo['promo_id'];
-            $discountType  = $promo['discount_type'];
-            $discountValue = $promo['discount_value'];
-            $minOrder      = $promo['minimum_order_amount'];
-            $maxUses       = $promo['max_uses'];
-
-            // Check if customer already used this promo
-            $stmt = $this->conn->prepare("SELECT COUNT(*) FROM customer_promotion WHERE customer_id = ? AND promo_id = ?");
-            $stmt->execute([$customerID, $promoID]);
-            $alreadyUsed = $stmt->fetchColumn();
-
-            if (!$alreadyUsed && $totalAmount >= $minOrder) {
-                // Apply discount
-                if ($discountType === 'percent') {
-                    $discount = ($discountValue / 100) * $totalAmount;
-                } elseif ($discountType === 'fixed') {
-                    $discount = $discountValue;
-                } else {
-                    $discount = 0;
-                }
-$promoDiscount = $discount;
-$totalAmount -= $promoDiscount;
-                $appliedPromoID = $promoID;
-
-                // Record promo usage
-                $stmt = $this->conn->prepare("INSERT INTO customer_promotion (customer_id, promo_id) VALUES (?, ?)");
-                $stmt->execute([$customerID, $promoID]);
-
-                $_SESSION['promo_applied_successfully'] = true;
-            }
-        }
-    }
-
-    // Insert order
-   if ($pointsRedeemed >= 5) {
-    $pointDiscount = 50;
-    $totalAmount = max(0, $totalAmount - $pointDiscount);
-}
-
-$stmt = $this->conn->prepare("INSERT INTO `order` 
-    (customer_id, order_type, total_amount, receipt, promo_discount, point_discount) 
-    VALUES (?, ?, ?, ?, ?, ?)");
-$stmt->execute([$customerID, $orderType, $totalAmount, $receiptPath, $promoDiscount, $pointDiscount]);
-
-$orderID = $this->conn->lastInsertId();
-    // Insert order items
-    foreach ($cart as $item) {
-        if (!isset($item['id'], $item['quantity'], $item['price'])) continue;
-        $this->insertOrderItem($orderID, $item['id'], $item['quantity'], $item['price']);
-    }
-
-    // Insert payment
-    $stmt = $this->conn->prepare("INSERT INTO payment (order_id, payment_method, payment_amount) VALUES (?, ?, ?)");
-    $stmt->execute([$orderID, $paymentMethod, $totalAmount]);
-
-    
-   // Calculate points earned AFTER all discounts (totalAmount should already be final)
-$pointsEarned = max(0, floor($totalAmount / 100)); // 1 point per ₱100
-
-// Insert redeemed points if any
-if ($pointsRedeemed > 0) {
     try {
+        $this->conn->beginTransaction();
+
+        // Insert order (NO order_type column in schema)
         $stmt = $this->conn->prepare("
-            INSERT INTO reward_transaction 
-                (customer_id, points_earned, reward_type, points_redeemed) 
-            VALUES 
-                (?, 0, 'Redeemed', ?)
+            INSERT INTO `order` (customer_id, order_channel, total_amount, receipt, order_status)
+            VALUES (?, ?, ?, ?, 'Pending')
         ");
-        $stmt->execute([$customerID, $pointsRedeemed]);
-    } catch (PDOException $e) {
-        error_log("Failed to insert redeemed points: " . $e->getMessage());
-    }
-}
+        $stmt->execute([$customerID, $orderChannel, $totalAmount, $receiptPath]);
+        $orderID = $this->conn->lastInsertId();
 
-$pointsEarned = max(0, floor($totalAmount / 100));
-
-
-
-// Only earn points if no points were redeemed
-if ($pointsRedeemed == 0) {
-    $pointsEarned = max(0, floor($totalAmount / 100));
-    if ($pointsEarned > 0) {
-        try {
-            $stmt = $this->conn->prepare("
-                INSERT INTO reward_transaction 
-                    (customer_id, points_earned, reward_type, points_redeemed) 
-                VALUES 
-                    (?, ?, 'Earned', 0)
-            ");
-            $stmt->execute([$customerID, $pointsEarned]);
-        } catch (PDOException $e) {
-            error_log("Failed to insert earned points: " . $e->getMessage());
+        // Insert items
+        $itemStmt = $this->conn->prepare("
+            INSERT INTO order_item (order_id, product_id, quantity, price)
+            VALUES (?, ?, ?, ?)
+        ");
+        foreach ($cart as $item) {
+            if (!isset($item['id'], $item['quantity'], $item['price'])) continue;
+            $itemStmt->execute([$orderID, $item['id'], intval($item['quantity']), floatval($item['price'])]);
         }
+
+        // Payment
+        $payStmt = $this->conn->prepare("
+            INSERT INTO payment (order_id, payment_method, payment_amount)
+            VALUES (?, ?, ?)
+        ");
+        $payStmt->execute([$orderID, $paymentMethod, $totalAmount]);
+
+        $this->conn->commit();
+        return $orderID;
+    } catch (Exception $e) {
+        $this->conn->rollBack();
+        throw $e;
     }
 }
 
 
-
-    // Mark as not new (first order logic)
-    $stmt = $this->conn->prepare("UPDATE customer SET is_new = 0 WHERE customer_id = ?");
-    $stmt->execute([$customerID]);
-    $_SESSION['is_new'] = 0;
-
-    return $orderID;
-}
 
 
 public function getProductIdByName($productName) {
@@ -236,24 +154,6 @@ public function getProductIdByName($productName) {
     $row = $stmt->fetch(PDO::FETCH_ASSOC);
     return $row ? $row['product_id'] : null;
 }
-
-public function getAvailablePromos($customerID) {
-    $stmt = $this->conn->prepare("SELECT * FROM promotion");
-    $stmt->execute();
-    $allPromos = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-    // Filter promos the customer hasn't used
-    $available = [];
-    foreach ($allPromos as $promo) {
-        $check = $this->conn->prepare("SELECT COUNT(*) FROM customer_promotion WHERE customer_id = ? AND promo_id = ?");
-        $check->execute([$customerID, $promo['promo_code']]);
-        if ($check->fetchColumn() == 0) {
-            $available[] = $promo;
-        }
-    }
-    return $available;
-}
-
 
 public function getCustomerByID($customerID) {
     $stmt = $this->conn->prepare("SELECT * FROM customer WHERE customer_id = ?");
@@ -379,18 +279,18 @@ public function getAllOrder() {
 
 
 // Add Product
-public function addProduct($name, $price, $category, $stock, $imagePath) {
-    $stmt = $this->conn->prepare("INSERT INTO product (product_name, product_price, product_category, stock_quantity, image_path) VALUES (?, ?, ?, ?, ?)");
-    return $stmt->execute([$name, $price, $category, $stock, $imagePath]);
+public function addProduct($name, $price, $category, $imagePath) {
+    $stmt = $this->conn->prepare("INSERT INTO product (product_name, product_price, product_category, image_path) VALUES (?, ?, ?, ?)");
+    return $stmt->execute([$name, $price, $category, $imagePath]);
 }
 
 
 // Update Product
-public function updateProduct($productId, $productName, $productPrice, $productCategory, $stockQuantity) {
+public function updateProduct($productId, $productName, $productPrice, $productCategory) {
     if ($stockQuantity) {
-        $sql = "UPDATE product SET product_name = ?, product_price = ?, product_category = ?, stock_quantity = ? WHERE product_id = ?";
+        $sql = "UPDATE product SET product_name = ?, product_price = ?, product_category = ?, WHERE product_id = ?";
         $stmt = $this->conn->prepare($sql);
-        return $stmt->execute([$productName, $productPrice, $productCategory, $stockQuantity, $productId]);
+        return $stmt->execute([$productName, $productPrice, $productCategory, $productId]);
     } else {
         $sql = "UPDATE product SET product_name = ?, product_price = ?, product_category = ? WHERE product_id = ?";
         $stmt = $this->conn->prepare($sql);
@@ -423,7 +323,7 @@ public function getProductById($productId) {
 }
 
 public function getSalesReport($start = null, $end = null) {
-    $sql = "SELECT o.order_id, o.order_type, o.order_date,
+    $sql = "SELECT o.order_id, o.order_channel, o.order_date,
                    c.customer_FN, c.customer_LN,
                    p.payment_method, p.payment_amount
             FROM `order` o
@@ -520,15 +420,10 @@ function getOrderById($orderId) {
     return $stmt->fetch(PDO::FETCH_ASSOC);
 }
 
-function updateOrderStatus($orderId, $newStatus) {
-    global $pdo;
-    $allowedStatuses = ['Pending', 'Preparing', 'Ready for Pickup', 'Completed'];
-    if (!in_array($newStatus, $allowedStatuses)) {
-        return false; // ❌ Invalid status
-    }
-
-    $stmt = $pdo->prepare("UPDATE `order` SET order_status = :status WHERE order_ID = :orderId");
-    return $stmt->execute(['status' => $newStatus, 'orderId' => $orderId]);
+// Update order status (returns true on success)
+public function updateOrderStatus($orderID, $newStatus) {
+    $stmt = $this->conn->prepare("UPDATE `order` SET order_status = ? WHERE order_id = ?");
+    return $stmt->execute([$newStatus, $orderID]);
 }
 
 public function searchCustomers($search, $limit, $offset) {
@@ -585,19 +480,6 @@ public function searchOrder($keyword) {
     }
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
-
-
-    public function cashierLogin($username, $password) {
-        $sql = "SELECT * FROM cashier WHERE username = ?";
-        $stmt = $this->conn->prepare($sql);
-        $stmt->execute([$username]);
-        $cashier = $stmt->fetch();
-        if ($cashier && password_verify($password, $cashier['password'])) {
-            return $cashier;
-        }
-        return false;
-    }
-
 
 
  // Get total walk-in orders
@@ -699,6 +581,119 @@ public function countCashierOrders($search = '') {
 
     return $row ? (int)$row['total'] : 0;
 }
+
+
+public function deletePaymentsByOrder($orderID) {
+    $stmt = $this->conn->prepare("DELETE FROM payment WHERE order_id = ?");
+    return $stmt->execute([$orderID]);
+}
+
+public function getOrderStatuses(array $orderIDs) {
+    if (empty($orderIDs)) return [];
+    $placeholders = implode(',', array_fill(0, count($orderIDs), '?'));
+    $stmt = $this->conn->prepare("SELECT order_id, order_status FROM `order` WHERE order_id IN ($placeholders)");
+    $stmt->execute($orderIDs);
+    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+    $map = [];
+    foreach ($rows as $r) $map[$r['order_id']] = $r['order_status'];
+    return $map;
+}
+
+
+
+
+// Add a pending order
+public function addPendingOrder($customerID, $cart, $paymentMethod, $receiptPath)
+{
+    try {
+        $stmt = $this->conn->prepare("
+            INSERT INTO pending_order (customer_id, order_data, total_amount, payment_method, receipt, status)
+            VALUES (?, ?, ?, ?, ?, 'Pending')
+        ");
+
+        // Serialize cart data as JSON for storage
+        $orderData = json_encode($cart);
+        $totalAmount = array_sum(array_map(fn($item) => $item['price'] * $item['quantity'], $cart));
+
+        // Execute the query
+        $stmt->execute([$customerID, $orderData, $totalAmount, $paymentMethod, $receiptPath]);
+
+        return $this->conn->lastInsertId(); // Return the last insert ID as pending ID
+    } catch (PDOException $e) {
+        // Log the error or display a more user-friendly message
+        throw new Exception("Error adding pending order: " . $e->getMessage());
+    }
+}
+
+
+public function acceptPendingOrder($pendingID)
+{
+    try {
+        // Fetch order data from pending_order table
+        $stmt = $this->conn->prepare("SELECT * FROM pending_order WHERE pending_id = ?");
+        $stmt->execute([$pendingID]);
+        $orderData = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$orderData) {
+            throw new Exception("Order not found");
+        }
+
+        // Insert into the order table
+        $orderStmt = $this->conn->prepare("
+            INSERT INTO `order` (customer_id, order_channel, total_amount, order_status, order_date)
+            VALUES (?, 'online', ?, 'Pending', NOW())
+        ");
+        $orderStmt->execute([$orderData['customer_id'], $orderData['total_amount']]);
+
+        $orderID = $this->conn->lastInsertId();  // Get the order ID
+
+        // Insert order items into the order_item table
+        $items = json_decode($orderData['order_data'], true);  // Assuming cart data is serialized
+        foreach ($items as $item) {
+            $this->conn->prepare("
+                INSERT INTO order_item (order_id, product_id, quantity, price)
+                VALUES (?, ?, ?, ?)
+            ")->execute([$orderID, $item['product_id'], $item['quantity'], $item['price']]);
+        }
+
+        // Insert payment details into payment table
+        if ($orderData['payment_method']) {
+            $paymentStmt = $this->conn->prepare("
+                INSERT INTO payment (order_id, payment_date, payment_method, payment_amount)
+                VALUES (?, NOW(), ?, ?)
+            ");
+            $paymentStmt->execute([$orderID, $orderData['payment_method'], $orderData['total_amount']]);
+        }
+
+        // After successfully inserting into `order` and `order_item`, delete from pending_order
+        $this->conn->prepare("DELETE FROM pending_order WHERE pending_id = ?")->execute([$pendingID]);
+
+        // Insert into order_status_logs to track the status change
+        $statusStmt = $this->conn->prepare("
+            INSERT INTO order_status_logs (order_id, new_status, changed_by, changed_at)
+            VALUES (?, 'Accepted', ?, NOW())
+        ");
+        $statusStmt->execute([$orderID, $_SESSION['admin_ID']]);  // Assuming admin ID is in session
+
+        return $orderID;  // Return the order ID
+    } catch (PDOException $e) {
+        throw new Exception("Error accepting pending order: " . $e->getMessage());
+    }
+}
+
+
+
+public function rejectPendingOrder($pendingID)
+{
+    try {
+        // Just delete the pending order record
+        $stmt = $this->conn->prepare("DELETE FROM pending_order WHERE pending_id = ?");
+        $stmt->execute([$pendingID]);
+    } catch (PDOException $e) {
+        throw new Exception("Error rejecting pending order: " . $e->getMessage());
+    }
+}
+
 
 
 
