@@ -11,22 +11,9 @@ if (!isset($_SESSION['customer_ID'])) {
 $cart = $_SESSION['cart'] ?? [];
 $customer_name = $_SESSION['customer_FN'] ?? 'Guest';
 $customerID = $_SESSION['customer_ID'];
-$lastPendingId = $_SESSION['last_order_id'] ?? null;
-$orderStatus = null;
 $flash = $_SESSION['flash'] ?? null;
 unset($_SESSION['flash']);
 
-// Get order status from URL (if any)
-$orderStatusFromUrl = $_GET['order_status'] ?? null;
-$orderIdFromUrl = $_GET['order_id'] ?? null;
-
-// Check last pending order status
-if ($lastPendingId) {
-    $stmt = $db->conn->prepare("SELECT status FROM pending_order WHERE pending_id = ?");
-    $stmt->execute([$lastPendingId]);
-    $orderData = $stmt->fetch(PDO::FETCH_ASSOC);
-    if ($orderData) $orderStatus = $orderData['status'];
-}
 ?>
 
 <!DOCTYPE html>
@@ -35,7 +22,6 @@ if ($lastPendingId) {
     <meta charset="UTF-8">
     <title>Checkout | Izana Coffee</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
         :root {
@@ -174,13 +160,6 @@ if ($lastPendingId) {
     </div>
 </nav>
 
-<nav class="navbar navbar-expand-lg navbar-dark navbar-custom fixed-top">
-    <div class="container-fluid" style="max-width:1400px;">
-        <a class="navbar-brand" href="#">Izana Coffee</a>
-        <button class="btn-back ms-auto" id="backBtn"><i class="fas fa-arrow-left me-2"></i>Back</button>
-    </div>
-</nav>
-
 <div class="checkout-container">
     <h2 class="checkout-title">Checkout Summary</h2>
     <p><strong>Customer:</strong> <?= htmlspecialchars($customer_name); ?></p>
@@ -191,44 +170,9 @@ if ($lastPendingId) {
         </div>
     <?php endif; ?>
 
-
-     <!-- Show SweetAlert based on order status from URL -->
-    <?php if ($orderStatusFromUrl): ?>
-        <script>
-            const status = "<?= $orderStatusFromUrl ?>";
-            const orderId = "<?= $orderIdFromUrl ?>";
-            if (status === 'accepted') {
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Your order is accepted',
-                    text: 'Your order is now being prepared!',
-                    confirmButtonColor: '#28a745',
-                }).then(() => {
-                    window.location.href = `receipt.php?order_id=${orderId}`;
-                });
-            } else if (status === 'rejected') {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Order Rejected',
-                    text: 'Sorry, your order was rejected.',
-                    confirmButtonColor: '#b07542',
-                }).then(() => {
-                    window.location.href = 'menu.php';  // Or another page after rejection
-                });
-            }
-        </script>
-    <?php endif; ?>
-
-    <?php if ($lastPendingId): ?>
-        <div class="alert alert-info text-center mb-4">
-            <strong>Order Status:</strong>
-            <span id="orderStatusDisplay"><?= htmlspecialchars($orderStatus ?? 'Pending'); ?></span>
-        </div>
-    <?php endif; ?>
-
     <?php if (empty($cart)): ?>
         <div class="alert alert-warning text-center">
-            Your cart is empty. Please go back to the <a href="menu.php" class="alert-link">menu</a>.
+            Your cart is empty. Please go back to the <a href="menu.php" class="alert-link">menu</a> to add items.
         </div>
     <?php else: ?>
         <form action="place_order.php" method="post" enctype="multipart/form-data">
@@ -271,14 +215,13 @@ if ($lastPendingId) {
 
             <div class="alert alert-info mt-3">
                 <i class="fas fa-info-circle me-2"></i>
-                <strong>Note:</strong> For online orders, pickup only. Pay exact amount to avoid issues.
+                <strong>Note:</strong> For online orders, pickup only. Pay the exact amount to avoid issues.
             </div>
 
             <button type="submit" class="btn btn-place-order">Place Order</button>
         </form>
     <?php endif; ?>
 </div>
-
 
 <script>
     const pm = document.getElementById('payment_method');

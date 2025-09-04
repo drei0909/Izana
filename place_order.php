@@ -3,30 +3,38 @@ session_start();
 require_once('./classes/database.php');
 $db = new Database();
 
-if (!isset($_SESSION['customer_ID'])) {
+// Check if the user is logged in (for online orders)
+if (!isset($_SESSION['customer_ID']) && !isset($_SESSION['admin_ID'])) {
     header("Location: login.php");
     exit();
 }
 
-$customerID = $_SESSION['customer_ID'];
-$cart = $_SESSION['cart'] ?? [];
+// Handle cart for online orders
+if (isset($_SESSION['customer_ID'])) {
+    $customerID = $_SESSION['customer_ID'];
+    $cart = $_SESSION['cart'] ?? [];
+} else {
+    // For walk-in orders, assume customer ID comes from the form (admin side)
+    $customerID = $_POST['customer_id'];  // Walk-in customer ID passed by admin
+    $cart = $_POST['cart'] ?? [];  // Cart for walk-in (admin will pass cart data)
+}
 
+// Check if the cart is empty
 if (empty($cart)) {
     $_SESSION['error'] = "Your cart is empty.";
     header("Location: checkout.php");
     exit();
 }
 
+// Get payment method (only GCash allowed)
 $paymentMethod = $_POST['payment_method'] ?? null;
-
-// Only GCash allowed
 if ($paymentMethod !== 'GCash') {
     $_SESSION['error'] = "Only GCash payment is allowed.";
     header("Location: checkout.php");
     exit();
 }
 
-// Handle receipt upload
+// Handle receipt upload for GCash
 $receiptPath = null;
 if (isset($_FILES['gcash_receipt']) && $_FILES['gcash_receipt']['error'] === 0) {
     $ext = strtolower(pathinfo($_FILES['gcash_receipt']['name'], PATHINFO_EXTENSION));
@@ -38,6 +46,7 @@ if (isset($_FILES['gcash_receipt']) && $_FILES['gcash_receipt']['error'] === 0) 
         exit();
     }
 
+    // Create a directory for receipts if not already existing
     if (!is_dir('uploads/receipts')) mkdir('uploads/receipts', 0777, true);
 
     $filename = uniqid('gcash_', true) . '.' . $ext;
@@ -56,18 +65,31 @@ if (isset($_FILES['gcash_receipt']) && $_FILES['gcash_receipt']['error'] === 0) 
     exit();
 }
 
-// Insert pending order
-try {
-    $pendingID = $db->addPendingOrder($customerID, $cart, $paymentMethod, $receiptPath);
+// Determine order channel (online or walk-in)
+$orderChannel = isset($_POST['order_channel']) ? $_POST['order_channel'] : 'online';
 
-    $_SESSION['last_order_id'] = $pendingID;
+// Insert the order into the database
+try {
+    // Add order to the order table with status 'Pending' and the correct order channel
+    $orderID = $db->placeOrder($customerID, $cart, $paymentMethod, $receiptPath, $orderChannel);
+
+    // Store the order ID for further processing
+    $_SESSION['last_order_id'] = $orderID;
     unset($_SESSION['cart']);
     $_SESSION['flash'] = ['type' => 'success', 'message' => 'Order submitted for review!'];
 
-    header("Location: checkout.php");
+    // Redirect to the appropriate page based on order type
+    if ($orderChannel === 'walk-in') {
+        header("Location: manage_cashier.php");  // Redirect to cashier page for walk-in
+    } else {
+        header("Location: checkout.php");  // Redirect to checkout page for online orders
+    }
     exit();
+
 } catch (Exception $e) {
+    // In case of failure, show error message
     $_SESSION['flash'] = ['type' => 'error', 'message' => "Failed to place order: " . $e->getMessage()];
     header("Location: checkout.php");
     exit();
 }
+?>

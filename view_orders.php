@@ -18,7 +18,7 @@ $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 if ($page < 1) $page = 1;
 $offset = ($page - 1) * $limit;
 
-// ✅ Fetch orders with pagination
+// ✅ Fetch orders with pagination, including both 'online' and 'walk-in' orders
 $orders = $db->getOrders($search, $limit, $offset);
 
 // ✅ Count total orders for pagination
@@ -157,9 +157,8 @@ if ($total_pages < 1) $total_pages = 1;
     </ul>
   </div>
 
-  <!-- Main -->
+  <!-- Main content -->
   <div class="main">
-    <!-- Header -->
     <div class="admin-header d-flex justify-content-between align-items-center">
       <div class="d-flex align-items-center gap-3">
         <span class="toggle-btn d-lg-none text-dark" onclick="toggleSidebar()"><i class="fas fa-bars"></i></span>
@@ -168,12 +167,11 @@ if ($total_pages < 1) $total_pages = 1;
       <span class="text-muted"><i class="fas fa-user-shield me-1"></i>Admin Panel</span>
     </div>
 
-    <!-- Content -->
     <div class="dashboard-content">
       <div class="container-fluid">
         <h4 class="section-title"><i class="fas fa-shopping-cart me-2"></i>Order List</h4>
 
-        <!-- Search -->
+        <!-- Search Form -->
         <form method="GET" class="row g-3 mb-4 justify-content-center">
           <div class="col-md-6">
             <div class="input-group">
@@ -194,6 +192,7 @@ if ($total_pages < 1) $total_pages = 1;
                   <th>Total Amount</th>
                   <th>Receipt</th>
                   <th>Order Date</th>
+                  <th>Order Channel</th> <!-- New column for Order Channel -->
                 </tr>
               </thead>
               <tbody>
@@ -211,11 +210,12 @@ if ($total_pages < 1) $total_pages = 1;
                         <?php endif; ?>
                       </td>
                       <td><?= date("F j, Y h:i A", strtotime($order['order_date'])) ?></td>
+                      <td><?= htmlspecialchars($order['order_channel']) ?></td> <!-- Display order channel -->
                     </tr>
                   <?php endforeach; ?>
                 <?php else: ?>
                   <tr>
-                    <td colspan="5" class="text-center text-muted py-4">
+                    <td colspan="6" class="text-center text-muted py-4">
                       <i class="fas fa-box-open fa-2x mb-2"></i><br>No orders found.
                     </td>
                   </tr>

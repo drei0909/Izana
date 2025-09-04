@@ -74,17 +74,19 @@ class Database {
 
 
 
-    public function insertOrder($customerID, $paymentMethod, $receiptPath, $status) {
+   public function insertOrder($customerID, $paymentMethod, $receiptPath, $status) {
     $cart = $_SESSION['cart'] ?? [];
     $total = 0;
     foreach ($cart as $item) {
         $total += $item['price'] * $item['quantity'];
     }
 
-    $stmt = $this->conn->prepare("INSERT INTO order (customer_id, total, payment_method, receipt, status) VALUES (?, ?, ?)");
+    $stmt = $this->conn->prepare("INSERT INTO `order` (customer_id, total, payment_method, receipt, status, order_date) 
+                                 VALUES (?, ?, ?, ?, ?, NOW())");  // Make sure `NOW()` is used to insert the current date
     $stmt->execute([$customerID, $total, $paymentMethod, $receiptPath, $status]);
     return $this->conn->lastInsertId();
 }
+
 
 
 //insertitam
@@ -94,7 +96,6 @@ public function insertOrderItem($orderID, $productID, $quantity, $price) {
 }
 
 
-// placeOrder method (schema-correct, no promotions, no order_type)
 public function placeOrder($customerID, $cart, $paymentMethod, $receiptPath = null, $orderChannel = 'online') {
     if (empty($cart)) {
         throw new Exception("Cart is empty.");
@@ -103,7 +104,7 @@ public function placeOrder($customerID, $cart, $paymentMethod, $receiptPath = nu
         throw new Exception("Only GCash is allowed.");
     }
 
-    // Calculate total
+    // Calculate total amount
     $totalAmount = 0;
     foreach ($cart as $item) {
         $totalAmount += floatval($item['price']) * intval($item['quantity']);
@@ -112,15 +113,14 @@ public function placeOrder($customerID, $cart, $paymentMethod, $receiptPath = nu
     try {
         $this->conn->beginTransaction();
 
-        // Insert order (NO order_type column in schema)
+        // Insert into `order` table
         $stmt = $this->conn->prepare("
-            INSERT INTO `order` (customer_id, order_channel, total_amount, receipt, order_status)
-            VALUES (?, ?, ?, ?, 'Pending')
-        ");
-        $stmt->execute([$customerID, $orderChannel, $totalAmount, $receiptPath]);
-        $orderID = $this->conn->lastInsertId();
+            INSERT INTO `order` (customer_id, order_channel, total_amount, receipt, order_status, order_date)
+            VALUES (?, ?, ?, ?, 'Pending', NOW())");
+        $stmt->execute([$customerID, $orderChannel, $totalAmount, $receiptPath]);  // Ensure orderChannel is passed correctly
+        $orderID = $this->conn->lastInsertId(); // Get the last inserted order ID
 
-        // Insert items
+        // Insert items into `order_item` table
         $itemStmt = $this->conn->prepare("
             INSERT INTO order_item (order_id, product_id, quantity, price)
             VALUES (?, ?, ?, ?)
@@ -130,7 +130,7 @@ public function placeOrder($customerID, $cart, $paymentMethod, $receiptPath = nu
             $itemStmt->execute([$orderID, $item['id'], intval($item['quantity']), floatval($item['price'])]);
         }
 
-        // Payment
+        // Insert payment details into `payment` table
         $payStmt = $this->conn->prepare("
             INSERT INTO payment (order_id, payment_method, payment_amount)
             VALUES (?, ?, ?)
@@ -144,6 +144,7 @@ public function placeOrder($customerID, $cart, $paymentMethod, $receiptPath = nu
         throw $e;
     }
 }
+
 
 
 
@@ -261,13 +262,14 @@ public function getAllOrder() {
     $sql = "
         SELECT 
             o.order_id,
+            o.order_channel,
             o.total_amount,
             o.receipt,
             o.order_date,
-            c.customer_FN,
-            c.customer_LN
+            IFNULL(c.customer_FN, 'Walk-in') AS customer_FN,  -- For Walk-in orders
+            IFNULL(c.customer_LN, '') AS customer_LN  -- Walk-in does not have last name
         FROM `order` o
-        JOIN customer c ON o.customer_id = c.customer_id
+        LEFT JOIN customer c ON o.customer_id = c.customer_id  -- Use LEFT JOIN to include Walk-in orders
         ORDER BY o.order_date DESC
     ";
 
@@ -275,6 +277,7 @@ public function getAllOrder() {
     $stmt->execute();
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
+
 
 
 
@@ -496,9 +499,9 @@ public function searchOrder($keyword) {
 }
 
 public function getOrders($search = '', $limit = 5, $offset = 0) {
-    $sql = "SELECT o.*, c.customer_FN, c.customer_LN
+    $sql = "SELECT o.*, c.customer_FN, c.customer_LN, o.order_channel
             FROM `order` o
-            JOIN customer c ON o.customer_ID = c.customer_ID
+            LEFT JOIN customer c ON o.customer_id = c.customer_id
             WHERE o.order_id LIKE :search
                OR c.customer_FN LIKE :search
                OR c.customer_LN LIKE :search
@@ -513,6 +516,8 @@ public function getOrders($search = '', $limit = 5, $offset = 0) {
 
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
+
+
 
 
 public function countOrders($search = '') {
@@ -534,7 +539,7 @@ public function countOrders($search = '') {
 // ✅ Fetch paginated orders (only non-completed)
 public function getCashierOrders($search = '', $limit = 5, $offset = 0) {
     $sql = "SELECT o.order_id, o.customer_ID, o.order_date, o.order_status, 
-                   o.total_amount, o.order_type, o.receipt, 
+                   o.total_amount, o.order_channel, o.receipt, 
                    c.customer_FN, c.customer_LN, c.customer_email,
                    p.payment_method
             FROM `order` o
@@ -601,102 +606,37 @@ public function getOrderStatuses(array $orderIDs) {
 
 
 
-
-// Add a pending order
-public function addPendingOrder($customerID, $cart, $paymentMethod, $receiptPath)
-{
-    try {
-        $stmt = $this->conn->prepare("
-            INSERT INTO pending_order (customer_id, order_data, total_amount, payment_method, receipt, status)
-            VALUES (?, ?, ?, ?, ?, 'Pending')
-        ");
-
-        // Serialize cart data as JSON for storage
-        $orderData = json_encode($cart);
-        $totalAmount = array_sum(array_map(fn($item) => $item['price'] * $item['quantity'], $cart));
-
-        // Execute the query
-        $stmt->execute([$customerID, $orderData, $totalAmount, $paymentMethod, $receiptPath]);
-
-        return $this->conn->lastInsertId(); // Return the last insert ID as pending ID
-    } catch (PDOException $e) {
-        // Log the error or display a more user-friendly message
-        throw new Exception("Error adding pending order: " . $e->getMessage());
-    }
-}
-
-
-public function acceptPendingOrder($pendingID)
-{
-    try {
-        // Fetch order data from pending_order table
-        $stmt = $this->conn->prepare("SELECT * FROM pending_order WHERE pending_id = ?");
-        $stmt->execute([$pendingID]);
-        $orderData = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        if (!$orderData) {
-            throw new Exception("Order not found");
-        }
-
-        // Insert into the order table
-        $orderStmt = $this->conn->prepare("
-            INSERT INTO `order` (customer_id, order_channel, total_amount, order_status, order_date)
-            VALUES (?, 'online', ?, 'Pending', NOW())
-        ");
-        $orderStmt->execute([$orderData['customer_id'], $orderData['total_amount']]);
-
-        $orderID = $this->conn->lastInsertId();  // Get the order ID
-
-        // Insert order items into the order_item table
-        $items = json_decode($orderData['order_data'], true);  // Assuming cart data is serialized
-        foreach ($items as $item) {
-            $this->conn->prepare("
-                INSERT INTO order_item (order_id, product_id, quantity, price)
-                VALUES (?, ?, ?, ?)
-            ")->execute([$orderID, $item['product_id'], $item['quantity'], $item['price']]);
-        }
-
-        // Insert payment details into payment table
-        if ($orderData['payment_method']) {
-            $paymentStmt = $this->conn->prepare("
-                INSERT INTO payment (order_id, payment_date, payment_method, payment_amount)
-                VALUES (?, NOW(), ?, ?)
-            ");
-            $paymentStmt->execute([$orderID, $orderData['payment_method'], $orderData['total_amount']]);
-        }
-
-        // After successfully inserting into `order` and `order_item`, delete from pending_order
-        $this->conn->prepare("DELETE FROM pending_order WHERE pending_id = ?")->execute([$pendingID]);
-
-        // Insert into order_status_logs to track the status change
-        $statusStmt = $this->conn->prepare("
-            INSERT INTO order_status_logs (order_id, new_status, changed_by, changed_at)
-            VALUES (?, 'Accepted', ?, NOW())
-        ");
-        $statusStmt->execute([$orderID, $_SESSION['admin_ID']]);  // Assuming admin ID is in session
-
-        return $orderID;  // Return the order ID
-    } catch (PDOException $e) {
-        throw new Exception("Error accepting pending order: " . $e->getMessage());
-    }
+public function saveSalesToHistory($walkinSales, $onlineSales, $totalSales) {
+    $stmt = $this->conn->prepare("INSERT INTO sales_history (order_date, walk_in_sales, online_sales, total_sales) VALUES (?, ?, ?, ?)");
+    $stmt->execute([date('Y-m-d'), $walkinSales, $onlineSales, $totalSales]);
 }
 
 
 
-public function rejectPendingOrder($pendingID)
-{
-    try {
-        // Just delete the pending order record
-        $stmt = $this->conn->prepare("DELETE FROM pending_order WHERE pending_id = ?");
-        $stmt->execute([$pendingID]);
-    } catch (PDOException $e) {
-        throw new Exception("Error rejecting pending order: " . $e->getMessage());
+    // Functi
+
+
+ public function getSalesHistory() {
+        $stmt = $this->conn->prepare("SELECT * FROM sales_history ORDER BY order_date DESC");
+        $stmt->execute();
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+
+
+
+public function deleteOrder($orderId) {
+    // Delete related payment records
+    $stmt = $this->conn->prepare("DELETE FROM payment WHERE order_id = ?");
+    $stmt->execute([$orderId]);
+
+    // Delete related records from order_item
+    $stmt = $this->conn->prepare("DELETE FROM order_item WHERE order_id = ?");
+    $stmt->execute([$orderId]);
+
+    // Delete the order
+    $stmt = $this->conn->prepare("DELETE FROM `order` WHERE order_id = ?");
+    return $stmt->execute([$orderId]);
 }
-
-
-
-
 
 
 

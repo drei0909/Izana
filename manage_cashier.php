@@ -15,12 +15,14 @@ $products = $db->getAllProducts();
 $categories = array_unique(array_map(fn($p) => $p['product_category'] ?? 'Other', $products));
 
 // Handle order submission
+$flash = null;  // For flash messages
+
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
     $cart = json_decode($_POST['cart'], true);
     $payment_method = $_POST['payment_method'] ?? 'Cash';
     $cash_received = floatval($_POST['cash_received'] ?? 0);
-    $order_type = $_POST['order_type'] ?? 'Dine-in';
 
+    // Ensure cart is not empty
     if (!empty($cart)) {
         $total_price = 0;
         foreach ($cart as $item) {
@@ -30,18 +32,23 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
         $change = $payment_method === 'Cash' ? max($cash_received - $total_price, 0) : 0;
 
         try {
+            // Start a transaction
             $db->conn->beginTransaction();
 
+            // Insert order into `order` table (walk-in, status Completed)
             $stmtOrder = $db->conn->prepare("
                 INSERT INTO `order` 
-                (customer_id, order_type, order_channel, total_amount, receipt, order_status)
-                VALUES (NULL, ?, 'walk-in', ?, NULL, 'Completed')
+                (customer_id, order_channel, total_amount, order_status)
+                VALUES (NULL, 'walk-in', ?, 'Completed')
             ");
-            $stmtOrder->execute([$order_type, $total_price]);
+            $stmtOrder->execute([$total_price]);
 
             $order_ID = $db->conn->lastInsertId();
+            if (!$order_ID) {
+                throw new Exception('Failed to insert into the `order` table');
+            }
 
-            // Insert order items
+            // Insert each item into `order_item`
             $stmtItem = $db->conn->prepare("
                 INSERT INTO `order_item` (order_id, product_id, quantity, price) 
                 VALUES (?, ?, ?, ?)
@@ -57,25 +64,43 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
             ");
             $stmtPayment->execute([$order_ID, $payment_method, $total_price]);
 
+            // Commit
             $db->conn->commit();
 
-            $success_message = "Order placed successfully!";
+            // Set the flash message for success
             $change_amount = number_format($change, 2);
-            $cart = []; // Clear cart after successful order
-
+            $flash = [
+                'title' => 'Success',
+                'text'  => "Order placed successfully! | Change: ₱{$change_amount}",
+                'icon'  => 'success',
+                'redirect' => 'manage_cashier.php'
+            ];
         } catch (Exception $e) {
             $db->conn->rollBack();
-            $error_message = "Failed to place order: " . $e->getMessage();
+            // Set the flash message for error
+            $msg = addslashes($e->getMessage());
+            $flash = [
+                'title' => 'Error',
+                'text'  => "Failed to place order: {$msg}",
+                'icon'  => 'error'
+            ];
         }
     } else {
-        $error_message = "Cart is empty!";
+        // Set the flash message for empty cart
+        $flash = [
+            'title' => 'Error',
+            'text'  => 'Cart is empty!',
+            'icon'  => 'error'
+        ];
     }
 }
 ?>
+
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
+<meta charset="UTF-8">  
 <title>Manage Cashier | Cashier Panel</title>
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -172,7 +197,6 @@ body {
   </ul>
 </div>
 
-
   <!-- Main -->
   <div class="main">
     <!-- Header -->
@@ -251,6 +275,8 @@ body {
 </div>
 
 <script>
+// JavaScript for Cart Management and Form Submission
+
 let cart = [];
 
 function renderCart() {
@@ -290,39 +316,35 @@ document.querySelectorAll('.add-to-cart').forEach(btn => {
     });
 });
 
-// Category filter
-document.getElementById('categoryFilter').addEventListener('change', function(){
-    const category = this.value.toLowerCase();
-    document.querySelectorAll('.menu-item').forEach(item => {
-        item.style.display = (!category || item.dataset.category.toLowerCase() === category) ? 'block' : 'none';
-    });
-});
-
-// Search filter
-document.getElementById('searchInput').addEventListener('input', function(){
-    const term = this.value.toLowerCase();
-    document.querySelectorAll('.menu-item').forEach(item => {
-        item.style.display = item.dataset.name.includes(term) ? 'block' : 'none';
-    });
-});
-
-// Change calculator
+// Calculate change for cash payments
 const cashInput = document.getElementById('cashReceived');
 cashInput.addEventListener('input', updateChange);
 
-function updateChange(){
+function updateChange() {
     let total = parseFloat(document.getElementById('totalPrice').textContent) || 0;
     let cash = parseFloat(cashInput.value) || 0;
     let change = Math.max(cash - total, 0);
     document.getElementById('changeDisplay').textContent = `Change: ₱${change.toFixed(2)}`;
 }
 
-<?php if(isset($success_message)): ?>
-Swal.fire('Success', '<?= $success_message ?><?php if(isset($change_amount)) echo " | Change: ₱$change_amount"; ?>', 'success');
-<?php endif; ?>
-<?php if(isset($error_message)): ?>
-Swal.fire('Error', '<?= $error_message ?>', 'error');
-<?php endif; ?>
 </script>
+
+<?php if ($flash): ?>
+<script>
+  // Ensure Swal exists & run after DOM is ready
+  window.addEventListener('DOMContentLoaded', function () {
+    Swal.fire({
+      title: <?= json_encode($flash['title']) ?>,
+      text: <?= json_encode($flash['text']) ?>,
+      icon: <?= json_encode($flash['icon']) ?>,
+    }).then(function() {
+      <?php if (!empty($flash['redirect'])): ?>
+      window.location.href = <?= json_encode($flash['redirect']) ?>;
+      <?php endif; ?>
+    });
+  });
+</script>
+<?php endif; ?>
+
 </body>
 </html>
