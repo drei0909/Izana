@@ -152,6 +152,7 @@ if ($total_pages < 1) $total_pages = 1;
       <li><a href="cashier.php" class="nav-link"><i class="fas fa-cash-register me-2"></i>Online Cashier</a></li>
       <li><a href="manage_cashier.php" class="nav-link"><i class="fas fa-users-cog me-2"></i>POS</a></li>
       <li><a href="sales_report.php" class="nav-link"><i class="fas fa-chart-line me-2"></i>Sales Report</a></li>
+       <li><a href="salesHistory.php" class="nav-link"><i class="fas fa-history me-2"></i>Sales History</a></li>
       <li><a href="edit_profile.php" class="nav-link"><i class="fas fa-user-edit me-2"></i>Edit Profile</a></li>
       <li><a href="Logout_A.php" class="nav-link text-danger"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
     </ul>
@@ -200,7 +201,7 @@ if ($total_pages < 1) $total_pages = 1;
                   <?php foreach ($orders as $order): ?>
                     <tr>
                       <td><?= htmlspecialchars($order['order_id']) ?></td>
-                      <td><?= htmlspecialchars($order['customer_FN'] . ' ' . $order['customer_LN']) ?></td>
+                      <td><?= htmlspecialchars($order['customer_name']) ?></td>
                       <td>₱<?= number_format($order['total_amount'], 2) ?></td>
                       <td>
                         <?php if (!empty($order['receipt'])): ?>

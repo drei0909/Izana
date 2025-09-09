@@ -499,14 +499,17 @@ public function searchOrder($keyword) {
 }
 
 public function getOrders($search = '', $limit = 5, $offset = 0) {
-    $sql = "SELECT o.*, c.customer_FN, c.customer_LN, o.order_channel
-            FROM `order` o
-            LEFT JOIN customer c ON o.customer_id = c.customer_id
-            WHERE o.order_id LIKE :search
-               OR c.customer_FN LIKE :search
-               OR c.customer_LN LIKE :search
-            ORDER BY o.order_date DESC
-            LIMIT :limit OFFSET :offset";
+   $sql = "SELECT o.*, 
+               COALESCE(CONCAT(c.customer_FN, ' ', c.customer_LN), 'walk-in') AS customer_name, 
+               o.order_channel
+        FROM `order` o
+        LEFT JOIN customer c ON o.customer_id = c.customer_id
+        WHERE o.order_id LIKE :search
+           OR c.customer_FN LIKE :search
+           OR c.customer_LN LIKE :search
+        ORDER BY o.order_date DESC
+        LIMIT :limit OFFSET :offset";
+
 
     $stmt = $this->conn->prepare($sql);
     $stmt->bindValue(':search', "%$search%", PDO::PARAM_STR);
@@ -616,11 +619,15 @@ public function saveSalesToHistory($walkinSales, $onlineSales, $totalSales) {
     // Functi
 
 
- public function getSalesHistory() {
-        $stmt = $this->conn->prepare("SELECT * FROM sales_history ORDER BY order_date DESC");
-        $stmt->execute();
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
-    }
+// Method to fetch sales history with pagination
+public function getSalesHistory($limit, $offset) {
+    $sql = "SELECT * FROM sales_history ORDER BY order_date DESC LIMIT :limit OFFSET :offset";
+    $stmt = $this->conn->prepare($sql);
+    $stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
+    $stmt->bindParam(':offset', $offset, PDO::PARAM_INT);
+    $stmt->execute();
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
 
 
 

@@ -10,8 +10,25 @@ if (!isset($_SESSION['admin_ID'])) {
 
 $adminName = htmlspecialchars($_SESSION['admin_FN'] ?? 'Admin');
 
-// Fetch all sales history data
-$salesHistory = $db->getSalesHistory();
+// Pagination setup
+$limit = 10;  // Number of records per page
+$page = isset($_GET['page']) ? (int)$_GET['page'] : 1; // Current page
+$offset = ($page - 1) * $limit; // Offset calculation
+
+// Fetch sales history data with pagination
+$salesHistory = $db->getSalesHistory($limit, $offset);
+
+// Get total number of records for pagination
+$totalSalesHistory = $db->conn->query("SELECT COUNT(*) FROM sales_history")->fetchColumn();
+$totalPages = ceil($totalSalesHistory / $limit);
+
+// Handle delete request
+if (isset($_GET['delete'])) {
+    $deleteId = (int)$_GET['delete'];
+    $db->deleteSalesHistory($deleteId);
+    header("Location: salesHistory.php"); // Redirect to refresh page after deletion
+    exit();
+}
 ?>
 
 <!DOCTYPE html>
@@ -145,8 +162,7 @@ body {
     </ul>
   </div>
 
-  <!-- Main -->
-  <div class="main">
+<div class="main">
     <div class="admin-header d-flex justify-content-between align-items-center">
       <h5 class="mb-0">Welcome, <?= $adminName ?></h5>
       <span class="text-muted"><i class="fas fa-user-shield me-1"></i>Admin Panel</span>
@@ -166,6 +182,7 @@ body {
                   <th>Walk-in Sales (₱)</th>
                   <th>Online Sales (₱)</th>
                   <th>Total Sales (₱)</th>
+                  <th>Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -175,12 +192,34 @@ body {
                     <td><?= number_format($record['walk_in_sales'], 2) ?></td>
                     <td><?= number_format($record['online_sales'], 2) ?></td>
                     <td><?= number_format($record['total_sales'], 2) ?></td>
+                    <td>
+                      <a href="salesHistory.php?delete=<?= $record['id'] ?>" class="btn btn-danger btn-sm" onclick="return confirm('Are you sure you want to delete this record?');">
+                        <i class="fas fa-trash-alt"></i> Delete
+                      </a>
+                    </td>
                   </tr>
                 <?php endforeach; ?>
               </tbody>
             </table>
           </div>
         </div>
+
+        <!-- Pagination Controls -->
+        <nav>
+          <ul class="pagination justify-content-center">
+            <li class="page-item <?= $page == 1 ? 'disabled' : '' ?>">
+              <a class="page-link" href="salesHistory.php?page=<?= $page - 1 ?>">Previous</a>
+            </li>
+            <?php for ($i = 1; $i <= $totalPages; $i++): ?>
+              <li class="page-item <?= $page == $i ? 'active' : '' ?>">
+                <a class="page-link" href="salesHistory.php?page=<?= $i ?>"><?= $i ?></a>
+              </li>
+            <?php endfor; ?>
+            <li class="page-item <?= $page == $totalPages ? 'disabled' : '' ?>">
+              <a class="page-link" href="salesHistory.php?page=<?= $page + 1 ?>">Next</a>
+            </li>
+          </ul>
+        </nav>
       </div>
     </div>
   </div>
