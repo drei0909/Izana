@@ -1,12 +1,16 @@
 <?php
 session_start();
+
+require_once('../classes/database.php');
+include_once __DIR__. "/../classes/config.php";
+
 if (!isset($_SESSION['admin_ID'])) {
     header("Location: admin_L.php");
     exit();
 }
 
-require_once('./classes/database.php');
-include_once __DIR__. "/../classes/config.php";
+$activePage = 'manage_cashier';
+
 $db = new Database();
 
 $adminName = htmlspecialchars($_SESSION['admin_FN'] ?? 'Admin');
@@ -98,7 +102,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
 ?>
 
 
-<?php include ('templatesAdmin/header.php'); ?>
+<?php include ('templates/header.php'); ?>
 <style>
   .menu-card { transition: transform 0.2s, box-shadow 0.2s; cursor: pointer; border-radius: 12px; }
 .menu-card:hover { transform: scale(1.03); box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
@@ -116,7 +120,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
 
 <div class="wrapper">
 
-<?php include ('templatesAdmin/sidebar.php'); ?>
+<?php include ('templates/sidebar.php'); ?>
 
   <!-- Main -->
   <div class="main">

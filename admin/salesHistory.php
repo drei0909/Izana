@@ -1,13 +1,16 @@
 <?php
 session_start();
-require_once('./classes/database.php');
-include_once __DIR__. "/../classes/config.php";
+
+require_once('../classes/database.php');
+require_once (__DIR__. "/../classes/config.php");
 $db = new Database();
 
 if (!isset($_SESSION['admin_ID'])) {
     header("Location: admin_L.php");
     exit();
 }
+
+$activePage = 'salesHistory';
 
 $adminName = htmlspecialchars($_SESSION['admin_FN'] ?? 'Admin');
 
@@ -32,11 +35,11 @@ if (isset($_GET['delete'])) {
 }
 ?>
 
-<?php include ('templatesAdmin/header.php'); ?>
+<?php include ('templates/header.php'); ?>
 
 <div class="wrapper">
 
- <?php include ('templatesAdmin/sidebar.php'); ?>
+ <?php include ('templates/sidebar.php'); ?>
 
 <div class="main">
     <div class="admin-header d-flex justify-content-between align-items-center">

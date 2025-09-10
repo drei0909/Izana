@@ -1,15 +1,20 @@
 <?php
-require_once('./classes/database.php');
-include_once __DIR__. "/../classes/config.php";
 session_start();
+
+require_once('../classes/database.php');
+require_once (__DIR__. "/../classes/config.php");
+
+
+$active_page = 'view_customers';
 
 if (!isset($_SESSION['admin_ID'])) {
     header("Location: admin_L.php");
     exit();
 }
 
+$activePage = 'admin'; 
+
 $db = new Database();
-$adminName = htmlspecialchars($_SESSION['admin_FN'] ?? 'Admin');
 
 // ✅ Get search input
 $search = $_GET['search'] ?? '';
@@ -19,44 +24,43 @@ $page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
 if ($page < 1) $page = 1;
 $offset = ($page - 1) * $limit;
 
-// ✅ Fetch orders with pagination, including both 'online' and 'walk-in' orders
-$orders = $db->getOrders($search, $limit, $offset);
+// ✅ Fetch customers with pagination and search filter
+$customers = $db->getAllCustomers();
 
-// ✅ Count total orders for pagination
-$total_orders = $db->countOrders($search);
-$total_pages = ceil($total_orders / $limit);
+// ✅ Count total customers for pagination
+$total_customers = $db->countCustomers($search);
+$total_pages = ceil($total_customers / $limit);
 if ($total_pages < 1) $total_pages = 1;
 ?>
 
-<?php include ('templatesAdmin/header.php'); ?>
-
-
+<?php include ('templates/header.php'); ?>
 
 <div class="wrapper">
 
-<?php include ('templatesAdmin/sidebar.php'); ?>
+<?php include ('templates/sidebar.php'); ?>
+
 
   <!-- Main content -->
   <div class="main">
     <div class="admin-header d-flex justify-content-between align-items-center">
       <div class="d-flex align-items-center gap-3">
         <span class="toggle-btn d-lg-none text-dark" onclick="toggleSidebar()"><i class="fas fa-bars"></i></span>
-        <h5 class="mb-0">Welcome, <?= $adminName ?></h5>
+        <h5 class="mb-0">Welcome, Admin</h5>
       </div>
       <span class="text-muted"><i class="fas fa-user-shield me-1"></i>Admin Panel</span>
     </div>
 
     <div class="dashboard-content">
       <div class="container-fluid">
-        <h4 class="section-title"><i class="fas fa-shopping-cart me-2"></i>Order List</h4>
+        <h4 class="section-title"><i class="fas fa-users me-2"></i>Customer List</h4>
 
         <!-- Search Form -->
         <form method="GET" class="row g-3 mb-4 justify-content-center">
           <div class="col-md-6">
             <div class="input-group">
-              <input type="text" name="search" class="form-control" placeholder="Search by order ID, customer name, or email" value="<?= htmlspecialchars($search) ?>">
+              <input type="text" name="search" class="form-control" placeholder="Search by name, email" value="<?= htmlspecialchars($search) ?>">
               <button class="btn btn-primary" type="submit"><i class="fas fa-search"></i> Search</button>
-              <a href="view_orders.php" class="btn btn-secondary">Reset</a>
+              <a href="view_customers.php" class="btn btn-secondary">Reset</a>
             </div>
           </div>
         </form>
@@ -66,36 +70,26 @@ if ($total_pages < 1) $total_pages = 1;
             <table class="table table-hover table-bordered align-middle">
               <thead>
                 <tr>
-                  <th>Order ID</th>
-                  <th>Customer</th>
-                  <th>Total Amount</th>
-                  <th>Receipt</th>
-                  <th>Order Date</th>
-                  <th>Order Channel</th> <!-- New column for Order Channel -->
+                  <th>ID</th>
+                  <th>Full Name</th>
+                  <th>Email</th>
+                  <th>Registered At</th>
                 </tr>
               </thead>
               <tbody>
-                <?php if (!empty($orders)): ?>
-                  <?php foreach ($orders as $order): ?>
+                <?php if (!empty($customers)): ?>
+                  <?php foreach ($customers as $customer): ?>
                     <tr>
-                      <td><?= htmlspecialchars($order['order_id']) ?></td>
-                      <td><?= htmlspecialchars($order['customer_name']) ?></td>
-                      <td>₱<?= number_format($order['total_amount'], 2) ?></td>
-                      <td>
-                        <?php if (!empty($order['receipt'])): ?>
-                          <a href="uploads/receipts/<?= htmlspecialchars($order['receipt']) ?>" target="_blank" class="receipt-link">View</a>
-                        <?php else: ?>
-                          <span class="text-muted">No receipt</span>
-                        <?php endif; ?>
-                      </td>
-                      <td><?= date("F j, Y h:i A", strtotime($order['order_date'])) ?></td>
-                      <td><?= htmlspecialchars($order['order_channel']) ?></td> <!-- Display order channel -->
+                      <td><?= htmlspecialchars($customer['customer_id']) ?></td>
+                      <td><?= htmlspecialchars($customer['customer_FN'] . ' ' . $customer['customer_LN']) ?></td>
+                      <td><?= htmlspecialchars($customer['customer_email']) ?></td>
+                      <td><?= date("M d, Y h:i A", strtotime($customer['created_at'])) ?></td>
                     </tr>
                   <?php endforeach; ?>
                 <?php else: ?>
                   <tr>
-                    <td colspan="6" class="text-center text-muted py-4">
-                      <i class="fas fa-box-open fa-2x mb-2"></i><br>No orders found.
+                    <td colspan="4" class="text-center text-muted py-4">
+                      <i class="fas fa-user-slash fa-2x mb-2"></i><br>No customers found.
                     </td>
                   </tr>
                 <?php endif; ?>

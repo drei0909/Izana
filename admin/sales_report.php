@@ -1,13 +1,15 @@
 <?php
 session_start();
-require_once('./classes/database.php');
-include_once __DIR__. "/../classes/config.php";
+require_once('../classes/database.php');
+require_once (__DIR__. "/../classes/config.php");
 $db = new Database();
 
 if (!isset($_SESSION['admin_ID'])) {
     header("Location: admin_L.php");
     exit();
 }
+
+$activePage = 'sales_report';
 
 $adminName = htmlspecialchars($_SESSION['admin_FN'] ?? 'Admin');
 $orders = $db->getAllOrder();
@@ -74,11 +76,11 @@ if (isset($_POST['delete_order'])) {
 
 ?>
 
-<?php include ('templatesAdmin/header.php'); ?>
+<?php include ('templates/header.php'); ?>
 
 <div class="wrapper">
   
-<?php include ('templatesAdmin/sidebar.php'); ?>
+<?php include ('templates/sidebar.php'); ?>
 
   <!-- Main -->
   <div class="main">

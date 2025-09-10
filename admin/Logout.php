@@ -2,6 +2,7 @@
 session_start();
 session_unset();
 session_destroy();
-header("Location: admin_L.php");
+header("Location: login.php");
 exit();
 ?>
+z

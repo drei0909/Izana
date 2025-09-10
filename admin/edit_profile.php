@@ -1,13 +1,15 @@
 <?php
 session_start();
-require_once('./classes/database.php');
-include_once __DIR__. "/../classes/config.php";
+
+require_once('../classes/database.php');
+require_once (__DIR__. "/../classes/config.php");
 $db = new Database();
 
 if (!isset($_SESSION['admin_ID'])) {
     header("Location: admin.php");
     exit();
 }
+$activePage = 'edit_profile';
 
 $admin_ID = $_SESSION['admin_ID'];
 $admin = $db->getAdminById($admin_ID);
@@ -43,11 +45,11 @@ if ($_SERVER['REQUEST_METHOD'] == 'POST') {
     }
 }
 ?>
-<?php include ('templatesAdmin/header.php'); ?>
+<?php include ('templates/header.php'); ?>
 
 <div class="wrapper">
 
-<?php include ('templatesAdmin/sidebar.php'); ?>
+<?php include ('templates/sidebar.php'); ?>
 
   <!-- Main -->
   <div class="main">

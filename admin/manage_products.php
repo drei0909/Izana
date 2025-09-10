@@ -1,12 +1,16 @@
 <?php
-require_once('./classes/database.php');
-include_once __DIR__. "/../classes/config.php";
 session_start();
+
+require_once('../classes/database.php');
+require_once (__DIR__. "/../classes/config.php");
+
 
 if (!isset($_SESSION['admin_ID'])) {
     header("Location: admin_L.php");
     exit();
 }
+
+$active_page = 'manage_products';
 
 $db = new Database();
 
@@ -30,11 +34,11 @@ $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 $adminName = htmlspecialchars($_SESSION['admin_FN'] ?? 'Admin');
 ?>
 
-<?php include ('templatesAdmin/header.php'); ?>
+<?php include ('templates/header.php'); ?>
 
 <div class="wrapper">
  
-<?php include ('templatesAdmin/sidebar.php'); ?>
+<?php include ('templates/sidebar.php'); ?>
 
     <!-- Main Content -->
    <div class="main">

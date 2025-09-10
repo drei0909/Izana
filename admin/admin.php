@@ -1,13 +1,15 @@
 <?php
 session_start();
+
+require_once('../classes/database.php');
+require_once (__DIR__. "/../classes/config.php");
+
 if (!isset($_SESSION['admin_ID'])) {
     header("Location: admin_L.php");
     exit();
 }
 
-require_once('./classes/database.php');
-
-include_once __DIR__. "/../classes/config.php";
+$activePage = 'admin';
 
 $db = new Database();
 
@@ -156,7 +158,7 @@ body {
 <body>
 <div class="wrapper">
 
-<?php include ('templatesAdmin/sidebar.php'); ?>
+<?php include ('templates/sidebar.php'); ?>
 
   <!-- Main -->
   <div class="main">
