@@ -6,6 +6,9 @@ if (!isset($_SESSION['admin_ID'])) {
 }
 
 require_once('./classes/database.php');
+
+include_once __DIR__. "/../classes/config.php";
+
 $db = new Database();
 
 $adminName = htmlspecialchars($_SESSION['admin_FN'] ?? 'Admin');
@@ -153,22 +156,7 @@ body {
 <body>
 <div class="wrapper">
 
-  <!-- Sidebar -->
-  <div class="sidebar p-3" id="sidebar">
-    <h4 class="text-white mb-4 text-center"><i class="fas fa-mug-hot me-2"></i>Izana Admin</h4>
-    <ul class="nav nav-pills flex-column">
-      <li><a href="admin.php" class="nav-link active"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</a></li>
-      <li><a href="view_customers.php" class="nav-link"><i class="fas fa-users me-2"></i>View Customers</a></li>
-      <li><a href="view_orders.php" class="nav-link"><i class="fas fa-receipt me-2"></i>View Orders</a></li>
-      <li><a href="manage_products.php" class="nav-link"><i class="fas fa-mug-hot me-2"></i>Manage Products</a></li>
-      <li><a href="cashier.php" class="nav-link"><i class="fas fa-cash-register me-2"></i>Online Cashier</a></li>
-      <li><a href="manage_cashier.php" class="nav-link"><i class="fas fa-users-cog me-2"></i>POS</a></li>
-      <li><a href="sales_report.php" class="nav-link"><i class="fas fa-chart-line me-2"></i>Sales Report</a></li>
-       <li><a href="salesHistory.php" class="nav-link"><i class="fas fa-history me-2"></i>Sales History</a></li>
-      <li><a href="edit_profile.php" class="nav-link"><i class="fas fa-user-edit me-2"></i>Edit Profile</a></li>
-      <li><a href="Logout_A.php" class="nav-link text-danger"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
-    </ul>
-  </div>
+<?php include ('templatesAdmin/sidebar.php'); ?>
 
   <!-- Main -->
   <div class="main">

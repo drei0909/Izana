@@ -6,6 +6,7 @@ if (!isset($_SESSION['admin_ID'])) {
 }
 
 require_once('./classes/database.php');
+include_once __DIR__. "/../classes/config.php";
 $db = new Database();
 
 $adminName = htmlspecialchars($_SESSION['admin_FN'] ?? 'Admin');
@@ -97,74 +98,9 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
 ?>
 
 
-<!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">  
-<title>Manage Cashier | Cashier Panel</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
+<?php include ('templatesAdmin/header.php'); ?>
 <style>
-body {
-  font-family: 'Quicksand', sans-serif;
-  background: #e0e0e0;
-  color: #2b2b2b;
-  margin: 0;
-  height: 100vh;
-  overflow: hidden;
-}
-.wrapper { display: flex; height: 100vh; overflow: hidden; }
-.sidebar {
-  width: 250px;
-  flex-shrink: 0;
-  background: #1c1c1c;
-  color: #fff;
-  box-shadow: 3px 0 12px rgba(0,0,0,0.25);
-  display: flex;
-  flex-direction: column;
-  position: fixed;
-  top: 0; bottom: 0; left: 0;
-  overflow-y: auto;
-}
-.main { margin-left: 250px; flex-grow: 1; display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
-.content { flex-grow: 1; overflow-y: auto; padding: 20px; }
-
-.sidebar .nav-link {
-  color: #bdbdbd;
-  font-weight: 500;
-  margin-bottom: 10px;
-  padding: 10px 15px;
-  border-radius: 12px;
-  transition: all 0.3s ease;
-}
-.sidebar .nav-link.active, .sidebar .nav-link:hover {
-  background-color: #6f4e37;
-  color: #fff;
-  transform: translateX(6px);
-}
-
-.admin-header {
-  background: #f4f4f4;
-  padding: 15px 25px;
-  border-bottom: 1px solid #d6d6d6;
-  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
-  flex-shrink: 0;
-}
-
-.section-title {
-  border-left: 6px solid #6f4e37;
-  padding-left: 12px;
-  margin: 30px 0 20px;
-  font-weight: 700;
-  color: #333;
-  text-transform: uppercase;
-  letter-spacing: 1px;
-}
-
-.menu-card { transition: transform 0.2s, box-shadow 0.2s; cursor: pointer; border-radius: 12px; }
+  .menu-card { transition: transform 0.2s, box-shadow 0.2s; cursor: pointer; border-radius: 12px; }
 .menu-card:hover { transform: scale(1.03); box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
 .card-img-top { height: 140px; object-fit: cover; border-radius: 12px 12px 0 0; }
 .cart-container { background: #fff; padding: 15px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
@@ -177,26 +113,10 @@ body {
 .total-price { font-size: 20px; font-weight: bold; margin-bottom: 10px; }
 .change-display { font-weight: bold; margin-top: 10px; color: green; }
 </style>
-</head>
-<body>
+
 <div class="wrapper">
 
-  <!-- Sidebar -->
-<div class="sidebar p-3">
-  <h4 class="text-white mb-4 text-center"><i class="fas fa-mug-hot me-2"></i>Izana Admin</h4>
-  <ul class="nav nav-pills flex-column">
-    <li><a href="admin.php" class="nav-link"><i class="fas fa-tachometer-alt me-2"></i>Dashboard</a></li>
-    <li><a href="view_customers.php" class="nav-link"><i class="fas fa-users me-2"></i>View Customers</a></li>
-    <li><a href="view_orders.php" class="nav-link"><i class="fas fa-receipt me-2"></i>View Orders</a></li>
-    <li><a href="manage_products.php" class="nav-link"><i class="fas fa-mug-hot me-2"></i>Manage Products</a></li>
-    <li><a href="cashier.php" class="nav-link"><i class="fas fa-cash-register me-2"></i>Online Cashier</a></li>
-    <li><a href="manage_cashier.php" class="nav-link active"><i class="fas fa-users-cog me-2"></i>POS</a></li>
-    <li><a href="sales_report.php" class="nav-link"><i class="fas fa-chart-line me-2"></i>Sales Report</a></li>
-     <li><a href="salesHistory.php" class="nav-link"><i class="fas fa-history me-2"></i>Sales History</a></li>
-    <li><a href="edit_profile.php" class="nav-link"><i class="fas fa-user-edit me-2"></i>Edit Profile</a></li>
-    <li><a href="Logout_A.php" class="nav-link text-danger"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
-  </ul>
-</div>
+<?php include ('templatesAdmin/sidebar.php'); ?>
 
   <!-- Main -->
   <div class="main">
