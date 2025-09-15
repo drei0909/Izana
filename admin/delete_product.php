@@ -1,10 +1,13 @@
 <?php
-require_once('./classes/database.php');
 session_start();
+require_once('../classes/database.php');
 
+require_once (__DIR__. "/../classes/config.php");
+
+$db = new Database();
 // Ensure admin is logged in
 if (!isset($_SESSION['admin_ID'])) {
-    header("Location: admin_L.php");
+    header("Location: ".BASE_URL."admin_L.php");
     exit();
 }
 
@@ -13,7 +16,6 @@ if (!isset($_GET['id']) || !is_numeric($_GET['id'])) {
 }
 
 $product_id = intval($_GET['id']);
-$db = new Database();
 
 // Fetch product to get image path
 $product = $db->getProductById($product_id);

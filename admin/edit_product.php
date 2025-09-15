@@ -1,29 +1,35 @@
 <?php
-require_once('./classes/database.php');
 session_start();
+require_once('../classes/database.php');
+require_once (__DIR__. "/../classes/config.php");
 
 if (!isset($_SESSION['admin_ID'])) {
-    header("Location: admin_L.php");
+    header("Location: ".BASE_URL."admin_L.php");
     exit();
 }
 
 $db = new Database();
 
+// Get the product ID from the URL
 $id = $_GET['id'] ?? null;
+
+// Check if the product ID is valid and the product exists
 if (!$id || !$product = $db->getProductById($id)) {
+    // If the product is not found, display an error and exit
     die("Invalid product ID.");
 }
 
 $success = false;
 $error = null;
 
+// Handle the form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $productName = $_POST['product_name'];
     $productPrice = $_POST['product_price'];
     $productCategory = $_POST['product_category'];
-    $stockQuantity = $_POST['stock_quantity'];
 
-    $result = $db->updateProduct($id, $productName, $productPrice, $productCategory, $stockQuantity);
+    // Update the product in the database
+    $result = $db->updateProduct($id, $productName, $productPrice, $productCategory);
 
     if ($result) {
         $success = true;
@@ -58,11 +64,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
       <label class="form-label">Category</label>
       <input type="text" name="product_category" class="form-control" value="<?= htmlspecialchars($product['product_category']) ?>" required>
     </div>
-    <div class="mb-3">
-      <label class="form-label">Stock Quantity</label>
-      <input type="number" name="stock_quantity" class="form-control" min="0" value="<?= htmlspecialchars($product['stock_quantity']) ?>" required>
-    </div>
-
+    
     <button type="submit" class="btn btn-primary">Update Product</button>
     <a href="manage_products.php" class="btn btn-secondary">Back</a>
   </form>
@@ -76,7 +78,7 @@ Swal.fire({
   text: 'Product successfully updated.',
   confirmButtonColor: '#3085d6'
 }).then(() => {
-  window.location.href = "manage_products.php";
+  window.location.href = "edit_product.php?id=<?= $id ?>"; // Redirect to the same page after successful update
 });
 </script>
 <?php elseif ($error): ?>

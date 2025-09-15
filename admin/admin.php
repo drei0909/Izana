@@ -9,7 +9,7 @@ if (!isset($_SESSION['admin_ID'])) {
     exit();
 }
 
-$activePage = 'admin';
+$active_page = 'admin';
 
 $db = new Database();
 

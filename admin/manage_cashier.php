@@ -9,7 +9,7 @@ if (!isset($_SESSION['admin_ID'])) {
     exit();
 }
 
-$activePage = 'manage_cashier';
+$active_page = 'manage_cashier';
 
 $db = new Database();
 

@@ -66,11 +66,21 @@ class Database {
 }
 
     // Get all products
-  public function getAllProducts() {
-    $stmt = $this->conn->prepare("SELECT * FROM product");
+  // Get all products
+public function getAllProducts($category_id = null) {
+    if ($category_id !== null) {
+        // If category_id is provided, filter by category
+        $stmt = $this->conn->prepare("SELECT * FROM product WHERE category_id = :category_id");
+        $stmt->bindParam(':category_id', $category_id, PDO::PARAM_INT);
+    } else {
+        // If no category_id, get all products
+        $stmt = $this->conn->prepare("SELECT * FROM product");
+    }
+
     $stmt->execute();
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
+
 
 
 
@@ -278,28 +288,28 @@ public function getAllOrder() {
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
+//ad categories
+public function addCategory($category) {
+    $stmt = $this->conn->prepare("INSERT INTO product_categories (category) VALUES (?)");
+    return $stmt->execute([$category]);
+}
 
 
 
 // Add Product
-public function addProduct($name, $price, $category, $imagePath) {
-    $stmt = $this->conn->prepare("INSERT INTO product (product_name, product_price, product_category, image_path) VALUES (?, ?, ?, ?)");
-    return $stmt->execute([$name, $price, $category, $imagePath]);
+public function addProduct($name, $price, $category, $category_id, $imagePath) {
+    $stmt = $this->conn->prepare("INSERT INTO product (product_name, product_price, product_category, category_id, image_path) VALUES (?, ?, ?, ?, ?)");
+    return $stmt->execute([$name, $price, $category, $category_id, $imagePath]);
 }
 
 
 // Update Product
 public function updateProduct($productId, $productName, $productPrice, $productCategory) {
-    if ($stockQuantity) {
-        $sql = "UPDATE product SET product_name = ?, product_price = ?, product_category = ?, WHERE product_id = ?";
-        $stmt = $this->conn->prepare($sql);
-        return $stmt->execute([$productName, $productPrice, $productCategory, $productId]);
-    } else {
-        $sql = "UPDATE product SET product_name = ?, product_price = ?, product_category = ? WHERE product_id = ?";
-        $stmt = $this->conn->prepare($sql);
-        return $stmt->execute([$productName, $productPrice, $productCategory, $productId]);
-    }
+    $sql = "UPDATE product SET product_name = ?, product_price = ?, product_category = ? WHERE product_id = ?";
+    $stmt = $this->conn->prepare($sql);
+    return $stmt->execute([$productName, $productPrice, $productCategory, $productId]);
 }
+
 
 // Delete Product
 public function deleteProduct($product_id) {

@@ -9,7 +9,7 @@ if (!isset($_SESSION['admin_ID'])) {
     exit();
 }
 
-$activePage = 'cashier';
+$active_page = 'cashier';
 
 $db = new Database();
 
@@ -79,7 +79,7 @@ try {
                   <td><?= htmlspecialchars($row['payment_method'] ?? 'N/A') ?></td>
                   <td>
                     <?php if (!empty($row['receipt'])): ?>
-                      <a href="<?= htmlspecialchars('uploads/receipts/' . $row['receipt']) ?>" target="_blank" class="btn btn-sm btn-primary btn-small">View</a>
+                      <a href="<?= htmlspecialchars('../uploads/receipts/' . $row['receipt']) ?>" target="_blank" class="btn btn-sm btn-primary btn-small">View</a>
                     <?php else: ?>
                       <span class="text-muted">N/A</span>
                     <?php endif; ?>

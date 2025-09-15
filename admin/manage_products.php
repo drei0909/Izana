@@ -14,20 +14,7 @@ $active_page = 'manage_products';
 
 $db = new Database();
 
-// ✅ Pagination setup
-$limit = 20; // products per page
-$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-if ($page < 1) $page = 1;
-$offset = ($page - 1) * $limit;
-
-$totalProducts = $db->conn->query("SELECT COUNT(*) FROM product")->fetchColumn();
-$totalPages = ceil($totalProducts / $limit);
-if ($totalPages < 1) $totalPages = 1;
-
-// ✅ Fetch paginated products
-$stmt = $db->conn->prepare("SELECT * FROM product LIMIT :limit OFFSET :offset");
-$stmt->bindValue(':limit', $limit, PDO::PARAM_INT);
-$stmt->bindValue(':offset', $offset, PDO::PARAM_INT);
+$stmt = $db->conn->prepare("SELECT * FROM product");
 $stmt->execute();
 $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -58,7 +45,7 @@ $adminName = htmlspecialchars($_SESSION['admin_FN'] ?? 'Admin');
 
                 <!-- Table -->
                 <div class="table-responsive">
-                    <table class="table table-bordered table-hover align-middle">
+                    <table id="productTable" class="table table-bordered table-hover align-middle">
                         <thead>
                             <tr>
                                 <th>ID</th>
@@ -113,57 +100,17 @@ $adminName = htmlspecialchars($_SESSION['admin_FN'] ?? 'Admin');
                         </tbody>
                     </table>
                 </div>
-
-                <!-- Pagination -->
-                <nav>
-                    <ul class="pagination justify-content-center pagination-lg">
-                        <!-- Prev -->
-                        <li class="page-item <?= ($page <= 1) ? 'disabled' : '' ?>">
-                            <a class="page-link" href="?page=<?= max(1, $page - 1) ?>">Prev</a>
-                        </li>
-
-                        <?php
-                        $start = max(1, $page - 2);
-                        $end = min($totalPages, $page + 2);
-
-                        if ($end - $start < 4) {
-                            if ($start == 1) {
-                                $end = min(5, $totalPages);
-                            } elseif ($end == $totalPages) {
-                                $start = max(1, $totalPages - 4);
-                            }
-                        }
-
-                        if ($start > 1) {
-                            echo '<li class="page-item"><a class="page-link" href="?page=1">1</a></li>';
-                            if ($start > 2) {
-                                echo '<li class="page-item disabled"><span class="page-link">...</span></li>';
-                            }
-                        }
-
-                        for ($i = $start; $i <= $end; $i++) {
-                            $active = ($i == $page) ? 'active' : '';
-                            echo "<li class='page-item $active'><a class='page-link' href='?page=$i'>$i</a></li>";
-                        }
-
-                        if ($end < $totalPages) {
-                            if ($end < $totalPages - 1) {
-                                echo '<li class="page-item disabled"><span class="page-link">...</span></li>';
-                            }
-                            echo "<li class='page-item'><a class='page-link' href='?page=$totalPages'>$totalPages</a></li>";
-                        }
-                        ?>
-
-                        <!-- Next -->
-                        <li class="page-item <?= ($page >= $totalPages) ? 'disabled' : '' ?>">
-                            <a class="page-link" href="?page=<?= min($totalPages, $page + 1) ?>">Next</a>
-                        </li>
-                    </ul>
-                </nav>
             </div>
         </div>
     </div>
 </div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<!-- DataTables JS -->
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
 
 <?php if (isset($_GET['updated']) && $_GET['updated'] === 'success'): ?>
 <script>
@@ -173,7 +120,15 @@ Swal.fire({
     text: 'Product activation status has been changed.',
     confirmButtonColor: '#28a745'
 });
+
 </script>
 <?php endif; ?>
+
+<script>
+    $(document).ready(function(){
+        $('#productTable').DataTable();
+    });
+</script>
+
 </body>
 </html>

@@ -18,6 +18,11 @@
         </a>
       </li>
       <li>
+        <a href="<?php echo BASE_URL; ?>admin/product-categories.php" class="nav-link <?php echo ($active_page == 'product-categories') ? 'active' : '' ?>">
+          <i class="fas fa-mug-hot me-2"></i>Products Categories
+        </a>
+      </li>
+      <li>
         <a href="<?php echo BASE_URL; ?>admin/manage_products.php" class="nav-link <?php echo ($active_page == 'manage_products') ? 'active' : '' ?>">
           <i class="fas fa-mug-hot me-2"></i>Manage Products
         </a>
@@ -43,7 +48,7 @@
         </a>
       </li>
       <li>
-        <a href="<?php echo BASE_URL; ?>admin/edit_profile.php" class="nav-link <?php echo ($active_page == 'view_customers') ? 'active' : '' ?>">
+        <a href="<?php echo BASE_URL; ?>admin/edit_profile.php" class="nav-link <?php echo ($active_page == 'edit_profile') ? 'active' : '' ?>">
           <i class="fas fa-user-edit me-2"></i>Edit Profile
         </a>
       </li>

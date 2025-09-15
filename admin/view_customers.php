@@ -12,7 +12,7 @@ if (!isset($_SESSION['admin_ID'])) {
     exit();
 }
 
-$activePage = 'admin'; 
+$active_page = 'view_customers'; 
 
 $db = new Database();
 
@@ -97,45 +97,6 @@ if ($total_pages < 1) $total_pages = 1;
             </table>
           </div>
         </div>
-
-        <!-- Pagination -->
-        <nav class="mt-4">
-          <ul class="pagination justify-content-center pagination-lg">
-            <li class="page-item <?= ($page <= 1) ? 'disabled' : '' ?>">
-              <a class="page-link" href="?search=<?= urlencode($search) ?>&page=<?= max(1, $page - 1) ?>">Prev</a>
-            </li>
-            <?php
-            $start = max(1, $page - 2);
-            $end = min($total_pages, $page + 2);
-
-            if ($end - $start < 4) {
-              if ($start == 1) {
-                  $end = min(5, $total_pages);
-              } elseif ($end == $total_pages) {
-                  $start = max(1, $total_pages - 4);
-              }
-            }
-
-            if ($start > 1) {
-              echo '<li class="page-item"><a class="page-link" href="?search=' . urlencode($search) . '&page=1">1</a></li>';
-              if ($start > 2) echo '<li class="page-item disabled"><span class="page-link">...</span></li>';
-            }
-
-            for ($i = $start; $i <= $end; $i++) {
-              $active = ($i == $page) ? 'active' : '';
-              echo "<li class='page-item $active'><a class='page-link' href='?search=" . urlencode($search) . "&page=$i'>$i</a></li>";
-            }
-
-            if ($end < $total_pages) {
-              if ($end < $total_pages - 1) echo '<li class="page-item disabled"><span class="page-link">...</span></li>';
-              echo "<li class='page-item'><a class='page-link' href='?search=" . urlencode($search) . "&page=$total_pages'>$total_pages</a></li>";
-            }
-            ?>
-            <li class="page-item <?= ($page >= $total_pages) ? 'disabled' : '' ?>">
-              <a class="page-link" href="?search=<?= urlencode($search) ?>&page=<?= min($total_pages, $page + 1) ?>">Next</a>
-            </li>
-          </ul>
-        </nav>
       </div>
     </div>
   </div>

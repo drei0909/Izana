@@ -10,7 +10,7 @@ if (!isset($_SESSION['admin_ID'])) {
     exit();
 }
 
-$activePage = 'view_orders';
+$active_page = 'view_orders';
 
 $db = new Database();
 $adminName = htmlspecialchars($_SESSION['admin_FN'] ?? 'Admin');
@@ -33,7 +33,6 @@ if ($total_pages < 1) $total_pages = 1;
 ?>
 
 <?php include ('templates/header.php'); ?>
-
 
 
 <div class="wrapper">
@@ -87,7 +86,7 @@ if ($total_pages < 1) $total_pages = 1;
                       <td>₱<?= number_format($order['total_amount'], 2) ?></td>
                       <td>
                         <?php if (!empty($order['receipt'])): ?>
-                          <a href="uploads/receipts/<?= htmlspecialchars($order['receipt']) ?>" target="_blank" class="receipt-link">View</a>
+                          <a href="../uploads/receipts/<?= htmlspecialchars($order['receipt']) ?>" target="_blank" class="receipt-link">View</a>
                         <?php else: ?>
                           <span class="text-muted">No receipt</span>
                         <?php endif; ?>

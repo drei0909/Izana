@@ -1,18 +1,22 @@
 <?php
 session_start();
+require_once('./classes/database.php');
+require_once (__DIR__. "/classes/config.php");
+
 if (!isset($_SESSION['customer_ID'])) {
     header("Location: login.php");
     exit();
 }
 
-require_once('./classes/database.php');
-$db = new Database();
-$products = $db->getAllProducts() ?? [];
 
-$show_new_customer_promo = !empty($_SESSION['is_new']);
-unset($_SESSION['is_new']);
-$show_promo_applied = !empty($_SESSION['promo_applied_successfully']);
-unset($_SESSION['promo_applied_successfully']);
+$db = new Database();
+$products = $db->getAllProducts($_GET['category_id']) ?? [];
+
+$stmt = $db->conn->prepare("SELECT * FROM product_categories WHERE deleted = 0");
+$stmt->execute();
+$categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
 
 $grouped = [];
 foreach ($products as $p) {
@@ -210,19 +214,21 @@ main.content { flex:1; }
 <div class="container-menu">
   <div class="layout">
     <aside class="sidebar">
+
       <h5>Categories</h5>
-      <?php if(empty($grouped)): ?>
-        <div class="text-muted">No categories</div>
-      <?php else: foreach($grouped as $cat=>$items):
-        $anchor='cat-'.preg_replace('/[^a-z0-9\-_]/i','-',strtolower($cat)); ?>
-        <a href="#<?=escape($anchor)?>"><?=escape($cat)?></a>
-      <?php endforeach; endif; ?>
+  <?php foreach ($categories as $category): ?>
+       <a href="<?php echo BASE_URL ?>menu.php?category_id=<?= $category['id'] ?>"><?= htmlspecialchars($category['category']) ?></a>
+ <?php endforeach; ?>
+
+     
     </aside>
     <main class="content">
       <div class="page-title">Coffee Menu</div>
-      <?php if(empty($grouped)): ?>
-        <div class="alert alert-light">No products available.</div>
+      
+      <?php if(empty($categories)): ?>
+        <div class="alert alert-light">No products categories available.</div>
       <?php endif; ?>
+
       <?php foreach($grouped as $cat=>$items): $anchor='cat-'.preg_replace('/[^a-z0-9\-_]/i','-',strtolower($cat)); ?>
         <section id="<?=escape($anchor)?>" class="mb-4">
           <h4 class="border-bottom pb-2 mb-3 text-light"><?=escape($cat)?></h4>

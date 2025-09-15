@@ -9,7 +9,7 @@ if (!isset($_SESSION['admin_ID'])) {
     exit();
 }
 
-$activePage = 'sales_report';
+$active_page = 'sales_report';
 
 $adminName = htmlspecialchars($_SESSION['admin_FN'] ?? 'Admin');
 $orders = $db->getAllOrder();

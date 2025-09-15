@@ -10,7 +10,7 @@ if (!isset($_SESSION['admin_ID'])) {
     exit();
 }
 
-$activePage = 'salesHistory';
+$active_page = 'salesHistory';
 
 $adminName = htmlspecialchars($_SESSION['admin_FN'] ?? 'Admin');
 

@@ -9,7 +9,7 @@ if (!isset($_SESSION['admin_ID'])) {
     header("Location: admin.php");
     exit();
 }
-$activePage = 'edit_profile';
+$active_page = 'edit_profile';
 
 $admin_ID = $_SESSION['admin_ID'];
 $admin = $db->getAdminById($admin_ID);
