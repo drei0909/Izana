@@ -1,9 +1,9 @@
 <?php
 class Database {
-    private $host = "localhost";
-    private $db_name = "Izana";
-    private $username = "root";
-    private $password = "";
+    private $host = "mysql.hostinger.com";
+    private $db_name = "u892739778_izana";
+    private $username = "u892739778_izanacof";
+    private $password = "Izanacof_2021";
     public $conn;
 
     // Connect to the database
