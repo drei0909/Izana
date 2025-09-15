@@ -168,7 +168,7 @@ $db = new database();
   </nav>
 
   <div class="header-content text-center">
-    <h1>Where Every Sip Feels Like Home</h1>
+    <h1>Where Every Sip Feels Like Homeeee</h1>
     <a href="menu_preview.php" class="btn">Menu View</a>
   </div>
 </header>
