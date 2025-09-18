@@ -10,8 +10,6 @@ if (!isset($_SESSION['admin_ID'])) {
     exit();
 }
 
-$active_page = 'product-categories'; // For sidebar active link highlighting
-
 $db = new Database();
 
 // Pagination setup
@@ -70,12 +68,12 @@ $adminName = htmlspecialchars($_SESSION['admin_FN'] ?? 'Admin');
                     <tr class="<?= $product['is_active'] ? '' : 'inactive-row' ?>">
                         <td><?= htmlspecialchars($category['category']) ?></td>                      
                 <td>
-                    <a href="edit_product.php?id=<?= $category['id'] ?>" class="btn btn-warning btn-sm">Edit</a>
-                    <a href="delete_product.php?id=<?= $category['id'] ?>" class="btn btn-danger btn-sm" onclick="return confirm('Delete this product?')">Delete</a>
+                    <a href="edit_product.php?id=<?= $category['category_id'] ?>" class="btn btn-warning btn-sm">Edit</a>
+                    <a href="delete_product.php?id=<?= $category['category_id'] ?>" class="btn btn-danger btn-sm" onclick="return confirm('Delete this product?')">Delete</a>
                     <?php if ($category['deleted']): ?>
                         <a href=toggle_product.php?id=<?= $category['id'] ?>&status=0" class="btn btn-secondary btn-sm">Deactivate</a>
                     <?php else: ?>
-                        <a href="toggle_product.php?id=<?= $category['id'] ?>&status=1" class="btn btn-success btn-sm">Activate</a>
+                        <a href="toggle_product.php?id=<?= $category['category_id'] ?>&status=1" class="btn btn-success btn-sm">Activate</a>
                     <?php endif; ?>
                 </td>
                                 </tr>
@@ -152,5 +150,6 @@ Swal.fire({
 });
 </script>
 <?php endif; ?>
+
 </body>
 </html>

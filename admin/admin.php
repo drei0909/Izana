@@ -9,8 +9,6 @@ if (!isset($_SESSION['admin_ID'])) {
     exit();
 }
 
-$active_page = 'admin';
-
 $db = new Database();
 
 $adminName = htmlspecialchars($_SESSION['admin_FN'] ?? 'Admin');

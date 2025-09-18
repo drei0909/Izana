@@ -10,11 +10,9 @@ if (!isset($_SESSION['admin_ID'])) {
     exit();
 }
 
-$active_page = 'manage_products';
-
 $db = new Database();
 
-$stmt = $db->conn->prepare("SELECT * FROM product");
+$stmt = $db->conn->prepare("SELECT product.*, product_categories.category AS product_category FROM product INNER JOIN product_categories ON product.category_id = product_categories.category_id");
 $stmt->execute();
 $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -111,7 +109,7 @@ $adminName = htmlspecialchars($_SESSION['admin_FN'] ?? 'Admin');
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 
-
+                            
 <?php if (isset($_GET['updated']) && $_GET['updated'] === 'success'): ?>
 <script>
 Swal.fire({
@@ -120,7 +118,6 @@ Swal.fire({
     text: 'Product activation status has been changed.',
     confirmButtonColor: '#28a745'
 });
-
 </script>
 <?php endif; ?>
 

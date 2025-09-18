@@ -21,12 +21,10 @@ $productCategory = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $productName = $_POST['product_name'] ?? '';
     $productPrice = $_POST['price'] ?? 0;
-    $productCategory = $_POST['category'] ?? '';
        $category_id = $_POST['category_id'] ?? '';
 
-
     // Validate required fields
-    if (!$productName || !$productPrice || !$productCategory  || !$category_id) {
+    if (!$productName || !$productPrice || !$category_id) {
         $error = "Please fill in all fields.";
     } else {
         // Optional: Handle image upload
@@ -42,7 +40,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         if (move_uploaded_file($_FILES['image']['tmp_name'], $imagePath)) {
         
             // Image successfully uploaded, proceed to store the product in the database
-            $result = $db->addProduct($productName, $productPrice, $productCategory, $category_id, $imagePath);
+            $result = $db->addProduct($productName, $productPrice, $category_id, $imagePath);
             if ($result) {
                 $success = "Product added successfully!";
             } else {
@@ -56,7 +54,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     }
 }
 
-$stmt = $db->conn->prepare("SELECT * FROM product_categories");
+$stmt = $db->conn->prepare("SELECT * FROM `product_categories` WHERE 'deleted' = 0");
 $stmt->execute();
 $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
 ?>

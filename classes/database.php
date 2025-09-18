@@ -1,9 +1,9 @@
 <?php
 class Database {
-    private $host = "mysql.hostinger.com";
-    private $db_name = "u892739778_izana";
-    private $username = "u892739778_izanacof";
-    private $password = "Izanacof_2021";
+    private $host = "localhost";
+    private $db_name = "Izana";
+    private $username = "root";
+    private $password = "";
     public $conn;
 
     // Connect to the database
@@ -65,7 +65,6 @@ class Database {
     return $user;
 }
 
-    // Get all products
   // Get all products
 public function getAllProducts($category_id = null) {
     if ($category_id !== null) {
@@ -297,9 +296,9 @@ public function addCategory($category) {
 
 
 // Add Product
-public function addProduct($name, $price, $category, $category_id, $imagePath) {
-    $stmt = $this->conn->prepare("INSERT INTO product (product_name, product_price, product_category, category_id, image_path) VALUES (?, ?, ?, ?, ?)");
-    return $stmt->execute([$name, $price, $category, $category_id, $imagePath]);
+public function addProduct($name, $price, $category_id, $imagePath) {
+    $stmt = $this->conn->prepare("INSERT INTO product (product_name, product_price, category_id, image_path) VALUES (?, ?, ?, ?)");
+    return $stmt->execute([$name, $price, $category_id, $imagePath]);
 }
 
 

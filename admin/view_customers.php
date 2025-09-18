@@ -4,7 +4,6 @@ session_start();
 require_once('../classes/database.php');
 require_once (__DIR__. "/../classes/config.php");
 
-
 $active_page = 'view_customers';
 
 if (!isset($_SESSION['admin_ID'])) {
@@ -12,25 +11,8 @@ if (!isset($_SESSION['admin_ID'])) {
     exit();
 }
 
-$active_page = 'view_customers'; 
-
 $db = new Database();
-
-// ✅ Get search input
-$search = $_GET['search'] ?? '';
-
-$limit = 20; // rows per page
-$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-if ($page < 1) $page = 1;
-$offset = ($page - 1) * $limit;
-
-// ✅ Fetch customers with pagination and search filter
 $customers = $db->getAllCustomers();
-
-// ✅ Count total customers for pagination
-$total_customers = $db->countCustomers($search);
-$total_pages = ceil($total_customers / $limit);
-if ($total_pages < 1) $total_pages = 1;
 ?>
 
 <?php include ('templates/header.php'); ?>
@@ -38,7 +20,6 @@ if ($total_pages < 1) $total_pages = 1;
 <div class="wrapper">
 
 <?php include ('templates/sidebar.php'); ?>
-
 
   <!-- Main content -->
   <div class="main">
@@ -49,25 +30,13 @@ if ($total_pages < 1) $total_pages = 1;
       </div>
       <span class="text-muted"><i class="fas fa-user-shield me-1"></i>Admin Panel</span>
     </div>
-
     <div class="dashboard-content">
       <div class="container-fluid">
         <h4 class="section-title"><i class="fas fa-users me-2"></i>Customer List</h4>
 
-        <!-- Search Form -->
-        <form method="GET" class="row g-3 mb-4 justify-content-center">
-          <div class="col-md-6">
-            <div class="input-group">
-              <input type="text" name="search" class="form-control" placeholder="Search by name, email" value="<?= htmlspecialchars($search) ?>">
-              <button class="btn btn-primary" type="submit"><i class="fas fa-search"></i> Search</button>
-              <a href="view_customers.php" class="btn btn-secondary">Reset</a>
-            </div>
-          </div>
-        </form>
-
         <div class="card p-3">
           <div class="table-responsive">
-            <table class="table table-hover table-bordered align-middle">
+            <table id="productTable" class="table table-hover table-bordered align-middle">
               <thead>
                 <tr>
                   <th>ID</th>
@@ -101,12 +70,26 @@ if ($total_pages < 1) $total_pages = 1;
     </div>
   </div>
 </div>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<!-- DataTables JS -->
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+<?php if (isset($_GET['updated']) && $_GET['updated'] === 'success'): ?>
 <script>
   function toggleSidebar() {
     document.getElementById("sidebar").classList.toggle("show");
   }
 </script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<?php endif; ?>
+
+<script>
+    $(document).ready(function(){
+        $('#productTable').DataTable();
+    });
+</script>
 </body>
 </html>

@@ -2,14 +2,13 @@
 session_start();
 require_once('../classes/database.php');
 require_once (__DIR__. "/../classes/config.php");
+
 $db = new Database();
 
 if (!isset($_SESSION['admin_ID'])) {
     header("Location: admin_L.php");
     exit();
 }
-
-$active_page = 'sales_report';
 
 $adminName = htmlspecialchars($_SESSION['admin_FN'] ?? 'Admin');
 $orders = $db->getAllOrder();

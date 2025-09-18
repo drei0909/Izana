@@ -9,25 +9,14 @@ if (!isset($_SESSION['admin_ID'])) {
     exit();
 }
 
-$active_page = 'cashier';
-
 $db = new Database();
 
 $adminName = htmlspecialchars($_SESSION['admin_FN'] ?? 'Admin');
 
-// Pagination for Active Orders
-$limit = 20;
-$page = isset($_GET['page']) && is_numeric($_GET['page']) ? (int)$_GET['page'] : 1;
-$offset = ($page - 1) * $limit;
-$keyword = trim((string)($_GET['search'] ?? ''));
-
 try {
     // Fetch active orders from the `order` table
-    $orders = $db->getCashierOrders($keyword, $limit, $offset);
-    $total_rows = $db->countCashierOrders($keyword);
-
-    $total_pages = $limit > 0 ? (int)ceil($total_rows / $limit) : 1;
-
+    $orders = $db->getCashierOrders();
+    $total_rows = $db->countCashierOrders();
 } catch (PDOException $e) {
     die("Error fetching orders: " . $e->getMessage());
 }
@@ -47,18 +36,8 @@ try {
     <div class="content">
       <h4 class="section-title"><i class="fas fa-inbox me-2"></i>Active Online Orders</h4>
 
-      <form method="GET" class="row g-3 mb-4 justify-content-center">
-        <div class="col-md-6">
-          <div class="input-group">
-            <input type="text" name="search" class="form-control" placeholder="Search orders..." value="<?= htmlspecialchars($keyword) ?>">
-            <button class="btn btn-dark" type="submit"><i class="fas fa-search"></i></button>
-            <a href="cashier.php" class="btn btn-secondary">Reset</a>
-          </div>
-        </div>
-      </form>
-
       <div class="table-responsive">
-        <table class="table table-bordered table-hover align-middle">
+        <table id="productTable" class="table table-bordered table-hover align-middle">
           <thead>
             <tr>
               <th>Order ID</th>
@@ -96,27 +75,34 @@ try {
             <?php endif; ?>
           </tbody>
         </table>
-      </div>
-
-      <?php if ($total_pages > 1): ?>
-        <nav>
-          <ul class="pagination justify-content-center pagination-lg">
-            <li class="page-item <?= ($page <= 1) ? 'disabled' : '' ?>">
-              <a class="page-link" href="?search=<?= urlencode($keyword) ?>&page=<?= max(1, $page - 1) ?>">Prev</a>
-            </li>
-            <?php for ($i = 1; $i <= $total_pages; $i++): ?>
-              <li class="page-item <?= ($i == $page) ? 'active' : '' ?>">
-                <a class="page-link" href="?search=<?= urlencode($keyword) ?>&page=<?= $i ?>"><?= $i ?></a>
-              </li>
-            <?php endfor; ?>
-            <li class="page-item <?= ($page >= $total_pages) ? 'disabled' : '' ?>">
-              <a class="page-link" href="?search=<?= urlencode($keyword) ?>&page=<?= min($total_pages, $page + 1) ?>">Next</a>
-            </li>
-          </ul>
-        </nav>
-      <?php endif; ?>
+      </div>  
     </div>
   </div>
 </div>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<!-- DataTables JS -->
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+                            
+<?php if (isset($_GET['updated']) && $_GET['updated'] === 'success'): ?>
+<script>
+Swal.fire({
+    icon: 'success',
+    title: 'Product Status Updated!',
+    text: 'Product activation status has been changed.',
+    confirmButtonColor: '#28a745'
+});
+</script>
+<?php endif; ?>
+
+<script>
+    $(document).ready(function(){
+        $('#productTable').DataTable();
+    });
+</script> 
+
 </body>
 </html>

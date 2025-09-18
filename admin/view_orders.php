@@ -4,36 +4,18 @@ session_start();
 require_once('../classes/database.php');
 require_once (__DIR__. "/../classes/config.php");
 
-
 if (!isset($_SESSION['admin_ID'])) {
     header("Location: admin_L.php");
     exit();
 }
 
-$active_page = 'view_orders';
-
 $db = new Database();
 $adminName = htmlspecialchars($_SESSION['admin_FN'] ?? 'Admin');
 
-// ✅ Get search input
-$search = $_GET['search'] ?? '';
-
-$limit = 20; // rows per page
-$page = isset($_GET['page']) ? (int)$_GET['page'] : 1;
-if ($page < 1) $page = 1;
-$offset = ($page - 1) * $limit;
-
-// ✅ Fetch orders with pagination, including both 'online' and 'walk-in' orders
-$orders = $db->getOrders($search, $limit, $offset);
-
-// ✅ Count total orders for pagination
-$total_orders = $db->countOrders($search);
-$total_pages = ceil($total_orders / $limit);
-if ($total_pages < 1) $total_pages = 1;
+$orders = $db->getOrders();
 ?>
 
 <?php include ('templates/header.php'); ?>
-
 
 <div class="wrapper">
 
@@ -53,20 +35,9 @@ if ($total_pages < 1) $total_pages = 1;
       <div class="container-fluid">
         <h4 class="section-title"><i class="fas fa-shopping-cart me-2"></i>Order List</h4>
 
-        <!-- Search Form -->
-        <form method="GET" class="row g-3 mb-4 justify-content-center">
-          <div class="col-md-6">
-            <div class="input-group">
-              <input type="text" name="search" class="form-control" placeholder="Search by order ID, customer name, or email" value="<?= htmlspecialchars($search) ?>">
-              <button class="btn btn-primary" type="submit"><i class="fas fa-search"></i> Search</button>
-              <a href="view_orders.php" class="btn btn-secondary">Reset</a>
-            </div>
-          </div>
-        </form>
-
         <div class="card p-3">
           <div class="table-responsive">
-            <table class="table table-hover table-bordered align-middle">
+            <table id="productTable" class ="table table-hover table-bordered align-middle">
               <thead>
                 <tr>
                   <th>Order ID</th>
@@ -106,55 +77,25 @@ if ($total_pages < 1) $total_pages = 1;
             </table>
           </div>
         </div>
-
-        <!-- Pagination -->
-        <nav class="mt-4">
-          <ul class="pagination justify-content-center pagination-lg">
-            <li class="page-item <?= ($page <= 1) ? 'disabled' : '' ?>">
-              <a class="page-link" href="?search=<?= urlencode($search) ?>&page=<?= max(1, $page - 1) ?>">Prev</a>
-            </li>
-            <?php
-            $start = max(1, $page - 2);
-            $end = min($total_pages, $page + 2);
-
-            if ($end - $start < 4) {
-              if ($start == 1) {
-                  $end = min(5, $total_pages);
-              } elseif ($end == $total_pages) {
-                  $start = max(1, $total_pages - 4);
-              }
-            }
-
-            if ($start > 1) {
-              echo '<li class="page-item"><a class="page-link" href="?search=' . urlencode($search) . '&page=1">1</a></li>';
-              if ($start > 2) echo '<li class="page-item disabled"><span class="page-link">...</span></li>';
-            }
-
-            for ($i = $start; $i <= $end; $i++) {
-              $active = ($i == $page) ? 'active' : '';
-              echo "<li class='page-item $active'><a class='page-link' href='?search=" . urlencode($search) . "&page=$i'>$i</a></li>";
-            }
-
-            if ($end < $total_pages) {
-              if ($end < $total_pages - 1) echo '<li class="page-item disabled"><span class="page-link">...</span></li>';
-              echo "<li class='page-item'><a class='page-link' href='?search=" . urlencode($search) . "&page=$total_pages'>$total_pages</a></li>";
-            }
-            ?>
-            <li class="page-item <?= ($page >= $total_pages) ? 'disabled' : '' ?>">
-              <a class="page-link" href="?search=<?= urlencode($search) ?>&page=<?= min($total_pages, $page + 1) ?>">Next</a>
-            </li>
-          </ul>
-        </nav>
       </div>
     </div>
   </div>
 </div>
 
-<script>
-  function toggleSidebar() {
-    document.getElementById("sidebar").classList.toggle("show");
-  }
-</script>
-<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+<!-- jQuery FIRST -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<!-- DataTables core then the Bootstrap 5 integration -->
+<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
+<?php if (isset($_GET['updated']) && $_GET['updated'] === 'success'): ?>
+
+<?php endif; ?>
 </body>
+<script>
+    $(document).ready(function(){
+        $('#productTable').DataTable();
+    });
+</script>
 </html>

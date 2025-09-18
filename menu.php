@@ -11,7 +11,6 @@ if (!isset($_SESSION['customer_ID'])) {
 
 $db = new Database();
 $products = $db->getAllProducts($_GET['category_id']) ?? [];
-
 $stmt = $db->conn->prepare("SELECT * FROM product_categories WHERE deleted = 0");
 $stmt->execute();
 $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
@@ -20,7 +19,7 @@ $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 $grouped = [];
 foreach ($products as $p) {
-    $cat = $p['product_category'] ?? 'Other';
+    $cat = $p['category_id'] ?? 'Other';
     $catKey = is_string($cat) ? $cat : (string)$cat;
     $grouped[$catKey][] = [
         'product_id' => (int)($p['product_id'] ?? 0),
@@ -217,7 +216,7 @@ main.content { flex:1; }
 
       <h5>Categories</h5>
   <?php foreach ($categories as $category): ?>
-       <a href="<?php echo BASE_URL ?>menu.php?category_id=<?= $category['id'] ?>"><?= htmlspecialchars($category['category']) ?></a>
+       <a href="<?php echo BASE_URL ?>menu.php?category_id=<?= $category['category_id'] ?>"><?= htmlspecialchars($category['category']) ?></a>
  <?php endforeach; ?>
 
      
@@ -293,14 +292,7 @@ main.content { flex:1; }
         });
       }
 
-      // show one-time promos from PHP
-      <?php if ($show_new_customer_promo): ?>
-      Swal.fire({ icon:'info', title:'🎉 Welcome!', text:'Claim ₱30 off your first cup with code: FIRSTCUP', confirmButtonColor:'#b07542' });
-      <?php endif; ?>
-
-      <?php if ($show_promo_applied): ?>
-      Swal.fire({ icon:'info', title:'Promo Applied!', text:'You’ve successfully claimed 10% off with WELCOME10!', confirmButtonColor:'#b07542' });
-      <?php endif; ?>
+     
 
       // Smooth scroll for category links
       document.querySelectorAll('aside.sidebar a[href^="#"]').forEach(a => {
@@ -320,15 +312,28 @@ main.content { flex:1; }
           const name = (card.dataset.productName || card.querySelector('.menu-name').textContent).trim();
           const price = parseFloat(card.dataset.productPrice || card.querySelector('.menu-price').textContent.replace(/[₱,]/g,'')) || 0;
           const qtyInput = card.querySelector('input[type="number"]');
-          const quantity = Math.max(1, parseInt(qtyInput.value || 1));
           const productID = parseInt(card.dataset.productId || 0);
 
-          const existing = cart.find(i => i.id === productID);
-          if (existing) existing.quantity += quantity;
-          else cart.push({ id: productID, name, price, quantity });
+          let quantity = $(this).closest(".controls").find(".quantity-input").val();
+          cart.push({ id: productID, name, price, quantity });
 
-          renderCart();
-          Swal.fire({ icon:'success', title:'Added!', text: `${quantity} × ${name} added to cart.`, timer:1000, showConfirmButton:false });
+          console.log(cart);
+
+          // Add ajax code here to save in the database the item save in cart
+          $.ajax({
+            url: "functions.php",
+            method: "POST",
+            data: {
+              ref: "add_to_cart",
+              cart: cart,
+            },
+            success: function(response) {
+                cart = [];
+            }
+          });
+
+          // renderCart();
+          // Swal.fire({ icon:'success', title:'Added!', text: ${quantity} × ${name} added to cart., timer:1000, showConfirmButton:false });
         });
       });
     }

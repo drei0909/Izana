@@ -13,8 +13,6 @@ $db = new Database();
 $error = "";
 $success = "";
 
-
-
 // Handle form submission
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $category = $_POST['category'] ?? '';

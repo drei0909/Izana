@@ -10,8 +10,6 @@ if (!isset($_SESSION['admin_ID'])) {
     exit();
 }
 
-$active_page = 'salesHistory';
-
 $adminName = htmlspecialchars($_SESSION['admin_FN'] ?? 'Admin');
 
 // Pagination setup
