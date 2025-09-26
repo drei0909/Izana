@@ -12,7 +12,9 @@ if (!isset($_SESSION['admin_ID'])) {
 
 $db = new Database();
 
-$stmt = $db->conn->prepare("SELECT product.*, product_categories.category AS product_category FROM product INNER JOIN product_categories ON product.category_id = product_categories.category_id");
+$stmt = $db->conn->prepare("SELECT product.*, product_categories.category AS product_category 
+FROM product INNER JOIN product_categories 
+ON product.category_id = product_categories.category_id");
 $stmt->execute();
 $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 

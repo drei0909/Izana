@@ -4,21 +4,21 @@
   
   <!-- Sidebar -->
   <div class="sidebar p-3" id="sidebar">
-    <h4 class="text-white mb-4 text-center"><i class="fas fa-mug-hot me-2"></i>Izana Admin</h4>
+<img src="../uploads/izana_logo.png" alt="IZANA Logo" style="height: 80px; margin-bottom: 8px;">
     <ul class="nav nav-pills flex-column">
       <li>
-        <a href="<?php echo BASE_URL; ?>admin/admin.php" class="nav-link <?php echo ($active_page == 'admin') ? 'active' : '' ?>">
+        <a href="<?php echo BASE_URL; ?>admin/admin.php" class="nav-link <?php if ($current_page === 'admin.php') {echo 'active'; } ?>"">
           <i class="fas fa-tachometer-alt me-2"></i>Dashboard
         </a>
       </li>
       <li>
-        <a href="<?php echo BASE_URL; ?>admin/view_customers.php" class="nav-link <?php echo ($active_page == 'view_customers') ? 'active' : '' ?>">
+        <a href="<?php echo BASE_URL; ?>admin/view_customers.php" class="nav-link <?php if ($current_page === 'view_customers.php') {echo 'active'; } ?>"">
           <i class="fas fa-users me-2"></i>View Customers
         </a>
       </li>
       <li>
-        <a href="<?php echo BASE_URL; ?>admin/view_orders.php" class="nav-link <?php echo ($active_page == 'view_orders') ? 'active' : '' ?>">
-          <i class="fas fa-receipt me-2"></i>View Orders
+       <a href="<?php echo BASE_URL; ?>admin/view_orders.php" class="nav-link <?php if ($current_page === 'view_orders.php') {echo 'active'; } ?>"">
+          <i class="fas fa-users me-2"></i>View Orders
         </a>
       </li>
       <li>

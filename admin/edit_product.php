@@ -62,7 +62,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     </div>
     <div class="mb-3">
       <label class="form-label">Category</label>
-      <input type="text" name="product_category" class="form-control" value="<?= htmlspecialchars($product['product_category']) ?>" required>
+      <input type="text" name="product_category" class="form-control" value="<?= htmlspecialchars($product['category_id']) ?>" required>
     </div>
     
     <button type="submit" class="btn btn-primary">Update Product</button>

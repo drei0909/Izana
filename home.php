@@ -13,6 +13,7 @@ $db = new database();
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Quicksand:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/svg+xml" href="uploads/icon.svg">
   <style>
 
     body {
@@ -148,7 +149,10 @@ $db = new database();
 <header class="header">
   <nav class="navbar navbar-expand-lg">
     <div class="container">
-      <a class="navbar-brand" href="#">IZANA</a>
+<a class="navbar-brand" href="#">
+        <img src="uploads/izana_logo.png" alt="IZANA Logo" style="height: 80px;" >
+    
+      </a>
       <div class="ms-auto d-flex gap-3">
         <a class="nav-link" href="registration.php">Register</a>
 

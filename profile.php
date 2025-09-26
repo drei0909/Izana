@@ -153,7 +153,7 @@ h2, h4 {
 <!-- Navbar -->
 <nav class="navbar navbar-expand-lg navbar-dark navbar-custom fixed-top">
   <div class="container-fluid" style="max-width:1400px;">
-    <a class="navbar-brand" href="#">Izana Coffee</a>
+    <a class="navbar-brand" href="#">  <img src="uploads/izana_logo.png" alt="IZANA Logo" style="height: 80px;" ></a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
       <span class="navbar-toggler-icon"></span>
     </button>
@@ -187,7 +187,7 @@ h2, h4 {
     <?php foreach ($orders as $order): ?>
       <div class="order-card" id="order<?= $order['order_id'] ?>">
         <div class="order-header">
-          Order #<?= $order['order_id'] ?> - ₱<?= number_format($order['total_amount'], 2) ?> (<?= escape($order['order_type']) ?>)
+          Order #<?= $order['order_id'] ?> - ₱<?= number_format($order['total_amount'], 2) ?> (<?= escape($order['order_channel']) ?>)
         </div>
         <div><strong>Date:</strong> <?= date('F j, Y', strtotime($order['order_date'])) ?></div>
         <div><strong>Payment Receipt:</strong>
