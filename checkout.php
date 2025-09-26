@@ -1,6 +1,7 @@
 <?php
 session_start();
 require_once('./classes/database.php');
+
 $db = new Database();
 
 if (!isset($_SESSION['customer_ID'])) {
@@ -8,21 +9,34 @@ if (!isset($_SESSION['customer_ID'])) {
     exit();
 }
 
-$cart = $_SESSION['cart'] ?? [];
-$customer_name = $_SESSION['customer_FN'] ?? 'Guest';
 $customerID = $_SESSION['customer_ID'];
+
+$customerID = $_SESSION['customer_ID'];
+
+// ✅ Fetch cart items with correct aliases
+$stmt = $db->conn->prepare("
+    SELECT cart.*, product.product_name, product.product_price 
+    FROM cart 
+    INNER JOIN product ON cart.product_id = product.product_id
+    WHERE cart.customer_id = :customer_id
+");
+
+    $stmt->execute([':customer_id' => $customerID]);
+    $cart = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+$customer_name = $_SESSION['customer_FN'] ?? 'Guest';
 $flash = $_SESSION['flash'] ?? null;
 unset($_SESSION['flash']);
-
 ?>
 
 <!DOCTYPE html>
-<html lang="en">
-<head>
+    <html lang="en">
+    <head>
     <meta charset="UTF-8">
     <title>Checkout | Izana Coffee</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="icon" type="image/svg+xml" href="uploads/icon.svg">
     <style>
         :root {
             --accent: #b07542;
@@ -155,7 +169,7 @@ unset($_SESSION['flash']);
 
 <nav class="navbar navbar-expand-lg navbar-dark navbar-custom fixed-top">
     <div class="container-fluid" style="max-width:1400px;">
-        <a class="navbar-brand" href="#">Izana Coffee</a>
+       <img src="uploads/izana_logo.png" alt="IZANA Logo" style="height: 80px;" >
         <button class="btn-back ms-auto" id="backBtn"><i class="fas fa-arrow-left me-2"></i>Back</button>
     </div>
 </nav>
@@ -173,56 +187,107 @@ unset($_SESSION['flash']);
     <?php if (empty($cart)): ?>
         <div class="alert alert-warning text-center">
             Your cart is empty. Please go back to the <a href="menu.php" class="alert-link">menu</a> to add items.
-        </div>
-    <?php else: ?>
+</div>
+
+
+<?php else: ?>
         <form action="place_order.php" method="post" enctype="multipart/form-data">
             <input type="hidden" name="order_channel" value="online">
             <table class="table table-bordered align-middle">
                 <thead>
-                    <tr><th>Drink</th><th>Price (₱)</th><th>Qty</th><th>Subtotal (₱)</th></tr>
+                    <tr><th>Drink</th>
+                    <th>Price (₱)</th>
+                    <th>Qty</th>
+                    <th>Subtotal (₱)</th>
+                </tr>
                 </thead>
                 <tbody>
                     <?php $total = 0;
                     foreach ($cart as $item):
-                        $subtotal = $item['price'] * $item['quantity'];
-                        $total += $subtotal; ?>
-                        <tr>
-                            <td><?= htmlspecialchars($item['name']); ?></td>
-                            <td>₱<?= number_format($item['price'], 2); ?></td>
-                            <td><?= (int)$item['quantity']; ?></td>
-                            <td>₱<?= number_format($subtotal, 2); ?></td>
-                        </tr>
-                    <?php endforeach; ?>
-                    <tr>
-                        <td colspan="3" class="text-end fw-bold">Total:</td>
-                        <td class="fw-bold" id="totalDisplay">₱<?= number_format($total, 2); ?></td>
-                    </tr>
-                </tbody>
-            </table>
+    $subtotal = $item['product_price'] * $item['qty'];
+    $total += $subtotal; ?>
+    <tr>
+        <td><?= htmlspecialchars($item['product_name']); ?></td>
+        <td>₱<?= number_format($item['product_price'], 2); ?></td>
+        <td><?= (int)$item['qty']; ?></td>
+        <td>₱<?= number_format($subtotal, 2); ?></td>
+    </tr>
+<?php endforeach; ?>
 
-            <div class="mb-3">
-                <label for="payment_method" class="payment-label">Payment Method:</label>
-                <select class="form-select" name="payment_method" id="payment_method" required>
-                    <option value="">-- Choose --</option>
-                    <option value="GCash">GCash</option>
-                </select>
-            </div>
 
-            <div class="mb-3" id="gcash_upload" style="display:none;">
-                <label class="form-label">Upload GCash Receipt:</label>
-                <input type="file" class="form-control" name="gcash_receipt" accept=".jpg,.jpeg,.png" />
-            </div>
+    <tr>
+        <td colspan="3" class="text-end fw-bold">Total:</td>
+        <td class="fw-bold" id="totalDisplay">₱<?= number_format($total, 2); ?></td>
+    </tr>
+        </tbody>
+    </table>
 
-            <div class="alert alert-info mt-3">
-                <i class="fas fa-info-circle me-2"></i>
-                <strong>Note:</strong> For online orders, pickup only. Pay the exact amount to avoid issues.
-            </div>
+    <div class="mb-3">
+    <label class="payment-label">Payment Method:</label>
+    <button type="button" id="gcashBtn" class="btn btn-outline-light w-100" data-bs-toggle="modal" data-bs-target="#gcashModal">
+        Pay with GCash
+    </button>
+    <input type="hidden" name="payment_method" value="GCash">
+</div>
 
-            <button type="submit" class="btn btn-place-order">Place Order</button>
+<!-- ✅ GCash QR Modal -->
+<div class="modal fade" id="gcashModal" tabindex="-1" aria-labelledby="gcashModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="background:#2b2b2b; color:#fff; border-radius:15px;">
+      <div class="modal-header">
+        <h5 class="modal-title" id="gcashModalLabel">Scan to Pay</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body text-center">
+        
+        <!-- Store QR Code -->
+        <img src="uploads/qr.JPEG" alt="GCash QR Code" class="img-fluid mb-3" style="max-width:250px; border-radius:10px;">
+        
+        <!-- GCash Owner Info -->
+        <h6 class="fw-bold mb-1">GCash Account Name:</h6>
+        <p class="mb-3" style="font-size:1.1rem; color:#b07542;">GI*N AN***I B.</p>
+        
+        <h6 class="fw-bold mb-1">GCash Number:</h6>
+        <p class="mb-3" style="font-size:1.1rem; color:#b07542;">0966-540-4987</p>
+        
+        <!-- Customer Input -->
+        <div class="mb-3 text-start">
+          <label for="account_name" class="form-label">Account Name</label>
+          <input type="text" class="form-control" id="account_name" name="account_name" placeholder="Enter the sender's account name" required>
+        </div>
+
+        <!-- Upload Receipt (Required) -->
+        <div class="mb-3 text-start">
+          <label for="gcash_receipt" class="form-label">Upload Receipt</label>
+          <input type="file" class="form-control" id="gcash_receipt" name="gcash_receipt" accept=".jpg,.jpeg,.png" required>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
+    <div class="mb-3" id="gcash_upload" style="display:none;">
+        <label class="form-label">Upload GCash Receipt:</label>
+        <input type="file" class="form-control" name="gcash_receipt" accept=".jpg,.jpeg,.png" />
+    </div>
+
+    <div class="alert alert-info mt-3">
+        <i class="fas fa-info-circle me-2"></i>
+        <strong>Note:</strong> For online orders, pickup only. Pay the exact amount to avoid issues.
+    </div>
+
+           <button type="submit" class="btn btn-place-order">Place Order</button>
         </form>
     <?php endif; ?>
 </div>
 
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script>
     const pm = document.getElementById('payment_method');
     const uploadDiv = document.getElementById('gcash_upload');

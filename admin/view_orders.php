@@ -10,6 +10,7 @@ if (!isset($_SESSION['admin_ID'])) {
 }
 
 $db = new Database();
+
 $adminName = htmlspecialchars($_SESSION['admin_FN'] ?? 'Admin');
 
 $orders = $db->getOrders();
@@ -45,7 +46,7 @@ $orders = $db->getOrders();
                   <th>Total Amount</th>
                   <th>Receipt</th>
                   <th>Order Date</th>
-                  <th>Order Channel</th> <!-- New column for Order Channel -->
+                  <th>Order Channel</th>
                 </tr>
               </thead>
               <tbody>
@@ -82,20 +83,29 @@ $orders = $db->getOrders();
   </div>
 </div>
 
-<!-- jQuery FIRST -->
+<!-- jQuery (needed for DataTables only) -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
-<!-- DataTables core then the Bootstrap 5 integration -->
-<script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
-<script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+  <!-- Bootstrap 5 Bundle (includes Popper) -->
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
-<?php if (isset($_GET['updated']) && $_GET['updated'] === 'success'): ?>
+  <!-- DataTables JS -->
+  <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
+  <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 
-<?php endif; ?>
-</body>
-<script>
-    $(document).ready(function(){
-        $('#productTable').DataTable();
-    });
+  <?php if (isset($_GET['updated']) && $_GET['updated'] === 'success'): ?>
+  <script>
+    function toggleSidebar() {
+      document.getElementById("sidebar").classList.toggle("show");
+    }
+  </script>
+  <?php endif; ?>
+
+  <script>
+      $(document).ready(function(){
+          $('#productTable').DataTable();
+      });
 </script>
+
+</body>
 </html>

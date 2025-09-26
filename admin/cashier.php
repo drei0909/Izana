@@ -1,15 +1,15 @@
 <?php
 session_start();
 
-require_once('../classes/database.php');
-require_once (__DIR__. "/../classes/config.php");
+  require_once('../classes/database.php');
+  require_once (__DIR__. "/../classes/config.php");
 
-if (!isset($_SESSION['admin_ID'])) {
-    header("Location: admin_L.php");
-    exit();
+  $db = new Database();
+
+  if (!isset($_SESSION['admin_ID'])) {
+      header("Location: admin_L.php");
+      exit();
 }
-
-$db = new Database();
 
 $adminName = htmlspecialchars($_SESSION['admin_FN'] ?? 'Admin');
 
@@ -17,9 +17,9 @@ try {
     // Fetch active orders from the `order` table
     $orders = $db->getCashierOrders();
     $total_rows = $db->countCashierOrders();
-} catch (PDOException $e) {
-    die("Error fetching orders: " . $e->getMessage());
-}
+  } catch (PDOException $e) {
+      die("Error fetching orders: " . $e->getMessage());
+  }
 ?>
 
 <?php include ('templates/header.php'); ?>
@@ -80,21 +80,21 @@ try {
   </div>
 </div>
 
+<!-- jQuery (needed for DataTables only) -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<!-- Bootstrap 5 Bundle (includes Popper) -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 <!-- DataTables JS -->
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
 
-                            
 <?php if (isset($_GET['updated']) && $_GET['updated'] === 'success'): ?>
 <script>
-Swal.fire({
-    icon: 'success',
-    title: 'Product Status Updated!',
-    text: 'Product activation status has been changed.',
-    confirmButtonColor: '#28a745'
-});
+  function toggleSidebar() {
+    document.getElementById("sidebar").classList.toggle("show");
+  }
 </script>
 <?php endif; ?>
 
@@ -102,7 +102,7 @@ Swal.fire({
     $(document).ready(function(){
         $('#productTable').DataTable();
     });
-</script> 
+</script>
 
 </body>
 </html>

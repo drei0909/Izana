@@ -4,13 +4,12 @@ session_start();
 require_once('../classes/database.php');
 require_once (__DIR__. "/../classes/config.php");
 
+$db = new Database();
 
 if (!isset($_SESSION['admin_ID'])) {
     header("Location: admin_L.php");
     exit();
 }
-
-$db = new Database();
 
 $stmt = $db->conn->prepare("SELECT product.*, product_categories.category AS product_category 
 FROM product INNER JOIN product_categories 
@@ -105,11 +104,16 @@ $adminName = htmlspecialchars($_SESSION['admin_FN'] ?? 'Admin');
     </div>
 </div>
 
+<!-- jQuery (needed for DataTables only) -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+
+<!-- Bootstrap 5 Bundle (includes Popper) -->
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 
 <!-- DataTables JS -->
 <script src="https://cdn.datatables.net/1.13.6/js/jquery.dataTables.min.js"></script>
 <script src="https://cdn.datatables.net/1.13.6/js/dataTables.bootstrap5.min.js"></script>
+
 
                             
 <?php if (isset($_GET['updated']) && $_GET['updated'] === 'success'): ?>

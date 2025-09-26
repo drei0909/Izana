@@ -257,13 +257,13 @@ public function loginAdmin_L($username, $password) {
         return 'wrong_password';
     }
 
-    return $admin; // ✅ Login successful
+    return $admin;
 }
 
 public function getAllCustomers() {
     $stmt = $this->conn->prepare("SELECT * FROM customer ORDER BY created_at DESC");
     $stmt->execute();
-    return $stmt->fetchAll(PDO::FETCH_ASSOC); // ← Dynamically fetch all rows
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
 
@@ -507,25 +507,15 @@ public function searchOrder($keyword) {
     
 }
 
-public function getOrders($search = '', $limit = 5, $offset = 0) {
-   $sql = "SELECT o.*, 
-               COALESCE(CONCAT(c.customer_FN, ' ', c.customer_LN), 'walk-in') AS customer_name, 
-               o.order_channel
-        FROM `order` o
-        LEFT JOIN customer c ON o.customer_id = c.customer_id
-        WHERE o.order_id LIKE :search
-           OR c.customer_FN LIKE :search
-           OR c.customer_LN LIKE :search
-        ORDER BY o.order_date DESC
-        LIMIT :limit OFFSET :offset";
+public function getOrders() {
+    $sql = "SELECT o.*, 
+                   COALESCE(CONCAT(c.customer_FN, ' ', c.customer_LN), 'walk-in') AS customer_name, 
+                   o.order_channel
+            FROM `order` o
+            LEFT JOIN customer c ON o.customer_id = c.customer_id
+            ORDER BY o.order_date DESC";
 
-
-    $stmt = $this->conn->prepare($sql);
-    $stmt->bindValue(':search', "%$search%", PDO::PARAM_STR);
-    $stmt->bindValue(':limit', (int)$limit, PDO::PARAM_INT);
-    $stmt->bindValue(':offset', (int)$offset, PDO::PARAM_INT);
-    $stmt->execute();
-
+    $stmt = $this->conn->query($sql);
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
@@ -548,8 +538,8 @@ public function countOrders($search = '') {
     return $row ? (int)$row['total'] : 0;
 }
 
-// ✅ Fetch paginated orders (only non-completed)
-public function getCashierOrders($search = '', $limit = 5, $offset = 0) {
+//Fetch all non-completed orders (no pagination, no search)
+public function getCashierOrders() {
     $sql = "SELECT o.order_id, o.customer_ID, o.order_date, o.order_status, 
                    o.total_amount, o.order_channel, o.receipt, 
                    c.customer_FN, c.customer_LN, c.customer_email,
@@ -558,24 +548,14 @@ public function getCashierOrders($search = '', $limit = 5, $offset = 0) {
             JOIN customer c ON o.customer_ID = c.customer_ID
             LEFT JOIN payment p ON o.order_id = p.order_id
             WHERE o.order_status != 'completed'
-              AND (
-                  o.order_id LIKE :search
-                  OR CONCAT(c.customer_FN, ' ', c.customer_LN) LIKE :search
-                  OR c.customer_FN LIKE :search
-                  OR c.customer_LN LIKE :search
-                  OR c.customer_email LIKE :search
-              )
-            ORDER BY o.order_date DESC
-            LIMIT :limit OFFSET :offset";
+            ORDER BY o.order_date DESC";
 
     $stmt = $this->conn->prepare($sql);
-    $stmt->bindValue(':search', "%$search%", PDO::PARAM_STR);
-    $stmt->bindValue(':limit', (int)$limit, PDO::PARAM_INT);
-    $stmt->bindValue(':offset', (int)$offset, PDO::PARAM_INT);
     $stmt->execute();
 
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
+
 
 // ✅ Count total orders (for pagination)
 public function countCashierOrders($search = '') {
@@ -624,20 +604,12 @@ public function saveSalesToHistory($walkinSales, $onlineSales, $totalSales) {
 }
 
 
-
-    // Functi
-
-
-// Method to fetch sales history with pagination
-public function getSalesHistory($limit, $offset) {
-    $sql = "SELECT * FROM sales_history ORDER BY order_date DESC LIMIT :limit OFFSET :offset";
-    $stmt = $this->conn->prepare($sql);
-    $stmt->bindParam(':limit', $limit, PDO::PARAM_INT);
-    $stmt->bindParam(':offset', $offset, PDO::PARAM_INT);
-    $stmt->execute();
+// Method to fetch all sales history
+public function getSalesHistory() {
+    $sql = "SELECT * FROM sales_history ORDER BY order_date DESC";
+    $stmt = $this->conn->query($sql);
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
-
 
 
 public function deleteOrder($orderId) {
