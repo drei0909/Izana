@@ -1,14 +1,14 @@
 <?php
 session_start();
-require_once('../classes/database.php');
-require_once (__DIR__. "/../classes/config.php");
+  require_once('../classes/database.php');
+  require_once (__DIR__. "/../classes/config.php");
 
-if (!isset($_SESSION['admin_ID'])) {
-    header("Location: ".BASE_URL." admin_L.php");
-    exit();
+  $db = new Database();
+
+  if (!isset($_SESSION['admin_ID'])) {
+      header("Location: ".BASE_URL." admin_L.php");
+      exit();
 }
-
-$db = new Database();
 
 $error = "";
 $success = "";
@@ -21,36 +21,42 @@ $productCategory = '';
 if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $productName = $_POST['product_name'] ?? '';
     $productPrice = $_POST['price'] ?? 0;
-       $category_id = $_POST['category_id'] ?? '';
+    $category_id = $_POST['category_id'] ?? '';
 
     // Validate required fields
     if (!$productName || !$productPrice || !$category_id) {
         $error = "Please fill in all fields.";
-    } else {
-        // Optional: Handle image upload
-        $imagePath = '';
-        if (isset($_FILES['image']) && $_FILES['image']['error'] === 0) {
-    $ext = pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION);
-    $allowed = ['jpg', 'jpeg', 'png', 'gif'];
+        } else {
+          // Optional: Handle image upload
+          $imagePath = '';
+          if (isset($_FILES['image']) && $_FILES['image']['error'] === 0) {
+          $ext = pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION);
+          $allowed = ['jpg', 'jpeg', 'png', 'gif'];
 
-    if (!in_array(strtolower($ext), $allowed)) {
-        $error = "Invalid image format. Allowed formats: jpg, jpeg, png, gif.";
-    } else {
-        $imagePath = '../uploads/' . uniqid('product_', true) . '.' . $ext;
-        if (move_uploaded_file($_FILES['image']['tmp_name'], $imagePath)) {
+          if (!in_array(strtolower($ext), $allowed)) {
+                $error = "Invalid image format. Allowed formats: jpg, jpeg, png, gif.";
+                } else {
+
+        // Always save as "uploads/..." in DB
+$imageName = uniqid('product_', true) . '.' . $ext;
+$imagePath = 'uploads/' . $imageName;
+
+// Move file to correct folder
+if (move_uploaded_file($_FILES['image']['tmp_name'], __DIR__ . '/../' . $imagePath)) {
+
         
             // Image successfully uploaded, proceed to store the product in the database
             $result = $db->addProduct($productName, $productPrice, $category_id, $imagePath);
-            if ($result) {
-                $success = "Product added successfully!";
-            } else {
+                  if ($result) {
+                    $success = "Product added successfully!";
+                  } else {
                 $error = "Failed to add product.";
             }
-        } else {
+            } else {  
             $error = "Failed to upload image.";
         }
     }
-}
+    }
     }
 }
 
@@ -62,35 +68,14 @@ $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <title>Add New Product</title>
-  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<meta charset="UTF-8">
+<title>Add New Product</title>
+<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 </head>
 <body class="bg-light">
 <div class="container mt-5">
-  <h3 class="mb-4">Add New Product</h3>
-
-  <!-- Show error or success messages using SweetAlert -->
-  <?php if ($error): ?>
-    <script>
-    Swal.fire({
-      icon: 'error',
-      title: 'Oops!',
-      text: '<?= addslashes($error) ?>',
-    });
-    </script>
-  <?php elseif ($success): ?>
-    <script>
-    Swal.fire({
-      icon: 'success',
-      title: 'Success!',
-      text: '<?= addslashes($success) ?>',
-    }).then(() => {
-      window.location.href = 'manage_products.php'; // Redirect after success
-    });
-    </script>
-  <?php endif; ?>
+<h3 class="mb-4">Add New Product</h3>
 
   <!-- Add Product Form -->
   <form method="POST" enctype="multipart/form-data">
@@ -124,3 +109,23 @@ $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 </body>
 </html>
+  <!-- Show error or success messages using SweetAlert -->
+  <?php if ($error): ?>
+    <script>
+    Swal.fire({
+      icon: 'error',
+      title: 'Oops!',
+      text: '<?= addslashes($error) ?>',
+    });
+    </script>
+  <?php elseif ($success): ?>
+    <script>
+    Swal.fire({
+      icon: 'success',
+      title: 'Success!',
+      text: '<?= addslashes($success) ?>',
+    }).then(() => {
+      window.location.href = 'manage_products.php'; // Redirect after success
+    });
+    </script>
+  <?php endif; ?>

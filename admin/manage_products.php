@@ -63,7 +63,17 @@ $adminName = htmlspecialchars($_SESSION['admin_FN'] ?? 'Admin');
                                     <td><?= htmlspecialchars($product['product_id']) ?></td>
                                     <td><?= htmlspecialchars($product['product_name']) ?></td>
                                     <td>₱<?= number_format($product['product_price'], 2) ?></td>
-                                    <td><?= htmlspecialchars($product['product_category']) ?></td>
+                                 <td>
+                                <?php 
+                                // If you're joining with categories table, display the category name
+                                if (!empty($product['category_name'])) {
+                                    echo htmlspecialchars($product['category_name']);
+                                } else {
+                                    echo htmlspecialchars($product['category_id']);
+                                }
+                                ?>
+                                </td>
+
                                     <td>
                                         <?php if (!empty($product['image_path'])): ?>
                                             <img src="<?= htmlspecialchars($product['image_path']) ?>" alt="Product Image" width="60" class="rounded">

@@ -43,38 +43,51 @@ function escape($s) {
 }
 
 function card_html($p) {
-      $id = (int)$p['product_id'];
-      $name = escape($p['product_name']);
-      $priceFmt = number_format((float)$p['product_price'], 2);
-      $best = $p['best'] ?? false;
-      $status = (int)($p['status'] ?? 1);
-      $img = "uploads/t.jpg";
+    // ensure expected values exist
+    $id = (int)($p['product_id'] ?? 0);
+    $name = escape($p['product_name'] ?? 'Unnamed');
+    $priceFmt = number_format((float)($p['product_price'] ?? 0), 2);
+    $best = !empty($p['best']) ? true : false;
+    $status = (int)($p['status'] ?? 1);
 
-      $bestLabel = $best ? "<span class='badge-best'>Best Seller</span>" : "";
-      $disabled = $status == 0 ? "disabled" : "";
-      $btn = $status == 0 ? "<button class='btn btn-coffee mt-2' disabled>Unavailable</button>" : "<button class='btn btn-coffee mt-2'>Add</button>";
-      $inactive = $status == 0 ? "faded" : "";
+    // try to read image path from raw data if present, fallback to placeholder
+    $img = 'uploads/t.jpg';
+    if (!empty($p['raw']['image']) ) {              // adjust field name if different
+        $img = escape($p['raw']['image']);
+    } elseif (!empty($p['raw']['image_path'])) {
+        $img = escape($p['raw']['image_path']);
+    }
 
-      return <<<HTML
-      <div class="col-12 col-sm-6 col-lg-4">
-      <div class="menu-card {$inactive}" data-product-id="{$id}" data-product-price="{$p['product_price']}" data-product-name="{$name}">
-      <div class="card-media">
-      <img src="{$img}" alt="{$name}">
-      {$bestLabel}
-      </div>
-      <div class="menu-body">
-      <div class="menu-name">{$name}</div>
-      <div class="menu-bottom">
-      <div class="menu-price">₱{$priceFmt}</div>
-      <div class="controls">
-      <input type="number" min="1" max="99" value="1" class="quantity-input" {$disabled}>
-      {$btn}
-      </div>
-      </div>
-      </div>
-      </div>
-      </div>
-HTML;
+    $bestLabel = $best ? '<span class="badge-best">Best Seller</span>' : '';
+    $disabledAttr = $status === 0 ? 'disabled' : '';
+    $btnHtml = $status === 0
+        ? '<button class="btn btn-coffee mt-2" disabled>Unavailable</button>'
+        : '<button class="btn btn-coffee mt-2">Add</button>';
+    $inactiveClass = $status === 0 ? 'faded' : '';
+
+    $dataPrice = htmlspecialchars((string)($p['product_price'] ?? '0'), ENT_QUOTES);
+    $dataName  = htmlspecialchars($name, ENT_QUOTES);
+
+    $html  = '<div class="col-12 col-sm-6 col-lg-4">';
+    $html .= '<div class="menu-card ' . $inactiveClass . '" data-product-id="' . $id . '" data-product-price="' . $dataPrice . '" data-product-name="' . $dataName . '">';
+    $html .= '<div class="card-media">';
+    $html .= '<img src="' . $img . '" alt="' . $dataName . '">';
+    $html .= $bestLabel;
+    $html .= '</div>'; // card-media
+    $html .= '<div class="menu-body">';
+    $html .= '<div class="menu-name">' . $name . '</div>';
+    $html .= '<div class="menu-bottom">';
+    $html .= '<div class="menu-price">₱' . $priceFmt . '</div>';
+    $html .= '<div class="controls">';
+    $html .= '<input type="number" min="1" max="99" value="1" class="quantity-input" ' . $disabledAttr . '>';
+    $html .= $btnHtml;
+    $html .= '</div>'; // controls
+    $html .= '</div>'; // menu-bottom
+    $html .= '</div>'; // menu-body
+    $html .= '</div>'; // menu-card
+    $html .= '</div>'; // column
+
+    return $html;
 }
 ?>
 

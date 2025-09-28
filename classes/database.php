@@ -299,15 +299,26 @@ public function addProduct($name, $price, $category_id, $imagePath) {
     return $stmt->execute([$name, $price, $category_id, $imagePath]);
 }
 
-
-// Update Product
-public function updateProduct($productId, $productName, $productPrice, $categoryId) {
-    $sql = "UPDATE product 
-            SET product_name = ?, product_price = ?, category_id = ? 
-            WHERE product_id = ?";
-    $stmt = $this->conn->prepare($sql);
-    return $stmt->execute([$productName, $productPrice, $categoryId, $productId]);
+public function updateProduct($id, $name, $price, $category, $imagePath) {
+    if ($imagePath === null) {
+        // Explicitly clear the image_path when null
+        $stmt = $this->conn->prepare("
+            UPDATE product 
+            SET product_name = ?, product_price = ?, category_id = ?, image_path = NULL
+            WHERE product_id = ?
+        ");
+        return $stmt->execute([$name, $price, $category, $id]);
+    } else {
+        // Update with new/old image
+        $stmt = $this->conn->prepare("
+            UPDATE product 
+            SET product_name = ?, product_price = ?, category_id = ?, image_path = ?
+            WHERE product_id = ?
+        ");
+        return $stmt->execute([$name, $price, $category, $imagePath, $id]);
+    }
 }
+
 
 
 
