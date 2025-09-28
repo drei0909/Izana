@@ -293,8 +293,6 @@ public function addCategory($category) {
     return $stmt->execute([$category]);
 }
 
-
-
 // Add Product
 public function addProduct($name, $price, $category_id, $imagePath) {
     $stmt = $this->conn->prepare("INSERT INTO product (product_name, product_price, category_id, image_path) VALUES (?, ?, ?, ?)");
@@ -303,11 +301,14 @@ public function addProduct($name, $price, $category_id, $imagePath) {
 
 
 // Update Product
-public function updateProduct($productId, $productName, $productPrice, $productCategory) {
-    $sql = "UPDATE product SET product_name = ?, product_price = ?, product_category = ? WHERE product_id = ?";
+public function updateProduct($productId, $productName, $productPrice, $categoryId) {
+    $sql = "UPDATE product 
+            SET product_name = ?, product_price = ?, category_id = ? 
+            WHERE product_id = ?";
     $stmt = $this->conn->prepare($sql);
-    return $stmt->execute([$productName, $productPrice, $productCategory, $productId]);
+    return $stmt->execute([$productName, $productPrice, $categoryId, $productId]);
 }
+
 
 
 // Delete Product

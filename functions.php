@@ -17,7 +17,7 @@ if ($_POST['ref'] == 'add_to_cart') {
         // skip invalid entries
         if ($productId <= 0 || $quantity <= 0) {
             continue;
-        }
+            }
 
         //1st: check if product is added already in the cart
         $check_item_query = $db->conn->prepare("SELECT * FROM cart 
@@ -60,11 +60,11 @@ if ($_POST['ref'] == 'add_to_cart') {
                 
 }
 
-  }  // end foreach
+  } 
 
-  // Return a simple success response so frontend can refresh the cart
-  echo json_encode(['status' => 'success']);
-  exit;
+        // Return a simple success response so frontend can refresh the cart
+        echo json_encode(['status' => 'success']);
+        exit;
 }
 
 // Get the updated cart content
@@ -134,6 +134,39 @@ if (isset($_POST['ref']) && $_POST['ref'] == 'delete_cart_item') {
         echo json_encode(['status' => 'success']);
     } 
 }
+
+
+
+if(isset($_POST['ref']) && $_POST['ref'] === "place_order") {
+    
+    $ref_no = $_POST['ref_no'];
+
+    $ext = strtolower(pathinfo($_FILES['pop']['name'], PATHINFO_EXTENSION));
+    $allowed = ['jpg', 'jpeg', 'png'];
+
+    if (!in_array($ext, $allowed)) {
+        $_SESSION['error'] = "Invalid file type. Only JPG, JPEG, or PNG allowed.";
+        // header("Location: checkout.php");
+        exit();
+    }
+
+    // Create a directory for receipts if not already existing
+    if (!is_dir('uploads/receipts')) mkdir('uploads/receipts', 0777, true);
+
+    $filename = uniqid('gcash_', true) . '.' . $ext;
+    $target = 'uploads/receipts/' . $filename;
+
+    if (!move_uploaded_file($_FILES['pop']['tmp_name'], $target)) {
+        $_SESSION['error'] = "Failed to upload receipt.";
+        // header("Location: checkout.php");
+        exit();
+    }
+
+    $receiptPath = $filename;
+    
+}
+
+
 
 
 ?>

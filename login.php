@@ -1,9 +1,14 @@
 <?php
+session_start();
 require_once('./classes/database.php');
 $db = new database();
 $alert = '';
 
-session_start();
+if(isset($_SESSION['customer_ID'])) {
+    header("Location: menu.php");
+    exit();
+}
+
 
 $username = '';
 

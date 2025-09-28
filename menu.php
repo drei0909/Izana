@@ -17,7 +17,7 @@ $categoryId = isset($_GET['category_id']) ? $_GET['category_id'] : null;
 // Fetch products based on the category_id, or return an empty array if it's null
 $products = $db->getAllProducts($categoryId) ?? [];
 // Fetch product categories (this part remains unchanged)
-$stmt = $db->conn->prepare("SELECT * FROM product_categories WHERE deleted = 0");
+$stmt = $db->conn->prepare("SELECT * FROM product_categories WHERE is_active = 1");
 $stmt->execute();
 $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -86,6 +86,8 @@ HTML;
 		<meta name="viewport" content="width=device-width, initial-scale=1">
 		<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
 		<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+
 		<style>
 		:root {
 		--accent: #b07542;
@@ -96,13 +98,15 @@ HTML;
 		--text-light: #f5f5f5;
 		--text-muted: #ccc;
 		}
-		body {
-		margin: 0;
-		font-family: 'Quicksand', sans-serif;
-		color: var(--text-light);
-		background: url('uploads/bgg.jpg') no-repeat center center fixed;
-		background-size: cover;
-		}
+    
+    body {
+    margin: 0;
+    font-family: 'Montserrat', sans-serif;
+    color: var(--text-light);
+    background: url('uploads/bgg.jpg') no-repeat center center fixed;
+    background-size: cover;
+    }
+
 		body::before {
 		content:'';
 		position: fixed;
@@ -152,6 +156,12 @@ HTML;
 		margin-bottom:25px;
 		transition:.2s;
 		}
+
+    .sidebar a.active {
+    background: var(--accent-dark);  
+    color: #fff;
+    }
+
 		.menu-card:hover { transform: translateY(-5px); box-shadow:0 8px 24px rgba(0,0,0,.4);}
 		.card-media { position:relative; height:220px; }
 		.card-media img { width:100%; height:100%; object-fit:cover; }
@@ -216,7 +226,7 @@ HTML;
               <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">Menu</a>
               <ul class="dropdown-menu dropdown-menu-end">
               <li><a class="dropdown-item" href="profile.php">Profile</a></li>
-              <li><a class="dropdown-item text-danger" href="login.php">Logout</a></li>
+              <li><a class="dropdown-item text-danger" href="Logout.php">Logout</a></li>
           </ul>
         </li>
       </ul>
@@ -231,9 +241,15 @@ HTML;
 
     <h5>Categories</h5>
 
-  <?php foreach ($categories as $category): ?>
-    <a href="<?php echo BASE_URL ?>menu.php?category_id=<?= $category['category_id'] ?>"><?= htmlspecialchars($category['category']) ?></a>
-  <?php endforeach; ?>
+<?php foreach ($categories as $category): 
+    $active = ($categoryId == $category['category_id']) ? "active" : "";
+?>
+  <a class="<?= $active ?>" 
+     href="<?php echo BASE_URL ?>menu.php?category_id=<?= $category['category_id'] ?>">
+     <?= htmlspecialchars($category['category']) ?>
+  </a>
+<?php endforeach; ?>
+
 
     </aside>
     <main class="content">
@@ -243,14 +259,23 @@ HTML;
     <div class="alert alert-light">No products categories available.</div>
   <?php endif; ?>
 
-  <?php foreach($grouped as $cat=>$items): $anchor='cat-'.preg_replace('/[^a-z0-9\-_]/i','-',strtolower($cat)); ?>
+<?php foreach($grouped as $catId=>$items): 
+    // Get category name
+    $stmt = $db->conn->prepare("SELECT category FROM product_categories WHERE category_id = ?");
+    $stmt->execute([$catId]);
+    $catRow = $stmt->fetch(PDO::FETCH_ASSOC);
+    $catName = $catRow ? $catRow['category'] : "Other";
+
+    $anchor = 'cat-'.preg_replace('/[^a-z0-9\-_]/i','-', strtolower($catName));
+?>
     <section id="<?=escape($anchor)?>" class="mb-4">
-    <h4 class="border-bottom pb-2 mb-3 text-light"><?=escape($cat)?></h4>
-    <div class="row gy-3">
-    <?php foreach($items as $item) echo card_html($item); ?>
-    </div>
+      <h4 class="border-bottom pb-2 mb-3 text-light"><?=escape($catName)?></h4>
+      <div class="row gy-3">
+        <?php foreach($items as $item) echo card_html($item); ?>
+      </div>
     </section>
-  <?php endforeach; ?>
+<?php endforeach; ?>
+
 
     </main>
   </div>
@@ -330,33 +355,36 @@ HTML;
           var cart_id = $(this).data('id');
 
           $.ajax({
-              url: "functions.php",
-              method: "POST",
-              data: {
-                ref: "delete_cart_item",
-                cart_id: cart_id
-              },
-              dataType: 'json',
+            url: "functions.php",
+            method: "POST",
+            data: {
+              ref: "delete_cart_item",
+              cart_id: cart_id
+            },
+            dataType: 'json',
         
-              success: function(response) {
-                if (response.status === "success") {
+                success: function(response) {
+                  if (response.status === "success") {
                     Swal.fire({
-                        icon: 'success',
-                        title: 'Item Removed',
-                        text: 'The product has been removed from your cart.',
-                        timer: 1500,
-                        showConfirmButton: false
+                      icon: 'success',
+                      title: 'Item Removed',
+                      text: 'The product has been removed from your cart.',
+                      timer: 1500,
+                      showConfirmButton: false
                     });
-              getCart();
-                } else {
-                Swal.fire({
+
+                    getCart();
+                    
+                  } else {
+                  Swal.fire({
                     icon: 'error',
                     title: 'Oops...',
-                text: 'Something went wrong while deleting the item.'
-              });
+                    text: 'Something went wrong while deleting the item.'
+                });
+              }
             }
-          }
       });
+
     });
   });
 
@@ -375,8 +403,8 @@ document.addEventListener('DOMContentLoaded', () => {
       attachAddToCartListeners();
  
 
-      const checkoutBtn = document.getElementById('checkoutBtn');
-      if (checkoutBtn) {
+  const checkoutBtn = document.getElementById('checkoutBtn');
+  if (checkoutBtn) {
       checkoutBtn.addEventListener('click', () => {
       // Ask server for current cart before proceeding
 
@@ -397,8 +425,8 @@ document.addEventListener('DOMContentLoaded', () => {
               Swal.fire({ icon:'error', title:'Unable to verify cart', text:'Please try again.' });
             }
           });
-        });
-      }
+    });
+  }
 
     // Smooth scroll for category links
     document.querySelectorAll('aside.sidebar a[href^="#"]').forEach(a => {

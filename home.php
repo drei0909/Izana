@@ -146,27 +146,17 @@ $db = new database();
 <body>
 
 <!-- Header with Nav -->
-<header class="header">
-  <nav class="navbar navbar-expand-lg">
-    <div class="container">
-<a class="navbar-brand" href="#">
-        <img src="uploads/izana_logo.png" alt="IZANA Logo" style="height: 80px;" >
-    
-      </a>
+  <header class="header">
+    <nav class="navbar navbar-expand-lg">
+      <div class="container">
+  <a class="navbar-brand" href="#">
+          <img src="uploads/izana_logo.png" alt="IZANA Logo" style="height: 80px;" >
+        </a>
+
       <div class="ms-auto d-flex gap-3">
         <a class="nav-link" href="registration.php">Register</a>
-
-        <!-- Login Dropdown -->
-        <div class="dropdown">
-          <a class="nav-link dropdown-toggle" href="#" id="loginDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
-            Login
-          </a>
-          <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="loginDropdown">
-            <li><a class="dropdown-item" href="login.php">Customer Login</a></li>
-            <li><a class="dropdown-item" href="admin_L.php">Admin Login</a></li>
-             <li><a class="dropdown-item" href="cashier_login.php">Cashier Login</a></li>
-          </ul>
-        </div>
+        <a class="nav-link" href="login.php"><?php echo isset ($_SESSION['customer_FN']) ? $_SESSION['customer_FN'] : 'Login'?></a>
+        
       </div>
     </div>
   </nav>

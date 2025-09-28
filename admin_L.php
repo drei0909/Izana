@@ -1,13 +1,13 @@
 <?php
 session_start();
 
-require_once('./classes/database.php');
+    require_once('./classes/database.php');
 
-require_once (__DIR__. "/classes/config.php");
-$db = new database();
+    require_once (__DIR__. "/classes/config.php");
+    $db = new database();
 
-if (isset($_SESSION['admin_ID'])) {
-    header("Location: ".BASE_URL."admin/admin.php");
+    if (isset($_SESSION['admin_ID'])) {
+        header("Location: ".BASE_URL."admin/admin.php");
     exit();
 }
 
@@ -38,131 +38,111 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
 ?>
 
 <!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="UTF-8">
-<title>Admin Login | Izana</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Quicksand:wght@400;600&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<link rel="icon" type="image/svg+xml" href="uploads/icon.svg">
-<style>
-body {
-    font-family: 'Quicksand', sans-serif;
-    margin: 0; padding: 0;
-    background: url('uploads/bgg.jpg') no-repeat center center fixed;
-    background-size: cover;
-    color: #1e1e1e;
-    min-height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
+    <html lang="en">
+    <head>
+    <meta charset="UTF-8">
+    <title>Admin Login | Izana</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Quicksand:wght@400;600&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <link rel="icon" type="image/svg+xml" href="uploads/icon.svg">
+    <style>
+    body {
+        font-family: 'Quicksand', sans-serif;
+        margin: 0; padding: 0;
+        background: url('uploads/bgg.jpg') no-repeat center center fixed;
+        background-size: cover;
+        color: #1e1e1e;
+        min-height: 100vh;
+        display: flex;
+        justify-content: center;
+        align-items: center;
+    }
 
-body::before {
-    content: "";
-    position: fixed;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    background: rgba(0,0,0,0.55);
-    z-index: -1;
-}
+    body::before {
+        content: "";
+        position: fixed;
+        top: 0; left: 0;
+        width: 100%; height: 100%;
+        background: rgba(0,0,0,0.55);
+        z-index: -1;
+    }
 
-.back-home {
-    position: fixed;
-    top: 20px;
-    left: 20px;
-    background: rgba(255,255,255,0.15);
-    border: 2px solid #f5f5f5;
-    color: #f5f5f5;
-    padding: 8px 18px;
-    border-radius: 30px;
-    font-weight: 600;
-    text-decoration: none;
-    transition: all 0.3s ease-in-out;
-}
-.back-home:hover {
-    background: #b07542;
-    color: #fff;
-}
+    .login-container {
+        width: 100%;
+        max-width: 450px;
+        background: rgba(255, 248, 230, 0.15);
+        border: 1px solid rgba(255,255,255,0.25);
+        border-radius: 18px;
+        padding: 40px 35px;
+        box-shadow: 0 12px 30px rgba(0,0,0,0.35);
+        backdrop-filter: blur(10px);
+        text-align: center;
+    }
 
-.login-container {
-    width: 100%;
-    max-width: 450px;
-    background: rgba(255, 248, 230, 0.15);
-    border: 1px solid rgba(255,255,255,0.25);
-    border-radius: 18px;
-    padding: 40px 35px;
-    box-shadow: 0 12px 30px rgba(0,0,0,0.35);
-    backdrop-filter: blur(10px);
-    text-align: center;
-}
+    .icon-box {
+        font-size: 3rem;
+        color: #b07542;
+        margin-bottom: 10px;
+    }
 
-.icon-box {
-    font-size: 3rem;
-    color: #b07542;
-    margin-bottom: 10px;
-}
+    .title {
+        font-family: 'Playfair Display', serif;
+        font-size: 2.4rem;
+        color: #fff8f3;
+        margin-bottom: 25px;
+        text-shadow: 1px 1px 2px #4b3a2f;
+    }
 
-.title {
-    font-family: 'Playfair Display', serif;
-    font-size: 2.4rem;
-    color: #fff8f3;
-    margin-bottom: 25px;
-    text-shadow: 1px 1px 2px #4b3a2f;
-}
+    .form-label { font-weight: 600; color: #f5e9dc; font-size: 0.95rem; }
 
-.form-label { font-weight: 600; color: #f5e9dc; font-size: 0.95rem; }
+    .form-control {
+        border-radius: 30px;
+        padding: 12px;
+        background-color: #f7f5f0;
+        border: 1px solid #d2b79e;
+        color: #4b3a2f;
+    }
 
-.form-control {
-    border-radius: 30px;
-    padding: 12px;
-    background-color: #f7f5f0;
-    border: 1px solid #d2b79e;
-    color: #4b3a2f;
-}
+    .form-control:focus {
+        box-shadow: 0 0 0 0.2rem rgba(176,117,66,0.25);
+        border-color: #b07542;
+    }
 
-.form-control:focus {
-    box-shadow: 0 0 0 0.2rem rgba(176,117,66,0.25);
-    border-color: #b07542;
-}
+    .btn-coffee {
+        background-color: #b07542;
+        color: #fff;
+        font-weight: 600;
+        border: none;
+        padding: 12px;
+        width: 100%;
+        border-radius: 30px;
+        letter-spacing: 1px;
+        transition: all 0.3s ease-in-out;
+    }
+    .btn-coffee:hover { background-color: #8a5c33; }
 
-.btn-coffee {
-    background-color: #b07542;
-    color: #fff;
-    font-weight: 600;
-    border: none;
-    padding: 12px;
-    width: 100%;
-    border-radius: 30px;
-    letter-spacing: 1px;
-    transition: all 0.3s ease-in-out;
-}
-.btn-coffee:hover { background-color: #8a5c33; }
+    .text-center {
+        color: #f0f0f0;
+        margin-top: 15px;
+    }
+    .text-center a {
+        color: #f2c9a0;
+        font-weight: 600;
+        text-decoration: none;
+    }
+    .text-center a:hover { text-decoration: underline; }
 
-.text-center {
-    color: #f0f0f0;
-    margin-top: 15px;
-}
-.text-center a {
-    color: #f2c9a0;
-    font-weight: 600;
-    text-decoration: none;
-}
-.text-center a:hover { text-decoration: underline; }
-
-@media (max-width: 576px) {
-    .login-container { margin: 30px 15px; padding: 30px 25px; }
-}
+    @media (max-width: 576px) {
+        .login-container { margin: 30px 15px; padding: 30px 25px; }
+    }
 </style>
 </head>
 <body>
 
 <?= $alert ?>
-
-<a href="home.php" class="back-home"><i class="fas fa-home me-2"></i>Home</a>
 
 <div class="login-container">
   <div class="icon-box"><i class="fas fa-user-shield"></i></div>

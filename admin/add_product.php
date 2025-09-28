@@ -102,15 +102,17 @@ $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
       <label class="form-label">Price (₱)</label>
       <input type="number" name="price" class="form-control" value="<?= htmlspecialchars($productPrice) ?>" step="0.01" required>
     </div>
+
     <div class="mb-3">
       <label class="form-label">Category</label>
      <select name="category_id" id="category_id" class="form-select">
       <option value="">Select</option>
           <?php foreach ($categories as $category): ?>
-   <option value="<?= $category['id'] ?>"><?= htmlspecialchars($category['category']) ?></option>
+   <option value="<?= $category['category_id'] ?>"><?= htmlspecialchars($category['category']) ?></option>
        <?php endforeach; ?>
      </select>
     </div>
+
     <div class="mb-3">
       <label class="form-label">Product Image (optional)</label>
       <input type="file" name="image" class="form-control" accept=".jpg,.jpeg,.png,.gif">

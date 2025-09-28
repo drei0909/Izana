@@ -174,132 +174,163 @@ unset($_SESSION['flash']);
     </div>
 </nav>
 
+
 <div class="checkout-container">
     <h2 class="checkout-title">Checkout Summary</h2>
-    <p><strong>Customer:</strong> <?= htmlspecialchars($customer_name); ?></p>
 
-    <?php if ($flash): ?>
-        <div class="alert alert-<?= $flash['type'] === 'success' ? 'success' : 'danger' ?>">
-            <?= htmlspecialchars($flash['message']); ?>
-        </div>
-    <?php endif; ?>
-
-    <?php if (empty($cart)): ?>
-        <div class="alert alert-warning text-center">
-            Your cart is empty. Please go back to the <a href="menu.php" class="alert-link">menu</a> to add items.
-</div>
-
-
-<?php else: ?>
-        <form action="place_order.php" method="post" enctype="multipart/form-data">
-            <input type="hidden" name="order_channel" value="online">
-            <table class="table table-bordered align-middle">
-                <thead>
-                    <tr><th>Drink</th>
-                    <th>Price (₱)</th>
-                    <th>Qty</th>
-                    <th>Subtotal (₱)</th>
-                </tr>
-                </thead>
-                <tbody>
-                    <?php $total = 0;
-                    foreach ($cart as $item):
-    $subtotal = $item['product_price'] * $item['qty'];
-    $total += $subtotal; ?>
-    <tr>
-        <td><?= htmlspecialchars($item['product_name']); ?></td>
-        <td>₱<?= number_format($item['product_price'], 2); ?></td>
-        <td><?= (int)$item['qty']; ?></td>
-        <td>₱<?= number_format($subtotal, 2); ?></td>
-    </tr>
-<?php endforeach; ?>
-
-
-    <tr>
-        <td colspan="3" class="text-end fw-bold">Total:</td>
-        <td class="fw-bold" id="totalDisplay">₱<?= number_format($total, 2); ?></td>
-    </tr>
-        </tbody>
-    </table>
-
-    <div class="mb-3">
-    <label class="payment-label">Payment Method:</label>
-    <button type="button" id="gcashBtn" class="btn btn-outline-light w-100" data-bs-toggle="modal" data-bs-target="#gcashModal">
-        Pay with GCash
-    </button>
-    <input type="hidden" name="payment_method" value="GCash">
-</div>
-
-<!-- ✅ GCash QR Modal -->
-<div class="modal fade" id="gcashModal" tabindex="-1" aria-labelledby="gcashModalLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content" style="background:#2b2b2b; color:#fff; border-radius:15px;">
-      <div class="modal-header">
-        <h5 class="modal-title" id="gcashModalLabel">Scan to Pay</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
-      </div>
-      <div class="modal-body text-center">
-        
-        <!-- Store QR Code -->
-        <img src="uploads/qr.JPEG" alt="GCash QR Code" class="img-fluid mb-3" style="max-width:250px; border-radius:10px;">
-        
-        <!-- GCash Owner Info -->
-        <h6 class="fw-bold mb-1">GCash Account Name:</h6>
-        <p class="mb-3" style="font-size:1.1rem; color:#b07542;">GI*N AN***I B.</p>
-        
-        <h6 class="fw-bold mb-1">GCash Number:</h6>
-        <p class="mb-3" style="font-size:1.1rem; color:#b07542;">0966-540-4987</p>
-        
-        <!-- Customer Input -->
-        <div class="mb-3 text-start">
-          <label for="account_name" class="form-label">Account Name</label>
-          <input type="text" class="form-control" id="account_name" name="account_name" placeholder="Enter the sender's account name" required>
-        </div>
-
-        <!-- Upload Receipt (Required) -->
-        <div class="mb-3 text-start">
-          <label for="gcash_receipt" class="form-label">Upload Receipt</label>
-          <input type="file" class="form-control" id="gcash_receipt" name="gcash_receipt" accept=".jpg,.jpeg,.png" required>
-        </div>
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-
-
-    <div class="mb-3" id="gcash_upload" style="display:none;">
-        <label class="form-label">Upload GCash Receipt:</label>
-        <input type="file" class="form-control" name="gcash_receipt" accept=".jpg,.jpeg,.png" />
-    </div>
-
-    <div class="alert alert-info mt-3">
+     <div class="alert alert-info mt-3">
         <i class="fas fa-info-circle me-2"></i>
-        <strong>Note:</strong> For online orders, pickup only. Pay the exact amount to avoid issues.
+        <strong>Note:</strong> For your online order, please note that it's <b>pickup only</b> , and you can easily pay the total amount by <b>scanning the QR code</b> or sending it to the <b>Gcash account</b> provided. <b>And then input the reference number together with the proof of payment</b>.
     </div>
 
-           <button type="submit" class="btn btn-place-order">Place Order</button>
-        </form>
-    <?php endif; ?>
+    <div class="row">
+
+        <div class="col-md-8"> 
+            <p><strong>Customer:</strong> <?= htmlspecialchars($customer_name); ?></p>
+
+                <?php if ($flash): ?>
+                    <div class="alert alert-<?= $flash['type'] === 'success' ? 'success' : 'danger' ?>">
+                        <?= htmlspecialchars($flash['message']); ?>
+                    </div>
+                <?php endif; ?>
+
+                <?php if (empty($cart)): ?>
+                    <div class="alert alert-warning text-center">
+                        Your cart is empty. Please go back to the <a href="menu.php" class="alert-link">menu</a> to add items.
+                    </div>
+
+                <?php else: ?>
+
+                    <form action="place_order.php" method="post" enctype="multipart/form-data">
+                        <input type="hidden" name="order_channel" value="online">
+                        <table class="table table-bordered align-middle">
+                            <thead>
+                                <tr>
+                                    <th>Description</th>
+                                    <th>Price (₱)</th>
+                                    <th>Qty</th>
+                                    <th>Subtotal (₱)</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <?php $total = 0;
+                                foreach ($cart as $item):
+                                    $subtotal = $item['product_price'] * $item['qty'];
+                                    $total += $subtotal; ?>
+                                    <tr>
+                                        <td><?= htmlspecialchars($item['product_name']); ?></td>
+                                        <td>₱<?= number_format($item['product_price'], 2); ?></td>
+                                        <td><?= (int)$item['qty']; ?></td>
+                                        <td>₱<?= number_format($subtotal, 2); ?></td>
+                                    </tr>
+                                <?php endforeach; ?>    
+
+                                <tr>
+                                    <td colspan="3" class="text-end fw-bold">Total:</td>
+                                    <td class="fw-bold" id="totalDisplay">₱<?= number_format($total, 2); ?></td>
+                                </tr>
+                            </tbody>
+                        </table>
+
+                        <div class="mb-3" id="gcash_upload" style="display:none;">
+                            <label class="form-label">Upload GCash Receipt:</label>
+                            <input type="file" class="form-control" name="gcash_receipt" accept=".jpg,.jpeg,.png" />
+                        </div>
+
+                    
+                    </form>
+                <?php endif; ?>
+        </div>
+
+        <div class="col-md-4">
+                
+            <!-- Store QR Code -->
+            <img src="uploads/qr.JPEG" alt="GCash QR Code" class="img-fluid mb-3" style="max-width:250px; border-radius:10px;">
+            
+            <!-- GCash Owner Info -->
+            <h6 class="fw-bold mb-1">GCash Account Name:</h6>
+            <p class="mb-3" style="font-size:1.1rem; color:#b07542;">GIAN ANDREI B.</p>
+            
+            <h6 class="fw-bold mb-1">GCash Number:</h6>
+            <p class="mb-3" style="font-size:1.1rem; color:#b07542;">0966-540-4987</p>
+            
+            <!-- Customer Input -->
+            <div class="mb-3 text-start">
+            <label for="ref_no" class="form-label">Reference #</label>
+            <input type="text" class="form-control" id="ref_no" name="ref_no" placeholder="Enter the Reference #" required>
+            </div>
+
+            <!-- Upload Receipt (Required) -->
+            <div class="mb-3 text-start">
+            <label for="pop" class="form-label">Upload Proof of Payment</label>
+            <input type="file" class="form-control" id="pop" name="pop" accept=".jpg,.jpeg,.png" required>
+            </div>
+            <button type="submit" class="btn btn-place-order">Place Order</button>
+        </div>
+
+
+        </div>
+    </div>
+
+    
+
 </div>
 
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+
 <script>
-    const pm = document.getElementById('payment_method');
-    const uploadDiv = document.getElementById('gcash_upload');
-    pm?.addEventListener('change', function () {
-        uploadDiv.style.display = this.value === 'GCash' ? 'block' : 'none';
-        uploadDiv.querySelector('input')?.setAttribute('required', this.value === 'GCash');
+
+$(document).ready(function() {
+    
+    $(document).on('click','#backBtn', function(){
+        window.location.href = 'menu.php'
+    });
+});
+
+
+ $(document).on('click','.btn-place-order', function(){
+    
+
+        let ref_no = $("#ref_no") .val();
+        let pop = $("#pop") [0];
+        let file = pop.files[0];
+
+            if(ref_no == '' || !file) {
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Reference Fields',
+                    text: 'Please input reference number and Proof of Payment.',
+                    timer: 3000,
+                    showConfirmButton: false
+                });
+                return;
+            } else {
+
+                // Create FormData to handle file + text inputs
+            let formData = new FormData();
+            formData.append("ref", "place_order"); // action
+            formData.append("ref_no", ref_no);     // reference number
+            formData.append("pop", file);          // file (proof of payment)
+            
+            $.ajax({
+                url: "functions.php",
+                method: "POST",
+                data: formData,
+                contentType: false,  // important for file upload
+                processData: false,  // important for file upload
+                dataType: 'json',
+                success: function(response) {
+                    
+                }
+            });
+        }
     });
 
-    document.getElementById('backBtn').addEventListener('click', function (e) {
-        e.preventDefault();
-        window.location.href = 'menu.php';
-    });
+   
+
 </script>
 
 </body>
