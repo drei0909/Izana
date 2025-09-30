@@ -1,19 +1,18 @@
 <?php
 session_start();
-require_once('./classes/database.php');
+    require_once('./classes/database.php');
 
-$db = new Database();
+    $db = new Database();
 
-if (!isset($_SESSION['customer_ID'])) {
+    if (!isset($_SESSION['customer_ID'])) {
     header("Location: login.php");
     exit();
 }
 
 $customerID = $_SESSION['customer_ID'];
-
 $customerID = $_SESSION['customer_ID'];
 
-// ✅ Fetch cart items with correct aliases
+//Fetch cart items with correct aliases
 $stmt = $db->conn->prepare("
     SELECT cart.*, product.product_name, product.product_price 
     FROM cart 
@@ -271,11 +270,7 @@ unset($_SESSION['flash']);
 
         </div>
     </div>
-
-    
-
 </div>
-
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -291,45 +286,94 @@ $(document).ready(function() {
 });
 
 
- $(document).on('click','.btn-place-order', function(){
+//  $(document).on('click','.btn-place-order', function(){
     
 
-        let ref_no = $("#ref_no") .val();
-        let pop = $("#pop") [0];
-        let file = pop.files[0];
+//         let ref_no = $("#ref_no") .val();
+//         let pop = $("#pop") [0];
+//         let file = pop.files[0];
 
-            if(ref_no == '' || !file) {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Reference Fields',
-                    text: 'Please input reference number and Proof of Payment.',
-                    timer: 3000,
-                    showConfirmButton: false
-                });
-                return;
-            } else {
+//             if(ref_no == '' || !file) {
+//                 Swal.fire({
+//                     icon: 'error',
+//                     title: 'Reference Fields',
+//                     text: 'Please input reference number and Proof of Payment.',
+//                     timer: 3000,
+//                     showConfirmButton: false
+//                 });
+//                 return;
+//             } else {
 
-                // Create FormData to handle file + text inputs
-            let formData = new FormData();
-            formData.append("ref", "place_order"); // action
-            formData.append("ref_no", ref_no);     // reference number
-            formData.append("pop", file);          // file (proof of payment)
+//             let formData = new FormData();
+//             formData.append("ref", "place_order");
+//             formData.append("ref_no", ref_no);     
+//             formData.append("pop", file);          
             
-            $.ajax({
-                url: "functions.php",
-                method: "POST",
-                data: formData,
-                contentType: false,  // important for file upload
-                processData: false,  // important for file upload
-                dataType: 'json',
-                success: function(response) {
+//             $.ajax({
+//                 url: "functions.php",
+//                 method: "POST",
+//                 data: formData,
+//             contentType: false,
+//                 processData: false,
+//                 dataType: 'json',
+//                 success: function(response) {
                     
-                }
-            });
-        }
-    });
+//                 }
+//             });
+//         }
+// });
 
-   
+
+$(document).on('click','.btn-place-order', function(){
+    let ref_no = $("#ref_no").val();
+    let pop = $("#pop")[0];
+    let file = pop.files[0];
+
+    if(ref_no == '' || !file) {
+        Swal.fire({
+            icon: 'error',
+            title: 'Reference Fields',
+            text: 'Please input reference number and Proof of Payment.',
+            timer: 1500,
+            showConfirmButton: false
+        });
+        return;
+    } else {
+        let formData = new FormData();
+        formData.append("ref", "place_order");
+        formData.append("ref_no", ref_no);
+        formData.append("pop", file);
+
+        $.ajax({
+            url: "functions.php",
+            method: "POST",
+            data: formData,
+            contentType: false,
+            processData: false,
+            dataType: 'json',
+            success: function(response) {
+                if(response.status === 'success') {
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Order Placed!',
+                        text: 'Your online order has been placed successfully.',
+                        timer: 1500,
+                        showConfirmButton: false
+                    }).then(() => {
+                        window.location.href = 'menu.php';
+                    });
+                } else {
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Order Failed',
+                        text: response.message || 'Something went wrong.',
+                    });
+                }
+            }
+        });
+    }
+});
+
 
 </script>
 

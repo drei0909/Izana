@@ -2,127 +2,45 @@
 session_start();
 
 require_once('../classes/database.php');
-include_once __DIR__. "/../classes/config.php";
+include_once __DIR__ . "/../classes/config.php";
+
+$db = new Database();
 
 if (!isset($_SESSION['admin_ID'])) {
     header("Location: admin_L.php");
     exit();
 }
 
-$db = new Database();
-
 $adminName = htmlspecialchars($_SESSION['admin_FN'] ?? 'Admin');
 
 // Fetch all products
 $products = $db->getAllProducts();
 $categories = array_unique(array_map(fn($p) => $p['product_category'] ?? 'Other', $products));
-
-// Handle order submission
-$flash = null;  // For flash messages
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
-    $cart = json_decode($_POST['cart'], true);
-    $payment_method = $_POST['payment_method'] ?? 'Cash';
-    $cash_received = floatval($_POST['cash_received'] ?? 0);
-
-    // Ensure cart is not empty
-    if (!empty($cart)) {
-        $total_price = 0;
-        foreach ($cart as $item) {
-            $total_price += $item['price'] * $item['quantity'];
-        }
-
-        $change = $payment_method === 'Cash' ? max($cash_received - $total_price, 0) : 0;
-
-        try {
-            // Start a transaction
-            $db->conn->beginTransaction();
-
-            // Insert order into `order` table (walk-in, status Completed)
-            $stmtOrder = $db->conn->prepare("
-                INSERT INTO `order` 
-                (customer_id, order_channel, total_amount, order_status)
-                VALUES (NULL, 'walk-in', ?, 'Completed')
-            ");
-            $stmtOrder->execute([$total_price]);
-
-            $order_ID = $db->conn->lastInsertId();
-            if (!$order_ID) {
-                throw new Exception('Failed to insert into the `order` table');
-            }
-
-            // Insert each item into `order_item`
-            $stmtItem = $db->conn->prepare("
-                INSERT INTO `order_item` (order_id, product_id, quantity, price) 
-                VALUES (?, ?, ?, ?)
-            ");
-            foreach ($cart as $item) {
-                $stmtItem->execute([$order_ID, $item['id'], $item['quantity'], $item['price']]);
-            }
-
-            // Insert payment
-            $stmtPayment = $db->conn->prepare("
-                INSERT INTO payment (order_id, payment_method, payment_amount)
-                VALUES (?, ?, ?)
-            ");
-            $stmtPayment->execute([$order_ID, $payment_method, $total_price]);
-
-            // Commit
-            $db->conn->commit();
-
-            // Set the flash message for success
-            $change_amount = number_format($change, 2);
-            $flash = [
-                'title' => 'Success',
-                'text'  => "Order placed successfully! | Change: ₱{$change_amount}",
-                'icon'  => 'success',
-                'redirect' => 'manage_cashier.php'
-            ];
-        } catch (Exception $e) {
-            $db->conn->rollBack();
-            // Set the flash message for error
-            $msg = addslashes($e->getMessage());
-            $flash = [
-                'title' => 'Error',
-                'text'  => "Failed to place order: {$msg}",
-                'icon'  => 'error'
-            ];
-        }
-    } else {
-        // Set the flash message for empty cart
-        $flash = [
-            'title' => 'Error',
-            'text'  => 'Cart is empty!',
-            'icon'  => 'error'
-        ];
-    }
-}
 ?>
-
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <?php include ('templates/header.php'); ?>
+
 <style>
   .menu-card { transition: transform 0.2s, box-shadow 0.2s; cursor: pointer; border-radius: 12px; }
-.menu-card:hover { transform: scale(1.03); box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
-.card-img-top { height: 140px; object-fit: cover; border-radius: 12px 12px 0 0; }
-.cart-container { background: #fff; padding: 15px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
-.cart-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; border-radius: 8px; background: #fff7e6; margin-bottom: 6px; font-size: 14px; }
-.cart-item button { padding: 3px 6px; }
-.btn-add { background-color: #b07542; border: none; color: #fff; font-size: 13px; }
-.btn-add:hover { background-color: #8a5c33; }
-.btn-place { background-color: #6c4b35; margin-top: 10px; border: none; color: #fff; font-weight: bold; }
-.btn-place:hover { background-color: #8a5c33; }
-.total-price { font-size: 20px; font-weight: bold; margin-bottom: 10px; }
-.change-display { font-weight: bold; margin-top: 10px; color: green; }
+  .menu-card:hover { transform: scale(1.03); box-shadow: 0 8px 20px rgba(0,0,0,0.1); }
+  .card-img-top { height: 140px; object-fit: cover; border-radius: 12px 12px 0 0; }
+  .cart-container { background: #fff; padding: 15px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
+  .cart-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; border-radius: 8px; background: #fff7e6; margin-bottom: 6px; font-size: 14px; }
+  .cart-item button { padding: 3px 6px; }
+  .btn-add { background-color: #b07542; border: none; color: #fff; font-size: 13px; }
+  .btn-add:hover { background-color: #8a5c33; }
+  .btn-place { background-color: #6c4b35; margin-top: 10px; border: none; color: #fff; font-weight: bold; }
+  .btn-place:hover { background-color: #8a5c33; }
+  .total-price { font-size: 20px; font-weight: bold; margin-bottom: 10px; }
+  .change-display { font-weight: bold; margin-top: 10px; color: green; }
 </style>
 
 <div class="wrapper">
 
 <?php include ('templates/sidebar.php'); ?>
 
-  <!-- Main -->
   <div class="main">
-    <!-- Header -->
     <div class="admin-header d-flex justify-content-between align-items-center">
       <h5 class="mb-0">Welcome, <?= $adminName ?></h5>
       <span class="text-muted"><i class="fas fa-user-shield me-1"></i>Admin Panel</span>
@@ -131,9 +49,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
     <!-- Content -->
     <div class="content">
       <div class="container-fluid">
-
         <h4 class="section-title"><i class="fas fa-cash-register me-2"></i>Point of Sale</h4>
-
         <div class="row">
           <!-- Menu -->
           <div class="col-md-8">
@@ -148,19 +64,19 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
             </div>
             <div class="row" id="menuList">
               <?php foreach ($products as $product): ?>
-              <div class="col-md-4 mb-3 menu-item" data-category="<?= htmlspecialchars($product['product_category'] ?? 'Other') ?>" data-name="<?= strtolower($product['product_name']) ?>">
-                <div class="card menu-card shadow-sm">
-                  <img src="uploads/<?= htmlspecialchars($product['product_image'] ?? 't.jpg') ?>" class="card-img-top" alt="<?= htmlspecialchars($product['product_name']) ?>">
-                  <div class="card-body text-center">
-                    <h6 class="card-title"><?= htmlspecialchars($product['product_name']) ?></h6>
-                    <p class="card-text mb-2">₱<?= number_format($product['product_price'], 2) ?></p>
-                    <button class="btn btn-add btn-sm add-to-cart"
-                      data-id="<?= $product['product_id'] ?>"
-                      data-name="<?= htmlspecialchars($product['product_name']) ?>"
-                      data-price="<?= $product['product_price'] ?>">Add <i class="fa fa-plus"></i></button>
+                <div class="col-md-4 mb-3 menu-item" data-category="<?= htmlspecialchars($product['product_category'] ?? 'Other') ?>" data-name="<?= strtolower($product['product_name']) ?>">
+                  <div class="card menu-card shadow-sm">
+                    <img src="uploads/<?= htmlspecialchars($product['product_image'] ?? 'bgggg.JPG') ?>" class="card-img-top" alt="<?= htmlspecialchars($product['product_name']) ?>">
+                    <div class="card-body text-center">
+                      <h6 class="card-title"><?= htmlspecialchars($product['product_name']) ?></h6>
+                      <p class="card-text mb-2">₱<?= number_format($product['product_price'], 2) ?></p>
+                      <button class="btn btn-add btn-sm add-to-cart"
+                          data-id="<?= $product['product_id'] ?>"
+                          data-name="<?= htmlspecialchars($product['product_name']) ?>"
+                          data-price="<?= $product['product_price'] ?>">Add <i class="fa fa-plus"></i></button>
+                    </div>
                   </div>
                 </div>
-              </div>
               <?php endforeach; ?>
             </div>
           </div>
@@ -169,37 +85,31 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['place_order'])) {
           <div class="col-md-4">
             <div class="cart-container">
               <h4>Cart</h4>
-              <form method="POST" id="orderForm">
+              <form id="orderForm">
                 <ul class="list-group" id="cartItems"></ul>
                 <input type="hidden" name="cart" id="cartInput">
                 <div class="total-price">Total: ₱<span id="totalPrice">0</span></div>
 
-                <select name="order_type" class="form-select mb-2" required>
-                  <option value="Dine-in">Dine-in</option>
-                  <option value="Take-out">Take-out</option>
-                </select>
-
                 <select name="payment_method" id="paymentMethod" class="form-select mb-2">
                   <option value="Cash">Cash</option>
                   <option value="GCash">GCash</option>
+                  <option value="Card">Card</option>
                 </select>
 
                 <input type="number" name="cash_received" id="cashReceived" class="form-control mb-1" placeholder="Cash received" step="0.01">
                 <div class="change-display" id="changeDisplay">Change: ₱0.00</div>
-                <button type="submit" name="place_order" class="btn btn-place w-100"><i class="fa fa-check"></i> Place Order</button>
+                <button type="submit" class="btn btn-place w-100"><i class="fa fa-check"></i> Place Order</button>
               </form>
             </div>
           </div>
         </div>
-
       </div>
     </div>
   </div>
 </div>
 
+<!-- Cart & POS logic -->
 <script>
-// JavaScript for Cart Management and Form Submission
-
 let cart = [];
 
 function renderCart() {
@@ -239,35 +149,55 @@ document.querySelectorAll('.add-to-cart').forEach(btn => {
     });
 });
 
-// Calculate change for cash payments
+// Show change if payment is Cash
 const cashInput = document.getElementById('cashReceived');
 cashInput.addEventListener('input', updateChange);
+document.getElementById('paymentMethod').addEventListener('change', updateChange);
 
 function updateChange() {
     let total = parseFloat(document.getElementById('totalPrice').textContent) || 0;
     let cash = parseFloat(cashInput.value) || 0;
-    let change = Math.max(cash - total, 0);
+    let method = document.getElementById('paymentMethod').value;
+    let change = (method === 'Cash') ? Math.max(cash - total, 0) : 0;
     document.getElementById('changeDisplay').textContent = `Change: ₱${change.toFixed(2)}`;
 }
 
-</script>
+// Submit order
+document.getElementById("orderForm").addEventListener("submit", function(e){
+    e.preventDefault();
 
-<?php if ($flash): ?>
-<script>
-  // Ensure Swal exists & run after DOM is ready
-  window.addEventListener('DOMContentLoaded', function () {
-    Swal.fire({
-      title: <?= json_encode($flash['title']) ?>,
-      text: <?= json_encode($flash['text']) ?>,
-      icon: <?= json_encode($flash['icon']) ?>,
-    }).then(function() {
-      <?php if (!empty($flash['redirect'])): ?>
-      window.location.href = <?= json_encode($flash['redirect']) ?>;
-      <?php endif; ?>
+    let cartData = JSON.parse(document.getElementById("cartInput").value || "[]");
+    if(cartData.length === 0){
+        Swal.fire("Error", "Cart is empty!", "error");
+        return;
+    }
+
+    let formData = new FormData();
+    formData.append("ref", "place_pos_order");
+    formData.append("cart", JSON.stringify(cartData));
+    formData.append("payment_method", document.getElementById("paymentMethod").value);
+    formData.append("cash_received", document.getElementById("cashReceived").value);
+
+  fetch("../functions.php", {
+    method: "POST",
+    body: formData
+})
+
+    .then(res => res.json())
+    .then(data => {
+        if(data.status === "success"){
+            Swal.fire("Success", data.message + "<br>Change: ₱" + data.change, "success")
+            .then(() => window.location.reload());
+        } else {
+            Swal.fire("Error", data.message, "error");
+        }
+    })
+    .catch(err => {
+        console.error("Fetch error:", err);
+        Swal.fire("Error", "Something went wrong", "error");
     });
-  });
+});
 </script>
-<?php endif; ?>
 
 </body>
 </html>

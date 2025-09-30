@@ -51,7 +51,7 @@ function card_html($p) {
     $status = (int)($p['status'] ?? 1);
 
     // try to read image path from raw data if present, fallback to placeholder
-    $img = 'uploads/t.jpg';
+    $img = 'uploads/bgggg.jpg';
     if (!empty($p['raw']['image']) ) {              // adjust field name if different
         $img = escape($p['raw']['image']);
     } elseif (!empty($p['raw']['image_path'])) {

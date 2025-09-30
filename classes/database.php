@@ -83,76 +83,79 @@ public function getAllProducts($category_id = null) {
 
 
 
-   public function insertOrder($customerID, $paymentMethod, $receiptPath, $status) {
-    $cart = $_SESSION['cart'] ?? [];
-    $total = 0;
-    foreach ($cart as $item) {
-        $total += $item['price'] * $item['quantity'];
-    }
+//    public function insertOrder($customerID, $paymentMethod, $receiptPath, $status) {
+//     $cart = $_SESSION['cart'] ?? [];
+//     $total = 0;
+//     foreach ($cart as $item) {
+//         $total += $item['price'] * $item['quantity'];
+//     }
 
-    $stmt = $this->conn->prepare("INSERT INTO `order` (customer_id, total, payment_method, receipt, status, order_date) 
-                                 VALUES (?, ?, ?, ?, ?, NOW())");  // Make sure `NOW()` is used to insert the current date
-    $stmt->execute([$customerID, $total, $paymentMethod, $receiptPath, $status]);
-    return $this->conn->lastInsertId();
+//     $stmt = $this->conn->prepare("INSERT INTO `order` (customer_id, total, payment_method, receipt, status, order_date) 
+//                                  VALUES (?, ?, ?, ?, ?, NOW())");  // Make sure `NOW()` is used to insert the current date
+//     $stmt->execute([$customerID, $total, $paymentMethod, $receiptPath, $status]);
+//     return $this->conn->lastInsertId();
+// }
+
+
+
+public function insertOrderItem($orderID, $posID, $productID, $quantity, $price) {
+    $stmt = $this->conn->prepare("
+        INSERT INTO order_item (order_id, pos_id, product_id, quantity, price) 
+        VALUES (?, ?, ?, ?, ?)
+    ");
+    $stmt->execute([$orderID, $posID, $productID, $quantity, $price]);
 }
 
 
 
-//insertitam
-public function insertOrderItem($orderID, $productID, $quantity, $price) {
-    $stmt = $this->conn->prepare("INSERT INTO order_item (order_id, product_id, price) VALUES (?, ?, ?)");
-    $stmt->execute([$orderID, $productID, $price]);
-}
+// public function placeOrder($customerID, $cart, $paymentMethod, $receiptPath = null, $orderChannel = 'online') {
+//     if (empty($cart)) {
+//         throw new Exception("Cart is empty.");
+//     }
+//     if ($paymentMethod !== 'GCash') {
+//         throw new Exception("Only GCash is allowed.");
+//     }
 
+//     // Calculate total amount
+//     $totalAmount = 0;
+//     foreach ($cart as $item) {
+//         $totalAmount += floatval($item['price']) * intval($item['quantity']);
+//     }
 
-public function placeOrder($customerID, $cart, $paymentMethod, $receiptPath = null, $orderChannel = 'online') {
-    if (empty($cart)) {
-        throw new Exception("Cart is empty.");
-    }
-    if ($paymentMethod !== 'GCash') {
-        throw new Exception("Only GCash is allowed.");
-    }
+//     try {
+//         $this->conn->beginTransaction();
 
-    // Calculate total amount
-    $totalAmount = 0;
-    foreach ($cart as $item) {
-        $totalAmount += floatval($item['price']) * intval($item['quantity']);
-    }
+//         // Insert into `order` table
+//         $stmt = $this->conn->prepare("
+//             INSERT INTO `order` (customer_id, order_channel, total_amount, receipt, order_status, order_date)
+//             VALUES (?, ?, ?, ?, 'Pending', NOW())");
+//         $stmt->execute([$customerID, $orderChannel, $totalAmount, $receiptPath]);  // Ensure orderChannel is passed correctly
+//         $orderID = $this->conn->lastInsertId(); // Get the last inserted order ID
 
-    try {
-        $this->conn->beginTransaction();
+//         // Insert items into `order_item` table
+//         $itemStmt = $this->conn->prepare("
+//             INSERT INTO order_item (order_id, product_id, quantity, price)
+//             VALUES (?, ?, ?, ?)
+//         ");
+//         foreach ($cart as $item) {
+//             if (!isset($item['id'], $item['quantity'], $item['price'])) continue;
+//             $itemStmt->execute([$orderID, $item['id'], intval($item['quantity']), floatval($item['price'])]);
+//         }
 
-        // Insert into `order` table
-        $stmt = $this->conn->prepare("
-            INSERT INTO `order` (customer_id, order_channel, total_amount, receipt, order_status, order_date)
-            VALUES (?, ?, ?, ?, 'Pending', NOW())");
-        $stmt->execute([$customerID, $orderChannel, $totalAmount, $receiptPath]);  // Ensure orderChannel is passed correctly
-        $orderID = $this->conn->lastInsertId(); // Get the last inserted order ID
+//         // Insert payment details into `payment` table
+//         $payStmt = $this->conn->prepare("
+//             INSERT INTO payment (order_id, payment_method, payment_amount)
+//             VALUES (?, ?, ?)
+//         ");
+//         $payStmt->execute([$orderID, $paymentMethod, $totalAmount]);
 
-        // Insert items into `order_item` table
-        $itemStmt = $this->conn->prepare("
-            INSERT INTO order_item (order_id, product_id, quantity, price)
-            VALUES (?, ?, ?, ?)
-        ");
-        foreach ($cart as $item) {
-            if (!isset($item['id'], $item['quantity'], $item['price'])) continue;
-            $itemStmt->execute([$orderID, $item['id'], intval($item['quantity']), floatval($item['price'])]);
-        }
-
-        // Insert payment details into `payment` table
-        $payStmt = $this->conn->prepare("
-            INSERT INTO payment (order_id, payment_method, payment_amount)
-            VALUES (?, ?, ?)
-        ");
-        $payStmt->execute([$orderID, $paymentMethod, $totalAmount]);
-
-        $this->conn->commit();
-        return $orderID;
-    } catch (Exception $e) {
-        $this->conn->rollBack();
-        throw $e;
-    }
-}
+//         $this->conn->commit();
+//         return $orderID;
+//     } catch (Exception $e) {
+//         $this->conn->rollBack();
+//         throw $e;
+//     }
+// }
 
 
 
@@ -172,7 +175,7 @@ public function getCustomerByID($customerID) {
 }
 
 public function getCustomerOrders($customerID) {
-    $stmt = $this->conn->prepare("SELECT * FROM `order` WHERE customer_id = ? ORDER BY order_date DESC");
+    $stmt = $this->conn->prepare("SELECT * FROM `order_online` WHERE customer_id = ? ORDER BY order_date DESC");
     $stmt->execute([$customerID]);
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
@@ -260,32 +263,32 @@ public function loginAdmin_L($username, $password) {
     return $admin;
 }
 
-public function getAllCustomers() {
-    $stmt = $this->conn->prepare("SELECT * FROM customer ORDER BY created_at DESC");
-    $stmt->execute();
-    return $stmt->fetchAll(PDO::FETCH_ASSOC);
-}
+// public function getAllCustomers() {
+//     $stmt = $this->conn->prepare("SELECT * FROM customer ORDER BY created_at DESC");
+//     $stmt->execute();
+//     return $stmt->fetchAll(PDO::FETCH_ASSOC);
+// }
 
 
-public function getAllOrder() {
-    $sql = "
-        SELECT 
-            o.order_id,
-            o.order_channel,
-            o.total_amount,
-            o.receipt,
-            o.order_date,
-            IFNULL(c.customer_FN, 'Walk-in') AS customer_FN,  -- For Walk-in orders
-            IFNULL(c.customer_LN, '') AS customer_LN  -- Walk-in does not have last name
-        FROM `order` o
-        LEFT JOIN customer c ON o.customer_id = c.customer_id  -- Use LEFT JOIN to include Walk-in orders
-        ORDER BY o.order_date DESC
-    ";
+// public function getAllOrder() {
+//     $sql = "
+//         SELECT 
+//             o.order_id,
+//             o.order_channel,
+//             o.total_amount,
+//             o.receipt,
+//             o.order_date,
+//             IFNULL(c.customer_FN, 'Walk-in') AS customer_FN,  -- For Walk-in orders
+//             IFNULL(c.customer_LN, '') AS customer_LN  -- Walk-in does not have last name
+//         FROM `order` o
+//         LEFT JOIN customer c ON o.customer_id = c.customer_id  -- Use LEFT JOIN to include Walk-in orders
+//         ORDER BY o.order_date DESC
+//     ";
 
-    $stmt = $this->conn->prepare($sql);
-    $stmt->execute();
-    return $stmt->fetchAll(PDO::FETCH_ASSOC);
-}
+//     $stmt = $this->conn->prepare($sql);
+//     $stmt->execute();
+//     return $stmt->fetchAll(PDO::FETCH_ASSOC);
+// }
 
 //ad categories
 public function addCategory($category) {
@@ -346,49 +349,49 @@ public function getProductById($productId) {
     return $stmt->fetch(PDO::FETCH_ASSOC);
 }
 
-public function getSalesReport($start = null, $end = null) {
-    $sql = "SELECT o.order_id, o.order_channel, o.order_date,
-                   c.customer_FN, c.customer_LN,
-                   p.payment_method, p.payment_amount
-            FROM `order` o
-            LEFT JOIN customer c ON o.customer_id = c.customer_id
-            LEFT JOIN payment p ON o.order_id = p.order_id
-            WHERE 1";
+// public function getSalesReport($start = null, $end = null) {
+//     $sql = "SELECT o.order_id, o.order_channel, o.order_date,
+//                    c.customer_FN, c.customer_LN,
+//                    p.payment_method, p.payment_amount
+//             FROM `order` o
+//             LEFT JOIN customer c ON o.customer_id = c.customer_id
+//             LEFT JOIN payment p ON o.order_id = p.order_id
+//             WHERE 1";
 
-    $params = [];
+//     $params = [];
 
-    if ($start && $end) {
-        $sql .= " AND DATE(o.order_date) BETWEEN ? AND ?";
-        $params[] = $start;
-        $params[] = $end;
-    }
+//     if ($start && $end) {
+//         $sql .= " AND DATE(o.order_date) BETWEEN ? AND ?";
+//         $params[] = $start;
+//         $params[] = $end;
+//     }
 
-    $sql .= " ORDER BY o.order_date DESC";
-    $stmt = $this->conn->prepare($sql);
-    $stmt->execute($params);
-    return $stmt->fetchAll(PDO::FETCH_ASSOC);
-}
+//     $sql .= " ORDER BY o.order_date DESC";
+//     $stmt = $this->conn->prepare($sql);
+//     $stmt->execute($params);
+//     return $stmt->fetchAll(PDO::FETCH_ASSOC);
+// }
 
 
 
-public function getSalesChartData($start, $end, $period = 'daily') {
-  $dateExpr = $period=='weekly'
-    ? "YEAR(o.order_date), WEEK(o.order_date,1)"
-    : "DATE(o.order_date)";
-  $labelExpr = $period=='weekly'
-    ? "CONCAT(YEAR(o.order_date),'‑W',WEEK(o.order_date,1))"
-    : "DATE(o.order_date)";
-  $sql = "SELECT $labelExpr AS label, SUM(p.payment_amount) AS total
-          FROM `order` o
-          LEFT JOIN payment p ON p.order_id = o.order_id
-          WHERE 1";
-  $params = [];
-  if ($start&&$end){$sql.=" AND DATE(o.order_date) BETWEEN ? AND ?"; $params=[$start,$end];}
-  $sql.=" GROUP BY $dateExpr ORDER BY MIN(o.order_date)";
-  $stmt = $this->conn->prepare($sql);
-  $stmt->execute($params);
-  return $stmt->fetchAll(PDO::FETCH_ASSOC);
-}
+// public function getSalesChartData($start, $end, $period = 'daily') {
+//   $dateExpr = $period=='weekly'
+//     ? "YEAR(o.order_date), WEEK(o.order_date,1)"
+//     : "DATE(o.order_date)";
+//   $labelExpr = $period=='weekly'
+//     ? "CONCAT(YEAR(o.order_date),'‑W',WEEK(o.order_date,1))"
+//     : "DATE(o.order_date)";
+//   $sql = "SELECT $labelExpr AS label, SUM(p.payment_amount) AS total
+//           FROM `order` o
+//           LEFT JOIN payment p ON p.order_id = o.order_id
+//           WHERE 1";
+//   $params = [];
+//   if ($start&&$end){$sql.=" AND DATE(o.order_date) BETWEEN ? AND ?"; $params=[$start,$end];}
+//   $sql.=" GROUP BY $dateExpr ORDER BY MIN(o.order_date)";
+//   $stmt = $this->conn->prepare($sql);
+//   $stmt->execute($params);
+//   return $stmt->fetchAll(PDO::FETCH_ASSOC);
+// }
 
 public function getAdminById($admin_ID) {
     $stmt = $this->conn->prepare("SELECT * FROM admin WHERE admin_ID = ?");
@@ -407,16 +410,16 @@ public function updateAdminPassword($admin_ID, $hashedPassword) {
 }
 
 
-public function getTotalOrders() {
-    $stmt = $this->conn->query("SELECT COUNT(*) FROM `order`");
-    return $stmt->fetchColumn();
-}
+// public function getTotalOrders() {
+//     $stmt = $this->conn->query("SELECT COUNT(*) FROM `order`");
+//     return $stmt->fetchColumn();
+// }
 
-public function getTotalSales() {
-    $stmt = $this->conn->query("SELECT SUM(total_amount) FROM `order`");
-    $total = $stmt->fetchColumn();
-    return $total ?? 0;
-}
+// public function getTotalSales() {
+//     $stmt = $this->conn->query("SELECT SUM(total_amount) FROM `order`");
+//     $total = $stmt->fetchColumn();
+//     return $total ?? 0;
+// }
 
 
 
@@ -434,38 +437,30 @@ public function isEmailExists($email) {
     return $stmt->fetchColumn() > 0;
 }
 
-function getOrderById($orderId) {
-    global $pdo;
-    $stmt = $pdo->prepare("SELECT o.*, c.customer_name 
-                           FROM `order` o 
-                           JOIN customers c ON o.customer_ID = c.customer_ID 
-                           WHERE o.order_ID = :orderId");
-    $stmt->execute(['orderId' => $orderId]);
-    return $stmt->fetch(PDO::FETCH_ASSOC);
-}
+// function getOrderById($orderId) {
+//     global $pdo;
+//     $stmt = $pdo->prepare("SELECT o.*, c.customer_name 
+//                            FROM `order` o 
+//                            JOIN customers c ON o.customer_ID = c.customer_ID 
+//                            WHERE o.order_ID = :orderId");
+//     $stmt->execute(['orderId' => $orderId]);
+//     return $stmt->fetch(PDO::FETCH_ASSOC);
+// }
 
-// Update order status (returns true on success)
-public function updateOrderStatus($orderID, $newStatus) {
-    $stmt = $this->conn->prepare("UPDATE `order` SET order_status = ? WHERE order_id = ?");
-    return $stmt->execute([$newStatus, $orderID]);
-}
+// // Update order status (returns true on success)
+// public function updateOrderStatus($orderID, $newStatus) {
+//     $stmt = $this->conn->prepare("UPDATE `order` SET order_status = ? WHERE order_id = ?");
+//     return $stmt->execute([$newStatus, $orderID]);
+// }
 
-public function searchCustomers($search, $limit, $offset) {
-    $sql = "SELECT * FROM customer
-            WHERE customer_FN LIKE :search 
-               OR customer_LN LIKE :search 
-               OR customer_email LIKE :search
-            ORDER BY created_at DESC
-            LIMIT :limit OFFSET :offset";
-    
+public function getAllCustomers() {
+    $sql = "SELECT * FROM customer ORDER BY created_at DESC";
     $stmt = $this->conn->prepare($sql);
-    $stmt->bindValue(':search', "%$search%", PDO::PARAM_STR);
-    $stmt->bindValue(':limit', (int)$limit, PDO::PARAM_INT);
-    $stmt->bindValue(':offset', (int)$offset, PDO::PARAM_INT);
     $stmt->execute();
     
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
+
 
 public function countCustomers($search) {
     $sql = "SELECT COUNT(*) FROM customer 
@@ -481,86 +476,95 @@ public function countCustomers($search) {
 }
 
 
-public function searchOrder($keyword) {
-    if (empty($keyword)) {
-        $sql = "SELECT o.*, c.customer_FN, c.customer_LN, c.customer_email
-                FROM `order` o
-                JOIN customer c ON o.customer_id = c.customer_id
-                ORDER BY o.order_date DESC";
-        $stmt = $this->conn->prepare($sql);
-        $stmt->execute();
-    } else {
-        $sql = "SELECT o.*, c.customer_FN, c.customer_LN, c.customer_email
-                FROM `order` o
-                JOIN customer c ON o.customer_id = c.customer_id
-                WHERE o.order_id LIKE :keyword
-                   OR CONCAT(c.customer_FN, ' ', c.customer_LN) LIKE :keyword
-                   OR c.customer_FN LIKE :keyword
-                   OR c.customer_LN LIKE :keyword
-                   OR c.customer_email LIKE :keyword
-                ORDER BY o.order_date DESC";
-        $stmt = $this->conn->prepare($sql);
-        $stmt->execute([':keyword' => "%$keyword%"]);
-    }
-    return $stmt->fetchAll(PDO::FETCH_ASSOC);
-}
+// public function searchOrder($keyword) {
+//     if (empty($keyword)) {
+//         $sql = "SELECT o.*, c.customer_FN, c.customer_LN, c.customer_email
+//                 FROM `order` o
+//                 JOIN customer c ON o.customer_id = c.customer_id
+//                 ORDER BY o.order_date DESC";
+//         $stmt = $this->conn->prepare($sql);
+//         $stmt->execute();
+//     } else {
+//         $sql = "SELECT o.*, c.customer_FN, c.customer_LN, c.customer_email
+//                 FROM `order` o
+//                 JOIN customer c ON o.customer_id = c.customer_id
+//                 WHERE o.order_id LIKE :keyword
+//                    OR CONCAT(c.customer_FN, ' ', c.customer_LN) LIKE :keyword
+//                    OR c.customer_FN LIKE :keyword
+//                    OR c.customer_LN LIKE :keyword
+//                    OR c.customer_email LIKE :keyword
+//                 ORDER BY o.order_date DESC";
+//         $stmt = $this->conn->prepare($sql);
+//         $stmt->execute([':keyword' => "%$keyword%"]);
+//     }
+//     return $stmt->fetchAll(PDO::FETCH_ASSOC);
+// }
 
 
  // Get total walk-in orders
     public function getTotalWalkInOrders() {
-        $stmt = $this->conn->query("SELECT COUNT(*) FROM `order` WHERE order_type = 'walk-in'");
+        $stmt = $this->conn->query("SELECT COUNT(*) FROM `order_online`");
         return $stmt->fetchColumn();
     }
 
     // Get total walk-in sales
     public function getTotalWalkInSales() {
-        $stmt = $this->conn->query("SELECT SUM(total_amount) FROM `order` WHERE order_type = 'walk-in'");
+        $stmt = $this->conn->query("SELECT SUM(total_amount) FROM `order_pos`");
         return $stmt->fetchColumn() ?? 0;
     
 }
 
-public function getOrders() {
-    $sql = "SELECT o.*, 
-                   COALESCE(CONCAT(c.customer_FN, ' ', c.customer_LN), 'walk-in') AS customer_name, 
-                   o.order_channel
-            FROM `order` o
-            LEFT JOIN customer c ON o.customer_id = c.customer_id
-            ORDER BY o.order_date DESC";
+// public function getOrders() {
+//     $sql = "SELECT o.*, 
+//                    COALESCE(CONCAT(c.customer_FN, ' ', c.customer_LN), 'walk-in') AS customer_name, 
+                 
+//             FROM `order_online` o
+//             LEFT JOIN customer c ON o.customer_id = c.customer_id
+//             ORDER BY o.order_date DESC";
 
-    $stmt = $this->conn->query($sql);
-    return $stmt->fetchAll(PDO::FETCH_ASSOC);
-}
-
-
+//     $stmt = $this->conn->query($sql);
+//     return $stmt->fetchAll(PDO::FETCH_ASSOC);
+// }
 
 
-public function countOrders($search = '') {
-    $sql = "SELECT COUNT(*) as total
-            FROM `order` o
-            JOIN customer c ON o.customer_ID = c.customer_ID
-            WHERE o.order_id LIKE :search
-               OR c.customer_FN LIKE :search
-               OR c.customer_LN LIKE :search";
 
-    $stmt = $this->conn->prepare($sql);
-    $stmt->bindValue(':search', "%$search%", PDO::PARAM_STR);
-    $stmt->execute();
-    $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    return $row ? (int)$row['total'] : 0;
-}
+// public function countOrders($search = '') {
+//     $sql = "SELECT COUNT(*) as total
+//             FROM `order` o
+//             JOIN customer c ON o.customer_ID = c.customer_ID
+//             WHERE o.order_id LIKE :search
+//                OR c.customer_FN LIKE :search
+//                OR c.customer_LN LIKE :search";
 
-//Fetch all non-completed orders (no pagination, no search)
+//     $stmt = $this->conn->prepare($sql);
+//     $stmt->bindValue(':search', "%$search%", PDO::PARAM_STR);
+//     $stmt->execute();
+//     $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+//     return $row ? (int)$row['total'] : 0;
+// }
+
 public function getCashierOrders() {
-    $sql = "SELECT o.order_id, o.customer_ID, o.order_date, o.order_status, 
-                   o.total_amount, o.order_channel, o.receipt, 
-                   c.customer_FN, c.customer_LN, c.customer_email,
-                   p.payment_method
-            FROM `order` o
-            JOIN customer c ON o.customer_ID = c.customer_ID
-            LEFT JOIN payment p ON o.order_id = p.order_id
-            WHERE o.order_status != 'completed'
-            ORDER BY o.order_date DESC";
+    $sql = "SELECT 
+                o.order_id, 
+                o.customer_id, 
+                o.order_date, 
+                o.status, 
+                o.total_amount, 
+                o.receipt, 
+                o.ref_no,
+                c.customer_FN, 
+                c.customer_LN, 
+                c.customer_email,
+                p.payment_method, 
+                p.payment_status
+            FROM order_online o
+            INNER JOIN customer c 
+                ON o.customer_id = c.customer_id
+            LEFT JOIN payment p 
+                ON o.order_id = p.order_id
+            ORDER BY o.order_date DESC"; 
 
     $stmt = $this->conn->prepare($sql);
     $stmt->execute();
@@ -569,27 +573,28 @@ public function getCashierOrders() {
 }
 
 
-// ✅ Count total orders (for pagination)
-public function countCashierOrders($search = '') {
-    $sql = "SELECT COUNT(*) as total
-            FROM `order` o
-            JOIN customer c ON o.customer_ID = c.customer_ID
-            WHERE o.order_status != 'completed'
-              AND (
-                  o.order_id LIKE :search
-                  OR CONCAT(c.customer_FN, ' ', c.customer_LN) LIKE :search
-                  OR c.customer_FN LIKE :search
-                  OR c.customer_LN LIKE :search
-                  OR c.customer_email LIKE :search
-              )";
 
-    $stmt = $this->conn->prepare($sql);
-    $stmt->bindValue(':search', "%$search%", PDO::PARAM_STR);
-    $stmt->execute();
-    $row = $stmt->fetch(PDO::FETCH_ASSOC);
+// // ✅ Count total orders (for pagination)
+// public function countCashierOrders($search = '') {
+//     $sql = "SELECT COUNT(*) as total
+//             FROM `order` o
+//             JOIN customer c ON o.customer_ID = c.customer_ID
+//             WHERE o.order_status != 'completed'
+//               AND (
+//                   o.order_id LIKE :search
+//                   OR CONCAT(c.customer_FN, ' ', c.customer_LN) LIKE :search
+//                   OR c.customer_FN LIKE :search
+//                   OR c.customer_LN LIKE :search
+//                   OR c.customer_email LIKE :search
+//               )";
 
-    return $row ? (int)$row['total'] : 0;
-}
+//     $stmt = $this->conn->prepare($sql);
+//     $stmt->bindValue(':search', "%$search%", PDO::PARAM_STR);
+//     $stmt->execute();
+//     $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+//     return $row ? (int)$row['total'] : 0;
+// }
 
 
 public function deletePaymentsByOrder($orderID) {
@@ -597,16 +602,16 @@ public function deletePaymentsByOrder($orderID) {
     return $stmt->execute([$orderID]);
 }
 
-public function getOrderStatuses(array $orderIDs) {
-    if (empty($orderIDs)) return [];
-    $placeholders = implode(',', array_fill(0, count($orderIDs), '?'));
-    $stmt = $this->conn->prepare("SELECT order_id, order_status FROM `order` WHERE order_id IN ($placeholders)");
-    $stmt->execute($orderIDs);
-    $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-    $map = [];
-    foreach ($rows as $r) $map[$r['order_id']] = $r['order_status'];
-    return $map;
-}
+// public function getOrderStatuses(array $orderIDs) {
+//     if (empty($orderIDs)) return [];
+//     $placeholders = implode(',', array_fill(0, count($orderIDs), '?'));
+//     $stmt = $this->conn->prepare("SELECT order_id, order_status FROM `order` WHERE order_id IN ($placeholders)");
+//     $stmt->execute($orderIDs);
+//     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+//     $map = [];
+//     foreach ($rows as $r) $map[$r['order_id']] = $r['order_status'];
+//     return $map;
+// }
 
 
 
@@ -633,9 +638,68 @@ public function deleteOrder($orderId) {
     $stmt = $this->conn->prepare("DELETE FROM order_item WHERE order_id = ?");
     $stmt->execute([$orderId]);
 
-    // Delete the order
-    $stmt = $this->conn->prepare("DELETE FROM `order` WHERE order_id = ?");
-    return $stmt->execute([$orderId]);
+    // // Delete the order
+    // $stmt = $this->conn->prepare("DELETE FROM `order` WHERE order_id = ?");
+    // return $stmt->execute([$orderId]);
+}
+
+
+
+
+
+
+
+
+
+
+// Fetch online orders
+public function getOnlineOrders() {
+    $sql = "SELECT o.*, c.customer_FN, c.customer_LN, c.customer_email
+            FROM order_online o
+            JOIN customer c ON o.customer_id = c.customer_id
+            ORDER BY o.order_date DESC";
+    $stmt = $this->conn->query($sql);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+// Fetch POS orders (walk-in)
+public function getPOSOrders() {
+    $sql = "SELECT * FROM order_pos ORDER BY created_at DESC";
+    $stmt = $this->conn->query($sql);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+public function addPayment($orderID, $posID, $method, $amount, $status = 'Pending') {
+    $stmt = $this->conn->prepare("
+        INSERT INTO payment (order_id, pos_id, payment_method, payment_amount, payment_status) 
+        VALUES (?, ?, ?, ?, ?)
+    ");
+    return $stmt->execute([$orderID, $posID, $method, $amount, $status]);
+}
+
+public function getPaymentsByOrder($orderID) {
+    $stmt = $this->conn->prepare("SELECT * FROM payment WHERE order_id = ?");
+    $stmt->execute([$orderID]);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+public function getPaymentsByPOS($posID) {
+    $stmt = $this->conn->prepare("SELECT * FROM payment WHERE pos_id = ?");
+    $stmt->execute([$posID]);
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+public function deleteOnlineOrder($orderId) {
+    $this->conn->prepare("DELETE FROM payment WHERE order_id = ?")->execute([$orderId]);
+    $this->conn->prepare("DELETE FROM order_item WHERE order_id = ?")->execute([$orderId]);
+    $this->conn->prepare("DELETE FROM order_online WHERE order_id = ?")->execute([$orderId]);
+}
+
+
+public function deletePOSOrder($posId) {
+    $this->conn->prepare("DELETE FROM payment WHERE pos_id = ?")->execute([$posId]);
+    $this->conn->prepare("DELETE FROM order_item WHERE pos_id = ?")->execute([$posId]);
+    $this->conn->prepare("DELETE FROM order_pos WHERE pos_id = ?")->execute([$posId]);
 }
 
 
