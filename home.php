@@ -143,21 +143,47 @@ $db = new database();
 
 <body>
 
+
 <!-- Header with Nav -->
-  <header class="header">
-    <nav class="navbar navbar-expand-lg">
-      <div class="container">
-  <a class="navbar-brand" href="#">
-          <img src="uploads/izana_logo.png" alt="IZANA Logo" style="height: 80px;" >
-        </a>
+<header class="header">
+  <nav class="navbar navbar-expand-lg">
+    <div class="container">
+      <a class="navbar-brand" href="#">
+        <img src="uploads/izana_logo.png" alt="IZANA Logo" style="height: 80px;">
+      </a>
 
       <div class="ms-auto d-flex gap-3">
-        <a class="nav-link" href="registration.php">Register</a>
-        <a class="nav-link" href="login.php"><?php echo isset ($_SESSION['customer_FN']) ? $_SESSION['customer_FN'] : 'Login'?></a>
-        
+        <?php if (isset($_SESSION['customer_FN'])): ?>
+          <!-- User Dropdown (When Logged In) -->
+          <div class="dropdown">
+            <a class="nav-link dropdown-toggle" href="#" id="userDropdown" role="button" 
+               data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="fas fa-user-circle me-1"></i>
+              <?php echo htmlspecialchars($_SESSION['customer_FN']); ?>
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="userDropdown">
+              <li><a class="dropdown-item" href="menu.php"><i class="fas fa-user me-2"></i>Menu</a></li>
+              <li><hr class="dropdown-divider"></li>
+              <li><a class="dropdown-item text-danger" href="logout.php"><i class="fas fa-sign-out-alt me-2"></i>Logout</a></li>
+            </ul>
+          </div>
+        <?php else: ?>
+          <!-- Auth Dropdown (When Not Logged In) -->
+          <div class="dropdown">
+            <a class="nav-link dropdown-toggle" href="#" id="authDropdown" role="button" 
+               data-bs-toggle="dropdown" aria-expanded="false">
+              <i class="fas fa-user-circle me-1"></i> Account
+            </a>
+            <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="authDropdown">
+              <li><a class="dropdown-item" href="login.php"><i class="fas fa-sign-in-alt me-2"></i>Login</a></li>
+              <li><a class="dropdown-item" href="registration.php"><i class="fas fa-user-plus me-2"></i>Register</a></li>
+            </ul>
+          </div>
+        <?php endif; ?>
       </div>
     </div>
   </nav>
+
 
   <div class="header-content text-center">
     <h1>Where Every Sip Feels Like Homeeee</h1>

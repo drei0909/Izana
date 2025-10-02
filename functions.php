@@ -442,50 +442,58 @@ if (isset($_POST['ref']) && $_POST['ref'] === "register_customer") {
 
 
 
-// Handle Menu Preview
 if (isset($_POST['ref']) && $_POST['ref'] === "menu_preview") {
     try {
         $stmt = $db->conn->query("
-            SELECT p.product_id, p.product_name, p.product_price, c.category
+            SELECT 
+                p.product_id, 
+                p.product_name, 
+                p.product_price, 
+                p.image_path, 
+                c.category
             FROM product p
-            LEFT JOIN product_categories c ON p.category_id = c.category_id
+            LEFT JOIN product_categories c 
+                ON p.category_id = c.category_id
             ORDER BY c.category, p.product_name
         ");
         $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // Group by category
         $grouped = [];
         foreach ($products as $p) {
-            if (strtolower($p['category']) === 'add-ons') continue; // skip add-ons
+            if (strtolower($p['category']) === 'Frappe') continue;
             $grouped[$p['category']][] = $p;
         }
 
-        ob_start(); ?>
-        <?php foreach ($grouped as $category => $items): ?>
+        ob_start();
+        foreach ($grouped as $category => $items): ?>
           <div class="category-title"><?= htmlspecialchars($category) ?></div>
           <div class="row">
-            <?php foreach ($items as $item): ?>
-              <div class="col-md-4">
+            <?php foreach ($items as $item): 
+                $img = !empty($item['image_path']) 
+                      ? "uploads/" . htmlspecialchars($item['image_path']) 
+                      : "uploads/default.jpg";
+            ?>
+              <div class="col-md-4 mb-4">
                 <div class="menu-card">
-                  <img src="uploads/t.jpg" alt="<?= htmlspecialchars($item['product_name']) ?>">
+                  <img src="<?= $img ?>" alt="<?= htmlspecialchars($item['product_name']) ?>">
                   <div class="menu-name"><?= htmlspecialchars($item['product_name']) ?></div>
                   <div class="menu-price">₱<?= number_format($item['product_price'], 2) ?></div>
-                  <?php if (!empty($item['best_seller'])): ?>
-                    <div class="badge-best">Best Seller</div>
-                  <?php endif; ?>
                 </div>
               </div>
             <?php endforeach; ?>
           </div>
-        <?php endforeach; ?>
-        <?php
+        <?php endforeach;
         $html = ob_get_clean();
-        echo json_encode(['status'=>'success','html'=>$html]);
+
+        echo json_encode(['status' => 'success', 'html' => $html]);
     } catch (Exception $e) {
-        echo json_encode(['status'=>'error','message'=>$e->getMessage()]);
+        echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
     }
     exit;
 }
+
+
+
 
 
 
