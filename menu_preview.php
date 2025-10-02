@@ -1,26 +1,29 @@
 <?php
 require_once('./classes/database.php');
+
 $db = new Database();
+
 $products = $db->getAllProducts();
 
 // Group products by category, skip Add-ons
 $grouped = [];
 foreach ($products as $p) {
-    $cat = $p['product_category'] ?? 'Other';
+    $cat = $p['category_id'] ?? 'Other';
     if (strtolower($cat) === 'add-ons') continue;
     $grouped[$cat][] = [
         $p['product_id'],
         $p['product_name'],
         $p['product_price'],
-        $p['product_category'] == 1,
+        $p['category_id'] == 1,
         $p['stock_quantity'] ?? 0
     ];
 }
 ?>
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
+   <meta charset="UTF-8">
   <title>Menu Preview | Izana Coffee</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
@@ -119,17 +122,6 @@ foreach ($products as $p) {
       font-weight: 600;
     }
 
-    .badge-best {
-      background-color: #b07542;
-      color: #fff;
-      font-weight: 700;
-      font-size: 0.8rem;
-      margin-top: 5px;
-      padding: 6px 12px;
-      border-radius: 50px;
-      display: inline-block;
-      box-shadow: 1px 1px 6px rgba(0,0,0,0.5);
-    }
 
     .note-text {
       font-size: 1rem;
@@ -186,43 +178,43 @@ foreach ($products as $p) {
 
 <a href="home.php" class="back-btn"><i class="fas fa-arrow-left me-2"></i>Back</a>
 
-<div class="container-menu">
+<div class="container-menu" id="menuContent">
+  <!-- Menu will be injected here via AJAX -->
   <h2 class="title">Izana Coffee Menu Preview</h2>
-  <p class="note-text">Browse our coffee selections below. Ordering is currently disabled on this page.</p>
-
-  <?php
-  function renderCategoryPreview($title, $items) {
-    echo "<div class='category-title'>{$title}</div><div class='row'>";
-    foreach ($items as $item) {
-      echo cardPreview($item[0], $item[1], $item[2], $item[3] ?? false);
-    }
-    echo "</div>";
-  }
-
-  function cardPreview($productID, $name, $price, $best = false) {
-    $img = "uploads/t.jpg";
-    $bestLabel = $best ? "<div class='badge-best'>Best Seller</div>" : "";
-    return <<<HTML
-    <div class="col-md-4">
-      <div class="menu-card">
-        <img src="$img" alt="$name">
-        <div class="menu-name">$name</div>
-        <div class="menu-price">₱$price</div>
-        $bestLabel
-      </div>
-    </div>
-    HTML;
-  }
-
-  foreach ($grouped as $category => $items) {
-    renderCategoryPreview($category, $items);
-  }
-  ?>
+  <p class="note-text">Loading menu...</p>
 </div>
 
 <footer>
   <p>If you want to place an order, please <a href="registration.php">Register</a> or <a href="login.php">Login</a> first.</p>
 </footer>
+
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script>
+function loadMenu() {
+  $.ajax({
+    url: "functions.php",
+    type: "POST",
+    data: { ref: "menu_preview" },
+    dataType: "json",
+    success: function(response) {
+      if (response.status === "success") {
+        $("#menuContent").html(response.html);
+      } else {
+        $("#menuContent").html("<p class='text-danger'>"+response.message+"</p>");
+      }
+    },
+    error: function(xhr, status, error) {
+      $("#menuContent").html("<p class='text-danger'>Error: "+error+"</p>");
+    }
+  });
+}
+
+// Load on page ready + auto-refresh every 10s
+$(document).ready(function() {
+  loadMenu();
+  setInterval(loadMenu, 10000);
+});
+</script>
 
 </body>
 </html>

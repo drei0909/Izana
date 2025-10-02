@@ -14,30 +14,43 @@ if (!isset($_SESSION['admin_ID'])) {
 $adminName = htmlspecialchars($_SESSION['admin_FN'] ?? 'Admin');
 
 // === Fetch POS Orders ===
-$sqlPos = "SELECT pos_id AS order_id, total_amount, payment_method, created_at, 
-                  'POS' AS order_channel, '' AS receipt, '' AS ref_no, 
-                  'Walk-in' AS customer_name, 1 AS status
-           FROM order_pos ORDER BY created_at DESC";
+$sqlPos = "SELECT 
+            pos_id AS order_id,
+            total_amount,
+            payment_method,
+            created_at,
+            'POS' AS order_channel,
+            '' AS receipt,
+            '' AS ref_no,
+            'Walk-in' AS customer_name,
+            1 AS status
+           FROM order_pos 
+           ORDER BY created_at DESC";
 $stmt = $db->conn->query($sqlPos);
 $posOrders = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
 // === Fetch Online Orders ===
-$sqlOnline = "SELECT o.order_id, 
-       CONCAT(c.customer_FN, ' ', c.customer_LN) AS customer_name, 
-       o.total_amount, o.receipt, o.ref_no, 
-       o.order_date, o.status, 'Online' AS order_channel, 
-       '' AS payment_method, '' AS created_at
-FROM order_online o
-JOIN customer c ON o.customer_id = c.customer_id
-
-              ORDER BY o.order_date DESC";
+$sqlOnline = "SELECT 
+                o.order_id,
+                CONCAT(c.customer_FN, ' ', c.customer_LN) AS customer_name,
+                o.total_amount,
+                '' AS payment_method,
+                o.receipt,
+                o.ref_no,
+                o.created_at,
+                o.status,
+                'Online' AS order_channel
+              FROM order_online o
+              JOIN customer c ON o.customer_id = c.customer_id
+              ORDER BY o.created_at DESC";
 $stmt2 = $db->conn->query($sqlOnline);
 $onlineOrders = $stmt2->fetchAll(PDO::FETCH_ASSOC);
 
-// Merge both
+// Merge both POS and Online orders
 $orders = array_merge($posOrders, $onlineOrders);
 
 ?>
+
 
 <?php include ('templates/header.php'); ?>
 
@@ -112,7 +125,7 @@ $orders = array_merge($posOrders, $onlineOrders);
                       <!-- Date -->
                       <td>
                         <?= $order['order_channel'] === 'Online'
-                              ? date("F j, Y h:i A", strtotime($order['order_date']))
+                              ? date("F j, Y h:i A", strtotime($order['created_at']))
                               : date("F j, Y h:i A", strtotime($order['created_at'])) ?>
                       </td>
 

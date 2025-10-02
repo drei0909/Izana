@@ -2,6 +2,10 @@
 session_start();
 require_once('./classes/database.php');
 
+
+header('Content-Type: application/json');
+
+
 $db = new Database();
 
 // Check if 'ref' is set in the POST request
@@ -67,6 +71,7 @@ if ($_POST['ref'] == 'add_to_cart') {
     exit;
 }
 
+
 // Get the updated cart content
 if ($_POST['ref'] == 'show_cart') {
  
@@ -120,6 +125,7 @@ if ($_POST['ref'] == 'show_cart') {
         ]);
     }
 }  
+
 
 // Delete item from cart
 if (isset($_POST['ref']) && $_POST['ref'] == 'delete_cart_item') {
@@ -217,7 +223,7 @@ if (isset($_POST['ref']) && $_POST['ref'] === "place_order") {
 
         // --- Insert order into order_online ---
         $insertOrder = $db->conn->prepare("
-            INSERT INTO order_online (customer_id, total_amount, receipt, ref_no, order_date, status)
+            INSERT INTO order_online (customer_id, total_amount, receipt, ref_no, created_at, status)
             VALUES (:customer_id, :total_amount, :receipt, :ref_no, NOW(), :status)
         ");
         $insertOrder->execute([
@@ -281,6 +287,7 @@ if (isset($_POST['ref']) && $_POST['ref'] === "place_order") {
     exit();
 }
 
+
 // Fetch both online and walk-in orders for admin panel
 if (isset($_POST['ref']) && $_POST['ref'] === "fetch_orders") {
     try {
@@ -327,6 +334,7 @@ if (isset($_POST['ref']) && $_POST['ref'] === "fetch_orders") {
 }
 
 
+// Place the POS order
 if (isset($_POST['ref']) && $_POST['ref'] === "place_pos_order") {
     $cart = json_decode($_POST['cart'] ?? "[]", true);
     $paymentMethod  = $_POST['payment_method'] ?? 'Cash';
@@ -393,6 +401,93 @@ if (isset($_POST['ref']) && $_POST['ref'] === "place_pos_order") {
     }
     exit();
 }
+
+
+// Handle Registration
+if (isset($_POST['ref']) && $_POST['ref'] === "register_customer") {
+    $fname    = trim($_POST['first_name'] ?? '');
+    $lname    = trim($_POST['last_name'] ?? '');
+    $username = trim($_POST['username'] ?? '');
+    $email    = trim($_POST['email'] ?? '');
+    $password = $_POST['password'] ?? '';
+
+    // REQUIRED check
+    if ($fname === '' || $lname === '' || $username === '' || $email === '' || $password === '') {
+        echo json_encode(['status' => 'error', 'message' => 'All fields are required.']);
+        exit;
+    }
+    // EMAIL format check
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        echo json_encode(['status' => 'error', 'message' => 'Invalid email address.']);
+        exit;
+    }
+    // PASSWORD strength check
+    if (!preg_match('/^(?=.*[A-Z])(?=.*\W)(?=.*\d).{6,}$/', $password)) {
+        echo json_encode(['status' => 'error', 'message' => 'Password must contain at least 6 characters, 1 uppercase, 1 number, and 1 special character.']);
+        exit;
+    }
+
+    try {
+        $success = $db->registerCustomer($fname, $lname, $username, $email, $password);
+        if ($success) {
+            echo json_encode(['status' => 'success', 'message' => 'Your account has been created successfully.']);
+        } else {
+            echo json_encode(['status' => 'error', 'message' => 'Username or Email already taken.']);
+        }
+    } catch (Exception $e) {
+        echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+    }
+    exit;
+}
+
+
+
+// Handle Menu Preview
+if (isset($_POST['ref']) && $_POST['ref'] === "menu_preview") {
+    try {
+        $stmt = $db->conn->query("
+            SELECT p.product_id, p.product_name, p.product_price, c.category
+            FROM product p
+            LEFT JOIN product_categories c ON p.category_id = c.category_id
+            ORDER BY c.category, p.product_name
+        ");
+        $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Group by category
+        $grouped = [];
+        foreach ($products as $p) {
+            if (strtolower($p['category']) === 'add-ons') continue; // skip add-ons
+            $grouped[$p['category']][] = $p;
+        }
+
+        ob_start(); ?>
+        <?php foreach ($grouped as $category => $items): ?>
+          <div class="category-title"><?= htmlspecialchars($category) ?></div>
+          <div class="row">
+            <?php foreach ($items as $item): ?>
+              <div class="col-md-4">
+                <div class="menu-card">
+                  <img src="uploads/t.jpg" alt="<?= htmlspecialchars($item['product_name']) ?>">
+                  <div class="menu-name"><?= htmlspecialchars($item['product_name']) ?></div>
+                  <div class="menu-price">₱<?= number_format($item['product_price'], 2) ?></div>
+                  <?php if (!empty($item['best_seller'])): ?>
+                    <div class="badge-best">Best Seller</div>
+                  <?php endif; ?>
+                </div>
+              </div>
+            <?php endforeach; ?>
+          </div>
+        <?php endforeach; ?>
+        <?php
+        $html = ob_get_clean();
+        echo json_encode(['status'=>'success','html'=>$html]);
+    } catch (Exception $e) {
+        echo json_encode(['status'=>'error','message'=>$e->getMessage()]);
+    }
+    exit;
+}
+
+
 
 
 ?>

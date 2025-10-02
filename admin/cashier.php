@@ -63,7 +63,7 @@ try {
                     <span class="text-muted">N/A</span>
                   <?php endif; ?>
                 </td>
-                <td><?= date("M d, Y h:i A", strtotime($row['order_date'])) ?></td>
+                <td><?= date("M d, Y h:i A", strtotime($row['created_at'])) ?></td>
                 <td>
                   <?php
                     // Translate status codes

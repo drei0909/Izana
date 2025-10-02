@@ -270,25 +270,25 @@ public function loginAdmin_L($username, $password) {
 // }
 
 
-// public function getAllOrder() {
-//     $sql = "
-//         SELECT 
-//             o.order_id,
-//             o.order_channel,
-//             o.total_amount,
-//             o.receipt,
-//             o.order_date,
-//             IFNULL(c.customer_FN, 'Walk-in') AS customer_FN,  -- For Walk-in orders
-//             IFNULL(c.customer_LN, '') AS customer_LN  -- Walk-in does not have last name
-//         FROM `order` o
-//         LEFT JOIN customer c ON o.customer_id = c.customer_id  -- Use LEFT JOIN to include Walk-in orders
-//         ORDER BY o.order_date DESC
-//     ";
+public function getAllOrder() {
+    $sql = "
+        SELECT 
+            p.pos_id AS order_id,
+            'walk-in' AS order_channel,   -- Since this is POS, we tag as walk-in
+            p.total_amount,
+            p.payment_method,
+            p.created_at AS order_date,
+            pm.payment_status
+        FROM order_pos p
+        LEFT JOIN payment pm ON p.pos_id = pm.pos_id
+        ORDER BY p.created_at DESC
+    ";
 
-//     $stmt = $this->conn->prepare($sql);
-//     $stmt->execute();
-//     return $stmt->fetchAll(PDO::FETCH_ASSOC);
-// }
+    $stmt = $this->conn->prepare($sql);
+    $stmt->execute();
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
 
 //ad categories
 public function addCategory($category) {
@@ -549,7 +549,7 @@ public function getCashierOrders() {
     $sql = "SELECT 
                 o.order_id, 
                 o.customer_id, 
-                o.order_date, 
+                o.created_at, 
                 o.status, 
                 o.total_amount, 
                 o.receipt, 
@@ -564,7 +564,7 @@ public function getCashierOrders() {
                 ON o.customer_id = c.customer_id
             LEFT JOIN payment p 
                 ON o.order_id = p.order_id
-            ORDER BY o.order_date DESC"; 
+            ORDER BY o.created_at DESC"; 
 
     $stmt = $this->conn->prepare($sql);
     $stmt->execute();

@@ -1,15 +1,17 @@
 <?php
 session_start();
+
 require_once('./classes/database.php');
+
 $db = new database();
 ?>
 
 <!DOCTYPE html>
-<html lang="en">
-<head>
+  <html lang="en">
+  <head>
   <meta charset="UTF-8">
   <title>Izana</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Quicksand:wght@400;600&display=swap" rel="stylesheet">
@@ -128,20 +130,16 @@ $db = new database();
       color: #fff;
     }
 
-<style>
-.transparent-navbar {
-  background-color: rgba(0, 0, 0, 0.3) !important;
-  backdrop-filter: blur(8px);
-  transition: background-color 0.3s ease;
-}
-</style>
+  <style>
 
-
-
-
-
+  .transparent-navbar {
+    background-color: rgba(0, 0, 0, 0.3) !important;
+    backdrop-filter: blur(8px);
+    transition: background-color 0.3s ease;
+  }
   </style>
-</head>
+  </style>
+  </head>
 
 <body>
 
@@ -163,9 +161,36 @@ $db = new database();
 
   <div class="header-content text-center">
     <h1>Where Every Sip Feels Like Homeeee</h1>
-    <a href="menu_preview.php" class="btn">Menu View</a>
+    <a href="menu_preview.php" class="btn">Explore Our Products</a>
   </div>
 </header>
+
+
+<!-- About Section -->
+<section class="container py-5">
+  <div class="row align-items-center">
+   <div class="col-md-6 col-12 text-center">
+      <img src="uploads/about.png" 
+           alt="Our Cafe" 
+           class="img-fluid"
+           style="max-width: 100%; height: auto; background: transparent; border: none; box-shadow: none;">
+    </div>
+
+   <div class="col-md-6 col-12 text-center text-md-start">
+  <h2 class="mb-3" style="color:#6b3e2e;">Espresso Blend</h2>
+  <p>
+    We use carefully selected beans sourced from <strong>local farmers in the Philippines</strong>.  
+    Roasted to perfection, our blend brings out a bold aroma and a smooth, well-balanced flavor 
+    in every cup.
+  </p>
+
+  <h6 class="mt-4"><strong>Best For:</strong></h6>
+  <p>Espresso, Cappuccino, Lattes</p>
+</div>
+
+  </div>
+</section>
+
 
 
 <!-- Features -->
@@ -190,29 +215,91 @@ $db = new database();
 </section>
 
 <!-- Gallery -->
-<section class="gallery container">
+<section class="gallery container my-5 mb-5 pb-5">
   <div class="row g-4">
-    <div class="col-6 col-md-4"><img src="uploads/cof.jpg" alt="Coffee cup"></div>
-    <div class="col-6 col-md-4"><img src="uploads/bgggg.jpg" alt="Barista pouring"></div>
-    <div class="col-6 col-md-4"><img src="uploads/cofff.jpg" alt="Cafe interior"></div>
+    <div class="col-6 col-md-4 col-lg-3">
+      <img src="uploads/cof.jpg" alt="Coffee cup" class="img-fluid rounded shadow-sm w-100">
+    </div>
+    <div class="col-6 col-md-4 col-lg-3">
+      <img src="uploads/bgggg.jpg" alt="Barista pouring" class="img-fluid rounded shadow-sm w-100">
+    </div>
+    <div class="col-6 col-md-4 col-lg-3">
+      <img src="uploads/cofff.jpg" alt="Cafe interior" class="img-fluid rounded shadow-sm w-100">
+    </div>
+    <div class="col-6 col-md-4 col-lg-3">
+      <img src="uploads/bg.jpg" alt="Cafe ambiance" class="img-fluid rounded shadow-sm w-100">
+    </div>
   </div>
 </section>
 
+
+
+
+<!-- About Section -->
+<section class="container py-5">
+  <div class="row align-items-center">
+    <!-- Text first on desktop, but stack on mobile -->
+    <div class="col-md-6 mb-4 mb-md-0 text-center text-md-start">
+      <h2 class="mb-3">Our Story</h2>
+      <p>
+        At IZANA, every cup tells a story of passion, warmth, and community. 
+        From our carefully sourced beans to the cozy atmosphere we’ve created, 
+        we want every guest to feel at home while enjoying the finest coffee.
+      </p>
+      <p>
+        Whether you’re here for a quick pick-me-up or to spend time with friends, 
+        IZANA is your perfect spot to relax and savor every sip.
+      </p>
+    </div>
+
+    <!-- Image on the right (centered on mobile) -->
+    <div class="col-md-6 text-center">
+      <img src="uploads/bggggg.jpg" 
+           alt="Our Cafe" 
+           class="img-fluid rounded shadow"
+           style="max-height: 400px; object-fit: cover;">
+    </div>
+  </div>
+</section>
+
+
+
+
+
 <!-- Footer -->
 <footer class="text-center">
-  <div class="container">
-    <h5 class="mb-3">IZANA</h5>
-    <p>Located in San Antonio — Brewing joy one cup at a time.</p>
-    <div class="mb-3">
-      
+ <div class="container text-center">
+  <img src="uploads/izana_logo.png" alt="IZANA Logo" style="height: 65px;">
+
+  <!-- Location Link -->
+  <p class="mt-2">
+    <a href="https://maps.app.goo.gl/hNkEcc3FzmerVUjh9" target="_blank" 
+       title="Find us on Google Maps" 
+       style="color: inherit; text-decoration: none;">
+      <i class="fas fa-map-marker-alt me-2"></i> San Antonio, Batangas
+    </a>
+  </p>
+
+  <!-- Social Media Section -->
+  <p class="fw-semibold mt-3">Follow us on our social media accounts for more updates:</p>
+  <div class="mb-3">
     <a href="https://www.instagram.com/2021cakes_and_coffee/?igsh=c3BqczNuYnBpMDAx#" target="_blank" title="Follow us on Instagram">
-  <i class="fab fa-instagram me-3"></i>
-</a>
-
-
-    </div>
-    <p class="mt-4 small">&copy; <?= date('Y') ?> IZANA. All rights reserved.</p>
+      <i class="fab fa-instagram me-3 fa-lg"></i>
+    </a>
+    <a href="https://www.tiktok.com/@izana_coffee_desserts" target="_blank" title="Follow us on TikTok">
+      <i class="fab fa-tiktok me-3 fa-lg"></i>
+    </a>
   </div>
+
+  <!-- Contact Section -->
+  <p class="fw-semibold mt-3">Contact Us:</p>
+  <p>
+    <a href="tel:+639123456789" style="color: inherit; text-decoration: none;">
+      <i class="fas fa-phone-alt me-2"></i> +63 912 345 6789
+    </a>
+  </p>
+</div>
+
 </footer>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
