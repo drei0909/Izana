@@ -18,8 +18,8 @@ $category_id = intval($_GET['id']);
 $status = isset($_GET['status']) ? intval($_GET['status']) : 1;
 
 // Update status
-$stmt = $db->conn->prepare("UPDATE product_categories SET is_active = ? WHERE category_id = ?");
+$stmt = $db->conn->prepare("UPDATE product SET is_active = ? WHERE product_id = ?");
 $stmt->execute([$status, $category_id]);
 
-header("Location: product-categories.php?updated=success");
+header("Location: manage_products.php?updated=success");
 exit();

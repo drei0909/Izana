@@ -24,6 +24,31 @@ try {
 
 <?php include ('templates/header.php'); ?>  
 
+<!-- modal -->
+<div class="modal fade" id="viewOrderModal" tabindex="-1" aria-labelledby="simpleModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      
+      <!-- Header -->
+      <div class="modal-header">
+        <h5 class="modal-title" id="simpleModalLabel">Order Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <!-- Body -->
+      <div class="modal-body">
+
+        <div class="order-items"></div>
+      </div>
+
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+
+    </div>
+  </div>
+</div>
+
 <div class="wrapper">
 
 <?php include ('templates/sidebar.php'); ?>
@@ -39,26 +64,26 @@ try {
       <table id="productTable" class="table table-bordered table-hover align-middle">
         <thead>
           <tr>
-            <th>Order ID</th>
+           
             <th>Customer ID</th>
             <th>Total Amount</th>
             <th>Ref No</th>
             <th>Receipt</th>
             <th>Order Date</th>
             <th>Status</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody id="order-body">
           <?php if (count($orders) > 0): ?>
             <?php foreach ($orders as $row): ?>
               <tr id="order-row-<?= (int)$row['order_id'] ?>">
-                <td><?= (int)$row['order_id'] ?></td>
-                <td><?= (int)$row['customer_id'] ?></td>
+                <td><?= $row['customer_FN'] ?></td>
                 <td>₱<?= number_format($row['total_amount'], 2) ?></td>
                 <td><?= htmlspecialchars($row['ref_no']) ?></td>
                 <td>
                   <?php if (!empty($row['receipt'])): ?>
-                    <a href="<?= htmlspecialchars('../uploads/receipts/' . $row['receipt']) ?>" target="_blank" class="btn btn-sm btn-primary btn-small">View</a>
+                    <a href="<?= htmlspecialchars('../uploads/receipts/' . $row['receipt']) ?>" target="_blank" class="btn btn-sm btn-primary btn-small">View </a>
                   <?php else: ?>
                     <span class="text-muted">N/A</span>
                   <?php endif; ?>
@@ -74,6 +99,9 @@ try {
                       default: echo '<span class="badge bg-secondary">Unknown</span>';
                     }
                   ?>
+                </td>
+                  <td>
+                    <button button class="btn btn-warning btn-sm btn-view-order"data-order-id= "<?=$row['order_id']?>" ><i class="fa fa-eye"></i> View Order</button>
                 </td>
               </tr>
             <?php endforeach; ?>
@@ -113,6 +141,37 @@ try {
 <script>
     $(document).ready(function(){
         $('#productTable').DataTable();
+
+        $(document).on("click", ".btn-view-order", function(){
+          let order_id = $(this).data('order-id');
+          $("#viewOrderModal").modal('show'); 
+
+
+           $.ajax({
+            url: "admin_functions.php",
+            method: "POST",
+            data: { 
+              ref: "get_order_item",
+              order_id: order_id 
+            
+            },
+
+            dataType: "json",
+            success: function(response) {
+              console.log(response);
+              if (response.status === "success") {
+                $(".order-items").html(response.html); 
+
+              } else {
+
+              }
+            },
+            error: function() {
+              // Swal.fire({ icon:'error', title:'Unable to verify cart', text:'Please try again.' });
+            }
+          });
+
+        });
     });
 </script>
 

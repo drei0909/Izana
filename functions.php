@@ -454,7 +454,7 @@ if (isset($_POST['ref']) && $_POST['ref'] === "menu_preview") {
             FROM product p
             LEFT JOIN product_categories c 
                 ON p.category_id = c.category_id
-            ORDER BY c.category, p.product_name
+            ORDER BY c.category_id
         ");
         $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
@@ -470,7 +470,7 @@ if (isset($_POST['ref']) && $_POST['ref'] === "menu_preview") {
           <div class="row">
             <?php foreach ($items as $item): 
                 $img = !empty($item['image_path']) 
-                      ? "uploads/" . htmlspecialchars($item['image_path']) 
+                      ?  htmlspecialchars($item['image_path']) 
                       : "uploads/default.jpg";
             ?>
               <div class="col-md-4 mb-4">

@@ -73,7 +73,10 @@ public function getAllProducts($category_id = null) {
         $stmt->bindParam(':category_id', $category_id, PDO::PARAM_INT);
     } else {
         // If no category_id, get all products
-        $stmt = $this->conn->prepare("SELECT * FROM product");
+        $stmt = $this->conn->prepare("SELECT p.* FROM product p
+        INNER JOIN product_categories pc ON p.category_id = pc.category_id
+        WHERE pc.is_active = 1");
+        
     }
 
     $stmt->execute();

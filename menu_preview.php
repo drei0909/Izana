@@ -1,8 +1,89 @@
 <?php
-require_once('./classes/database.php');
+session_start();
+
+  require_once('./classes/database.php');
+  require_once (__DIR__. "/classes/config.php");
 
 $db = new Database();
 
+
+// Check if category_id is set in the URL, if not, set it to null or a default value
+$categoryId = isset($_GET['category_id']) ? $_GET['category_id'] : null;
+// Fetch products based on the category_id, or return an empty array if it's null
+$products = $db->getAllProducts($categoryId) ?? [];
+// Fetch product categories (this part remains unchanged)
+$stmt = $db->conn->prepare("SELECT * FROM product_categories WHERE is_active = 1");
+$stmt->execute();
+$categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+
+
+$grouped = [];
+  foreach ($products as $p) {
+  $cat = $p['category_id'] ?? 'Other';
+  $catKey = is_string($cat) ? $cat : (string)$cat;
+  $grouped[$catKey][] = [
+  'product_id' => (int)($p['product_id'] ?? 0),
+  'product_name' => $p['product_name'] ?? 'Unnamed',
+  'product_price' => (float)($p['product_price'] ?? 0),
+  'best' => isset($p['best']) ? (bool)$p['best'] : (($p['product_categoy'] ?? '') == 1),
+  'stock' => $p['stock_quantity'] ?? 0,
+  'status' => $p['is_active'] ?? 1,
+  'raw' => $p
+    ];
+}
+
+function escape($s) {
+    return htmlspecialchars($s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
+}
+
+function card_html($p) {
+    // ensure expected values exist
+    $id = (int)($p['product_id'] ?? 0);
+    $name = escape($p['product_name'] ?? 'Unnamed');
+    $priceFmt = number_format((float)($p['product_price'] ?? 0), 2);
+    $best = !empty($p['best']) ? true : false;
+    $status = (int)($p['status'] ?? 1);
+
+    // try to read image path from raw data if present, fallback to placeholder
+    $img = 'uploads/bgggg.jpg';
+    if (!empty($p['raw']['image']) ) {              // adjust field name if different
+        $img = escape($p['raw']['image']);
+    } elseif (!empty($p['raw']['image_path'])) {
+        $img = escape($p['raw']['image_path']);
+    }
+
+    $bestLabel = $best ? '<span class="badge-best">Best Seller</span>' : '';
+    $disabledAttr = $status === 0 ? 'disabled' : '';
+    $btnHtml = $status === 0
+        ? '<button class="btn btn-coffee mt-2" disabled></button>'
+        : '<button class="btn btn-coffee mt-2">Add</button>';
+    $inactiveClass = $status === 0 ? 'faded' : '';
+
+    $dataPrice = htmlspecialchars((string)($p['product_price'] ?? '0'), ENT_QUOTES);
+    $dataName  = htmlspecialchars($name, ENT_QUOTES);
+
+    $html  = '<div class="col-12 col-sm-6 col-lg-4">';
+    $html .= '<div class="menu-card ' . $inactiveClass . '" data-product-id="' . $id . '" data-product-price="' . $dataPrice . '" data-product-name="' . $dataName . '">';
+    $html .= '<div class="card-media">';
+    $html .= '<img src="' . $img . '" alt="' . $dataName . '">';
+    $html .= $bestLabel;
+    $html .= '</div>'; // card-media
+    $html .= '<div class="menu-body">';
+    $html .= '<div class="menu-name">' . $name . '</div>';
+    $html .= '<div class="menu-bottom">';
+    $html .= '<div class="menu-price">₱' . $priceFmt . '</div>';
+    $html .= '<div class="controls">';
+    $html .= '<input type="number" min="1" max="99" value="1" class="quantity-input" ' . $disabledAttr . '>';
+    $html .= $btnHtml;
+    $html .= '</div>'; // controls
+    $html .= '</div>'; // menu-bottom
+    $html .= '</div>'; // menu-body
+    $html .= '</div>'; // menu-card
+    $html .= '</div>'; // column
+
+    return $html;
+}
 ?>
 
 <!DOCTYPE html>
@@ -158,12 +239,23 @@ $db = new Database();
   <p class="note-text">Browse our coffee selections below. This is a preview only.</p>
 
   <div id="menuContent">
-    <p class="note-text">Loading menu...</p>
+
+    <?php foreach($grouped as $catId=>$items): 
+        // Get category name
+        $stmt = $db->conn->prepare("SELECT category FROM product_categories WHERE category_id = ?");
+        $stmt->execute([$catId]);
+        $catRow = $stmt->fetch(PDO::FETCH_ASSOC);
+        $catName = $catRow ? $catRow['category'] : "Other";
+
+        $anchor = 'cat-'.preg_replace('/[^a-z0-9\-_]/i','-', strtolower($catName));
+    ?>
+     <?php foreach($items as $item) echo card_html($item); ?>
+     <?php endforeach; ?>
   </div>
 </div>
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<!-- <script>
+<script>
 function loadMenu() {
     $.ajax({
         url: "functions.php",
@@ -186,9 +278,9 @@ function loadMenu() {
 
 $(document).ready(function() {
     loadMenu();                 // First load
-    setInterval(loadMenu, 5000); // Refresh every 5 seconds
+    setInterval(loadMenu, 15000); // Refresh every 5 seconds
 });
-</script> -->
+</script>
 
 
 
