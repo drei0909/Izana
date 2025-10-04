@@ -231,7 +231,7 @@ if (isset($_POST['ref']) && $_POST['ref'] === "place_order") {
             ':total_amount' => $total,
             ':receipt'      => $receiptPath,
             ':ref_no'       => $refNo,
-            ':status'       => 0
+            ':status'       => 1
         ]);
 
         $orderID = $db->conn->lastInsertId(); // ✅ new order_id

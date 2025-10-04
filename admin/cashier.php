@@ -12,18 +12,15 @@ session_start();
 }
 
 $adminName = htmlspecialchars($_SESSION['admin_FN'] ?? 'Admin');
-
-try {
-    // Fetch active orders from the `order` table
-    $orders = $db->getCashierOrders();
-    // $total_rows = $db->countCashierOrders();
-  } catch (PDOException $e) {
-      die("Error fetching orders: " . $e->getMessage());
-  }
 ?>
 
 <?php include ('templates/header.php'); ?>  
-
+<style>
+body { background: #f8f9fa; padding: 30px; }
+.list-group { min-height: 200px; }
+.list-group-item { cursor: move; }
+.placeholder-highlight { border: 2px dashed #6c757d; background: #e9ecef; }
+</style>
 <!-- modal -->
 <div class="modal fade" id="viewOrderModal" tabindex="-1" aria-labelledby="simpleModalLabel" aria-hidden="true">
   <div class="modal-dialog">
@@ -59,62 +56,9 @@ try {
 
   <div class="content">
     <h4 class="section-title"><i class="fas fa-inbox me-2"></i>Active Online Orders</h4>
+ 
+    <div class="load-order-que"></div>
 
-    <div class="table-responsive">
-      <table id="productTable" class="table table-bordered table-hover align-middle">
-        <thead>
-          <tr>
-           
-            <th>Customer ID</th>
-            <th>Total Amount</th>
-            <th>Ref No</th>
-            <th>Receipt</th>
-            <th>Order Date</th>
-            <th>Status</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody id="order-body">
-          <?php if (count($orders) > 0): ?>
-            <?php foreach ($orders as $row): ?>
-              <tr id="order-row-<?= (int)$row['order_id'] ?>">
-                <td><?= $row['customer_FN'] ?></td>
-                <td>₱<?= number_format($row['total_amount'], 2) ?></td>
-                <td><?= htmlspecialchars($row['ref_no']) ?></td>
-                <td>
-                  <?php if (!empty($row['receipt'])): ?>
-                    <a href="<?= htmlspecialchars('../uploads/receipts/' . $row['receipt']) ?>" target="_blank" class="btn btn-sm btn-primary btn-small">View </a>
-                  <?php else: ?>
-                    <span class="text-muted">N/A</span>
-                  <?php endif; ?>
-                </td>
-                <td><?= date("M d, Y h:i A", strtotime($row['created_at'])) ?></td>
-                <td>
-                  <?php
-                    // Translate status codes
-                    switch ($row['status']) {
-                      case 0: echo '<span class="badge bg-warning">Pending</span>'; break;
-                      case 1: echo '<span class="badge bg-success">Approved</span>'; break;
-                      case 2: echo '<span class="badge bg-danger">Rejected</span>'; break;
-                      default: echo '<span class="badge bg-secondary">Unknown</span>';
-                    }
-                  ?>
-                </td>
-                  <td>
-                    <button button class="btn btn-warning btn-sm btn-view-order"data-order-id= "<?=$row['order_id']?>" ><i class="fa fa-eye"></i> View Order</button>
-                </td>
-              </tr>
-            <?php endforeach; ?>
-          <?php else: ?>
-            <tr>
-              <td colspan="7" class="text-center text-muted py-4">
-                <i class="fas fa-receipt fa-2x mb-2"></i><br>No active orders.
-              </td>
-            </tr>
-          <?php endif; ?>
-        </tbody>
-      </table>
-    </div>  
   </div>
 </div>
 
@@ -122,6 +66,7 @@ try {
 
 <!-- jQuery (needed for DataTables only) -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://code.jquery.com/ui/1.13.2/jquery-ui.min.js"></script>
 
 <!-- Bootstrap 5 Bundle (includes Popper) -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -172,6 +117,81 @@ try {
           });
 
         });
+
+
+        function refreshOrderQue(){
+          $.ajax({
+            url: "admin_functions.php",
+            method: "POST",
+            data: { 
+              ref: "get_orders_que"
+            
+            },
+
+            dataType: "json",
+            success: function(response) {
+              console.log(response);
+              if (response.status === "success") {
+
+                $(".load-order-que").html(response.html); 
+                // Make all list-groups sortable and connected
+                $(".list-group").sortable({
+                    connectWith: ".list-group",
+                    items: "> li:not(:first-child)", // Prevent the header from being draggable
+                    placeholder: "placeholder-highlight",
+                    start: function(e, ui) {
+                    ui.placeholder.height(ui.item.height());
+                  },
+
+                  receive: function(event, ui) {
+                    const orderName = ui.item.text().trim();
+                    const newStatusText = $(this).find('li:first').text();
+                    const orderId = ui.item.data('id'); // we'll use data-id to track order id
+              
+                    // Convert header text to numeric status
+                    let newStatus = 0;
+                    switch (newStatusText) {
+                      case 'Pending': newStatus = 1; break;
+                      case 'Preparing': newStatus = 2; break;
+                      case 'Ready for Pickup': newStatus = 3; break;
+                      case 'Cancel': newStatus = 4; break;
+                    }
+
+                    console.log(`${orderName} moved to ${newStatusText} (status: ${newStatus})`);
+      
+                    // AJAX update
+                    $.ajax({
+                      url: "admin_functions.php",
+                      type: 'POST',
+                      data: { 
+                        ref: "update_order_stats",
+                        id: orderId,
+                        status: newStatus
+                      },
+                      success: function(response) {
+                        // console.log('Updated:', response);
+                      },
+                      error: function(xhr, status, error) {
+                        // console.error('AJAX Error:', error);
+                      }
+                    });
+                  }
+                }).disableSelection();
+
+              } else {
+
+              }
+            },
+            error: function() {
+              // Swal.fire({ icon:'error', title:'Unable to verify cart', text:'Please try again.' });
+            }
+          });
+        }
+        if($(".load-order-que").length) {
+          refreshOrderQue();
+        }
+
+
     });
 </script>
 

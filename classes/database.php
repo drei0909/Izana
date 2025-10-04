@@ -1,7 +1,7 @@
 <?php
 class Database {
     private $host = "localhost";
-    private $db_name = "Izana";
+    private $db_name = "izana_3";
     private $username = "root";
     private $password = "";
     public $conn;
@@ -548,7 +548,7 @@ public function countCustomers($search) {
 //     return $row ? (int)$row['total'] : 0;
 // }
 
-public function getCashierOrders() {
+public function getCashierOrders($status = null) {
     $sql = "SELECT 
                 o.order_id, 
                 o.customer_id, 
@@ -566,8 +566,13 @@ public function getCashierOrders() {
             INNER JOIN customer c 
                 ON o.customer_id = c.customer_id
             LEFT JOIN payment p 
-                ON o.order_id = p.order_id
-            ORDER BY o.created_at DESC"; 
+                ON o.order_id = p.order_id";
+
+            if($status != ''){
+                $sql .= " WHERE o.status = $status";
+            }
+
+            $sql .= " ORDER BY o.created_at DESC"; 
 
     $stmt = $this->conn->prepare($sql);
     $stmt->execute();
