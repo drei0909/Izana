@@ -81,22 +81,20 @@ if ($_POST['ref'] == 'get_orders_que') {
         1 => 'Pending',
         2 => 'Preparing',
         3 => 'Ready for Pickup',
-        4 => 'Cancel'
     ];
 
     foreach ($statuses as $statusId => $statusName) {
         $html .= '
-        <div class="col-md-3">
+        <div class="col-md-4">
             <div class="mr-1">
                 <ul class="list-group" id="'. strtolower(str_replace(' ', '_', $statusName)) .'">
                     <li class="list-group-item bg-success fw-bold text-white">'. $statusName .'</li>';
 
-        $orders = $db->getCashierOrders($statusId);
+        $orders = $db->getOrders($statusId);
         if (!empty($orders)) {
             foreach ($orders as $row) {
-                $html .= '<li class="list-group-item order-item" data-id="'. htmlspecialchars($row['order_id']) .'">';
-                $html .= '<strong>'. htmlspecialchars($row['customer_FN']) .'</strong><br>';
-                $html .= '<small>₱'. htmlspecialchars($row['total_amount']) .'</small>';
+                $html .= '<li class="list-group-item order-item" data-id="'. htmlspecialchars($row['order_id']) .'" data-order-type="'.$row['order_type'].'">';
+                $html .= '<div><strong>'. htmlspecialchars($row['customer_FN']) .' </strong> <span class="float-end"> #00'.$row['order_id'].'</span> </div>';
                 $html .= '</li>';
             }
         } else {
@@ -122,13 +120,27 @@ if ($_POST['ref'] == 'get_orders_que') {
 if ($_POST['ref'] == 'update_order_stats') {
     $order_id = intval($_POST['id']);
     $status = intval($_POST['status']);
+    $orderType = $_POST['orderType'];
 
-    $stmt = $db->conn->prepare("
-        UPDATE order_online 
-        SET status = ?
-        WHERE order_id = ?
-    ");
-    return $stmt->execute([$status, $order_id]);
+    
+
+    if($orderType == 'online'){
+        $stmt = $db->conn->prepare("
+            UPDATE order_online 
+            SET status = ?
+            WHERE order_id = ?
+        ");
+        return $stmt->execute([$status, $order_id]);
+
+    }else{
+        $stmt = $db->conn->prepare("
+            UPDATE order_pos 
+            SET status = ?
+            WHERE pos_id = ?
+        ");
+        return $stmt->execute([$status, $order_id]);
+    }
+    
 }
 
 // Place the POS order
@@ -176,8 +188,8 @@ if (isset($_POST['ref']) && $_POST['ref'] === "place_pos_order") {
             ]);
         } else {
             $stmtPos = $db->conn->prepare("
-                INSERT INTO order_pos (total_amount, payment_method, created_at)
-                VALUES (:total_amount, :payment_method, NOW())
+                INSERT INTO order_pos (total_amount, payment_method, status, created_at)
+                VALUES (:total_amount, :payment_method, 1, NOW())
             ");
             $stmtPos->execute([
                 ':total_amount' => $total,
@@ -352,10 +364,10 @@ if (isset($_POST['ref']) && $_POST['ref'] === "fetch_orders") {
                    o.total_amount, 
                    o.receipt, 
                    o.ref_no, 
-                   o.order_date AS order_date,
+                   o.created_at AS order_date,
                    'Online' AS order_channel
             FROM order_online o
-            JOIN customers c ON o.customer_id = c.customer_ID
+            JOIN customer c ON o.customer_id = c.customer_ID
         ");
         $stmtOnline->execute();
         $onlineOrders = $stmtOnline->fetchAll(PDO::FETCH_ASSOC);
@@ -386,6 +398,7 @@ if (isset($_POST['ref']) && $_POST['ref'] === "fetch_orders") {
     }
     exit;
 }
+
 
 
 

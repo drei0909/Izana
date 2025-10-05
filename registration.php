@@ -1,4 +1,9 @@
 <?php
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
+
+// Load PHPMailer
+require 'vendor/autoload.php'; // If using Composer
 require_once('./classes/database.php');
 
 $db = new database();

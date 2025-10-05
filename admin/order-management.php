@@ -60,7 +60,7 @@ $adminName = htmlspecialchars($_SESSION['admin_FN'] ?? 'Admin');
   </div>
 
   <div class="content">
-    <h4 class="section-title"><i class="fas fa-inbox me-2"></i>Active Online Orders</h4>
+    <h4 class="section-title"><i class="fas fa-inbox me-2"></i>Order Management Queue</h4>
  
     <div class="load-order-que"></div>
 
@@ -186,6 +186,7 @@ $(document).off("dblclick", ".order-item").on("dblclick", ".order-item", functio
                     const orderName = ui.item.text().trim();
                     const newStatusText = $(this).find('li:first').text();
                     const orderId = ui.item.data('id'); // we'll use data-id to track order id
+                    const orderType = ui.item.data('order-type'); // we'll use data-id to track order id
               
                     // Convert header text to numeric status
                     let newStatus = 0;
@@ -193,11 +194,10 @@ $(document).off("dblclick", ".order-item").on("dblclick", ".order-item", functio
                       case 'Pending': newStatus = 1; break;
                       case 'Preparing': newStatus = 2; break;
                       case 'Ready for Pickup': newStatus = 3; break;
-                      case 'Cancel': newStatus = 4; break;
                     }
 
                     console.log(`${orderName} moved to ${newStatusText} (status: ${newStatus})`);
-      
+
                     // AJAX update
                     $.ajax({
                       url: "admin_functions.php",
@@ -205,7 +205,8 @@ $(document).off("dblclick", ".order-item").on("dblclick", ".order-item", functio
                       data: { 
                         ref: "update_order_stats",
                         id: orderId,
-                        status: newStatus
+                        status: newStatus,
+                        orderType: orderType,
                       },
                       success: function(response) {
                         // console.log('Updated:', response);
@@ -226,6 +227,9 @@ $(document).off("dblclick", ".order-item").on("dblclick", ".order-item", functio
             }
           });
         }
+
+        setInterval(refreshOrderQue, 1000);
+
         if($(".load-order-que").length) {
           refreshOrderQue();
         }

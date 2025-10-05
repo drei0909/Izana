@@ -169,7 +169,50 @@ if (isset($_POST['ref']) && $_POST['ref'] === "register_customer") {
     try {
         $success = $db->registerCustomer($fname, $lname, $username, $email, $password);
         if ($success) {
-            echo json_encode(['status' => 'success', 'message' => 'Your account has been created successfully.']);
+
+
+
+
+            // EMAIL NOTIF USING PHPMAILER
+            $mail = new PHPMailer(true);
+
+            try {
+                // Server settings
+                $mail->isSMTP();                                            
+                $mail->Host       = 'smtp.gmail.com';                     
+                $mail->SMTPAuth   = true;                                   
+                $mail->Username   = 'your_email@gmail.com'; // Your Gmail address
+                $mail->Password   = 'your_app_password';  // Use App Password (not your Gmail password)
+                $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;         
+                $mail->Port       = 587;                                    
+
+                // Recipients
+                $mail->setFrom('your_email@gmail.com', 'Your Website Name');
+                $mail->addAddress('recipient@example.com', 'John Doe');     
+
+                // Content
+                $mail->isHTML(true);                                  
+                $mail->Subject = 'Verify Your Account';
+                $mail->Body    = '
+                    <h2>Welcome to Our Website!</h2>
+                    <p>Thank you for registering. Please click the link below to verify your account:</p>
+                    <p><a href="https://yourdomain.com/verify.php?token=12345">Verify My Account</a></p>
+                    <p>If you did not register, please ignore this message.</p>
+                ';
+                $mail->AltBody = 'Please verify your account by visiting this link: https://yourdomain.com/verify.php?token=12345';
+
+                $mail->send();
+                echo 'Verification email has been sent successfully!';
+            } catch (Exception $e) {
+                echo "Email could not be sent. Mailer Error: {$mail->ErrorInfo}";
+            }
+            // EMAIL NOTIF USING PHPMAILER
+
+
+
+
+
+            echo json_encode(['status' => 'success', 'message' => 'Your account has been created successfully! We’ve sent an email to verify your account.']);
         } else {
             echo json_encode(['status' => 'error', 'message' => 'Username or Email already taken.']);
         }
@@ -347,8 +390,6 @@ if (isset($_POST['ref']) && $_POST['ref'] === "place_order") {
 
     exit();
 }
-
-
 
 
 ?>

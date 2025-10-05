@@ -1,7 +1,7 @@
 <?php
 class Database {
     private $host = "localhost";    
-    private $db_name = "izana";
+    private $db_name = "izana_3";
     private $username = "root";
     private $password = "";
     public $conn;
@@ -517,62 +517,90 @@ public function countCustomers($search) {
     
 }
 
-// public function getOrders() {
-//     $sql = "SELECT o.*, 
-//                    COALESCE(CONCAT(c.customer_FN, ' ', c.customer_LN), 'walk-in') AS customer_name, 
-                 
-//             FROM `order_online` o
-//             LEFT JOIN customer c ON o.customer_id = c.customer_id
-//             ORDER BY o.order_date DESC";
 
-//     $stmt = $this->conn->query($sql);
+// public function getOrders($status = null) {
+//     $sql = "SELECT 
+//                 o.order_id, 
+//                 o.customer_id, 
+//                 o.created_at, 
+//                 o.status, 
+//                 o.total_amount, 
+//                 o.receipt, 
+//                 o.ref_no,
+//                 c.customer_FN, 
+//                 c.customer_LN, 
+//                 c.customer_email,
+//                 p.payment_method, 
+//                 p.payment_status
+//             FROM order_online o
+//             INNER JOIN customer c 
+//                 ON o.customer_id = c.customer_id
+//             LEFT JOIN payment p 
+//                 ON o.order_id = p.order_id";
+
+//             if($status != ''){
+//                 $sql .= " WHERE o.status = $status";
+//             }
+
+//             $sql .= " ORDER BY o.created_at DESC"; 
+
+//     $stmt = $this->conn->prepare($sql);
+//     $stmt->execute();
+
+//     $sql = "SELECT * FROM order_pos";
+
 //     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 // }
 
 
+public function getOrders($status = null) {
+    $sql = "
+        SELECT 
+            o.order_id, 
+            o.customer_id, 
+            o.created_at, 
+            o.status, 
+            o.total_amount, 
+            o.receipt, 
+            c.customer_FN, 
+            c.customer_LN, 
+            c.customer_email,
+            p.payment_method, 
+            p.payment_status,
+            'online' AS order_type
+        FROM order_online o
+        INNER JOIN customer c 
+            ON o.customer_id = c.customer_id
+        LEFT JOIN payment p 
+            ON o.order_id = p.order_id
+    ";
 
+    if ($status != '') {
+        $sql .= " WHERE o.status = $status";
+    }
 
-// public function countOrders($search = '') {
-//     $sql = "SELECT COUNT(*) as total
-//             FROM `order` o
-//             JOIN customer c ON o.customer_ID = c.customer_ID
-//             WHERE o.order_id LIKE :search
-//                OR c.customer_FN LIKE :search
-//                OR c.customer_LN LIKE :search";
+    $sql .= "
+        UNION ALL
+        SELECT 
+            op.pos_id as order_id, 
+            NULL AS customer_id, 
+            op.created_at, 
+            op.status, 
+            op.total_amount, 
+            NULL AS receipt, 
+            'WALK-IN' AS customer_FN, 
+            '' AS customer_LN, 
+            '' AS customer_email,
+            '' AS payment_method, 
+            '' AS payment_status,
+            'pos' AS order_type
+        FROM order_pos op
+    ";
+    if ($status != '') {
+        $sql .= " WHERE op.status = $status";
+    }
 
-//     $stmt = $this->conn->prepare($sql);
-//     $stmt->bindValue(':search', "%$search%", PDO::PARAM_STR);
-//     $stmt->execute();
-//     $row = $stmt->fetch(PDO::FETCH_ASSOC);
-
-//     return $row ? (int)$row['total'] : 0;
-// }
-
-public function getCashierOrders($status = null) {
-    $sql = "SELECT 
-                o.order_id, 
-                o.customer_id, 
-                o.created_at, 
-                o.status, 
-                o.total_amount, 
-                o.receipt, 
-                o.ref_no,
-                c.customer_FN, 
-                c.customer_LN, 
-                c.customer_email,
-                p.payment_method, 
-                p.payment_status
-            FROM order_online o
-            INNER JOIN customer c 
-                ON o.customer_id = c.customer_id
-            LEFT JOIN payment p 
-                ON o.order_id = p.order_id";
-
-            if($status != ''){
-                $sql .= " WHERE o.status = $status";
-            }
-
-            $sql .= " ORDER BY o.created_at DESC"; 
+    $sql .= " ORDER BY created_at DESC"; 
 
     $stmt = $this->conn->prepare($sql);
     $stmt->execute();
@@ -581,47 +609,10 @@ public function getCashierOrders($status = null) {
 }
 
 
-
-// // ✅ Count total orders (for pagination)
-// public function countCashierOrders($search = '') {
-//     $sql = "SELECT COUNT(*) as total
-//             FROM `order` o
-//             JOIN customer c ON o.customer_ID = c.customer_ID
-//             WHERE o.order_status != 'completed'
-//               AND (
-//                   o.order_id LIKE :search
-//                   OR CONCAT(c.customer_FN, ' ', c.customer_LN) LIKE :search
-//                   OR c.customer_FN LIKE :search
-//                   OR c.customer_LN LIKE :search
-//                   OR c.customer_email LIKE :search
-//               )";
-
-//     $stmt = $this->conn->prepare($sql);
-//     $stmt->bindValue(':search', "%$search%", PDO::PARAM_STR);
-//     $stmt->execute();
-//     $row = $stmt->fetch(PDO::FETCH_ASSOC);
-
-//     return $row ? (int)$row['total'] : 0;
-// }
-
-
 public function deletePaymentsByOrder($orderID) {
     $stmt = $this->conn->prepare("DELETE FROM payment WHERE order_id = ?");
     return $stmt->execute([$orderID]);
 }
-
-// public function getOrderStatuses(array $orderIDs) {
-//     if (empty($orderIDs)) return [];
-//     $placeholders = implode(',', array_fill(0, count($orderIDs), '?'));
-//     $stmt = $this->conn->prepare("SELECT order_id, order_status FROM `order` WHERE order_id IN ($placeholders)");
-//     $stmt->execute($orderIDs);
-//     $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
-//     $map = [];
-//     foreach ($rows as $r) $map[$r['order_id']] = $r['order_status'];
-//     return $map;
-// }
-
-
 
 public function saveSalesToHistory($walkinSales, $onlineSales, $totalSales) {
     $stmt = $this->conn->prepare("INSERT INTO sales_history (order_date, walk_in_sales, online_sales, total_sales) VALUES (?, ?, ?, ?)");

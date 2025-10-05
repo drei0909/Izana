@@ -50,7 +50,7 @@ $adminName = htmlspecialchars($_SESSION['admin_FN'] ?? 'Admin');
 
                 <!-- Sales Summary -->
                 <div class="row mb-4">
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="card text-center">
                             <div class="card-body">
                                 <h6>Walk-in Sales</h6>
@@ -58,7 +58,7 @@ $adminName = htmlspecialchars($_SESSION['admin_FN'] ?? 'Admin');
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="card text-center">
                             <div class="card-body">
                                 <h6>Online Sales</h6>
@@ -66,10 +66,18 @@ $adminName = htmlspecialchars($_SESSION['admin_FN'] ?? 'Admin');
                             </div>
                         </div>
                     </div>
-                    <div class="col-md-4">
+                    <div class="col-md-3">
                         <div class="card text-center">
                             <div class="card-body">
                                 <h6>Total Sales</h6>
+                                <h4>₱<span id="totalSales">0.00</span></h4>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card text-center">
+                            <div class="card-body">
+                                <h6>Cancelled Orders</h6>
                                 <h4>₱<span id="totalSales">0.00</span></h4>
                             </div>
                         </div>
@@ -120,7 +128,7 @@ $(document).ready(function(){
 
     function fetchOrders(startDate = '', endDate = '') {
         $.ajax({
-            url: 'functions.php',
+            url: 'admin_functions.php',
             type: 'POST',
             data: { ref: 'fetch_orders' },
             dataType: 'json',

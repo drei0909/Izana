@@ -27,8 +27,8 @@
         </a>
       </li>
       <li>
-        <a href="<?php echo BASE_URL; ?>admin/cashier.php" class="nav-link <?php if ($current_page === 'cashier.php') {echo 'active'; } ?>">
-          <i class="fas fa-cash-register me-2"></i>Online Cashier
+        <a href="<?php echo BASE_URL; ?>admin/order-management.php" class="nav-link <?php if ($current_page === 'order-management.php') {echo 'active'; } ?>">
+          <i class="fas fa-cash-register me-2"></i>Order Management
         </a>
       </li>
       <li>
