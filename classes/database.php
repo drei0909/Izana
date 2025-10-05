@@ -1,7 +1,7 @@
 <?php
 class Database {
-    private $host = "localhost";
-    private $db_name = "izana_3";
+    private $host = "localhost";    
+    private $db_name = "izana";
     private $username = "root";
     private $password = "";
     public $conn;
@@ -68,7 +68,7 @@ class Database {
   // Get all products
 public function getAllProducts($category_id = null) {
     if ($category_id !== null) {
-        // If category_id is provided, filter by category
+        
         $stmt = $this->conn->prepare("SELECT * FROM product WHERE category_id = :category_id");
         $stmt->bindParam(':category_id', $category_id, PDO::PARAM_INT);
     } else {

@@ -91,7 +91,6 @@ $totalCustomers = $db->getTotalCustomers();
     padding: 20px;
   }
 
-  /* Section Title */
   .section-title {
     border-left: 6px solid #6f4e37;
     padding-left: 12px;
@@ -102,7 +101,7 @@ $totalCustomers = $db->getTotalCustomers();
     letter-spacing: 1px;
   }
 
-  /* Cards */
+  
   .card {
     border: none;
     border-radius: 15px;
@@ -110,10 +109,7 @@ $totalCustomers = $db->getTotalCustomers();
     box-shadow: 0 4px 12px rgba(0,0,0,0.08);
     transition: transform 0.2s ease, box-shadow 0.2s ease;
   }
-  .card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 10px 22px rgba(0,0,0,0.18);
-  }
+  
   .card .card-body i {
     opacity: 0.9;
   }

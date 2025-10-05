@@ -17,11 +17,6 @@
         </a>
       </li>
       <li>
-       <a href="<?php echo BASE_URL; ?>admin/view_orders.php" class="nav-link <?php if ($current_page === 'view_orders.php') {echo 'active'; } ?>"">
-          <i class="fas fa-users me-2"></i>View Orders
-        </a>
-      </li>
-      <li>
         <a href="<?php echo BASE_URL; ?>admin/product-categories.php" class="nav-link <?php if ($current_page === 'product-categories.php') {echo 'active'; } ?>"">
           <i class="fas fa-mug-hot me-2"></i>Products Categories
         </a>

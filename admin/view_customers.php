@@ -13,6 +13,8 @@ if (!isset($_SESSION['admin_ID'])) {
 
 $db = new Database();
 $customers = $db->getAllCustomers();
+
+$adminName = htmlspecialchars($_SESSION['admin_FN'] ?? 'Admin');
 ?>
 
 <?php include ('templates/header.php'); ?>
@@ -22,14 +24,13 @@ $customers = $db->getAllCustomers();
 <?php include ('templates/sidebar.php'); ?>
 
   <!-- Main content -->
-  <div class="main">
-    <div class="admin-header d-flex justify-content-between align-items-center">
-      <div class="d-flex align-items-center gap-3">
-        <span class="toggle-btn d-lg-none text-dark" onclick="toggleSidebar()"><i class="fas fa-bars"></i></span>
-        <h5 class="mb-0">Welcome, Admin</h5>
-      </div>
-      <span class="text-muted"><i class="fas fa-user-shield me-1"></i>Admin Panel</span>
-    </div>
+ <div class="main">
+  <div class="admin-header d-flex justify-content-between align-items-center">
+    <h5 class="mb-0">Welcome, <?= $adminName ?></h5>
+    <span class="text-muted"><i class="fas fa-user-shield me-1"></i>Admin Panel</span>
+  </div>
+
+   
     <div class="dashboard-content">
       <div class="container-fluid">
         <h4 class="section-title"><i class="fas fa-users me-2"></i>Customer List</h4>

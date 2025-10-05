@@ -15,12 +15,14 @@ $adminName = htmlspecialchars($_SESSION['admin_FN'] ?? 'Admin');
 ?>
 
 <?php include ('templates/header.php'); ?>  
+
 <style>
-body { background: #f8f9fa; padding: 30px; }
-.list-group { min-height: 200px; }
-.list-group-item { cursor: move; }
-.placeholder-highlight { border: 2px dashed #6c757d; background: #e9ecef; }
+  body { background: #f8f9fa; padding: 30px; }
+  .list-group { min-height: 200px; }
+  .list-group-item { cursor: move; }
+  .placeholder-highlight { border: 2px dashed #6c757d; background: #e9ecef; }
 </style>
+
 <!-- modal -->
 <div class="modal fade" id="viewOrderModal" tabindex="-1" aria-labelledby="simpleModalLabel" aria-hidden="true">
   <div class="modal-dialog">
@@ -49,9 +51,12 @@ body { background: #f8f9fa; padding: 30px; }
 <div class="wrapper">
 
 <?php include ('templates/sidebar.php'); ?>
-<div class="main">
+
+  <!-- Main content -->
+ <div class="main">
   <div class="admin-header d-flex justify-content-between align-items-center">
     <h5 class="mb-0">Welcome, <?= $adminName ?></h5>
+    <span class="text-muted"><i class="fas fa-user-shield me-1"></i>Admin Panel</span>
   </div>
 
   <div class="content">
@@ -117,6 +122,40 @@ body { background: #f8f9fa; padding: 30px; }
           });
 
         });
+
+
+      // Enable double-click to view order details
+$(document).off("dblclick", ".order-item").on("dblclick", ".order-item", function() {
+    const orderId = $(this).data("id");
+    $("#viewOrderModal").modal("show");
+    $(".order-items").html("<p class='text-center text-muted'>Loading...</p>");
+
+    $.ajax({
+        url: "admin_functions.php",
+        type: "POST",
+        data: {
+            ref: "get_order_item",
+            order_id: orderId
+        },
+        dataType: "json",
+        success: function(response) {
+            if (response.status === "success") {
+                $(".order-items").html(response.html);
+            } else {
+                $(".order-items").html("<p class='text-danger text-center'>Unable to load order details.</p>");
+            }
+        },
+        error: function() {
+            $(".order-items").html("<p class='text-danger text-center'>Error fetching order data.</p>");
+        }
+    });
+});
+
+
+
+
+
+
 
 
         function refreshOrderQue(){

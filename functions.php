@@ -142,34 +142,95 @@ if (isset($_POST['ref']) && $_POST['ref'] == 'delete_cart_item') {
 }
 
 
-// if(isset($_POST['ref']) && $_POST['ref'] === "place_order") {
-    
-//     $ref_no = $_POST['ref_no'];
+// Handle Registration
+if (isset($_POST['ref']) && $_POST['ref'] === "register_customer") {
+    $fname    = trim($_POST['first_name'] ?? '');
+    $lname    = trim($_POST['last_name'] ?? '');
+    $username = trim($_POST['username'] ?? '');
+    $email    = trim($_POST['email'] ?? '');
+    $password = $_POST['password'] ?? '';
 
-//     $ext = strtolower(pathinfo($_FILES['pop']['name'], PATHINFO_EXTENSION));
-//     $allowed = ['jpg', 'jpeg', 'png'];
+    // REQUIRED check
+    if ($fname === '' || $lname === '' || $username === '' || $email === '' || $password === '') {
+        echo json_encode(['status' => 'error', 'message' => 'All fields are required.']);
+        exit;
+    }
+    // EMAIL format check
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        echo json_encode(['status' => 'error', 'message' => 'Invalid email address.']);
+        exit;
+    }
+    // PASSWORD strength check
+    if (!preg_match('/^(?=.*[A-Z])(?=.*\W)(?=.*\d).{6,}$/', $password)) {
+        echo json_encode(['status' => 'error', 'message' => 'Password must contain at least 6 characters, 1 uppercase, 1 number, and 1 special character.']);
+        exit;
+    }
 
-//     if (!in_array($ext, $allowed)) {
-//         $_SESSION['error'] = "Invalid file type. Only JPG, JPEG, or PNG allowed.";
-//         // header("Location: checkout.php");
-//         exit();
-//     }
+    try {
+        $success = $db->registerCustomer($fname, $lname, $username, $email, $password);
+        if ($success) {
+            echo json_encode(['status' => 'success', 'message' => 'Your account has been created successfully.']);
+        } else {
+            echo json_encode(['status' => 'error', 'message' => 'Username or Email already taken.']);
+        }
+    } catch (Exception $e) {
+        echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+    }
+    exit;
+}
 
-//     // Create a directory for receipts if not already existing
-//     if (!is_dir('uploads/receipts')) mkdir('uploads/receipts', 0777, true);
 
-//     $filename = uniqid('gcash_', true) . '.' . $ext;
-//     $target = 'uploads/receipts/' . $filename;
+//handle the fetching of updates on admin side(Menu preview)
+if (isset($_POST['ref']) && $_POST['ref'] === "menu_preview") {
+    try {
+        $stmt = $db->conn->query("
+            SELECT 
+                p.product_id, 
+                p.product_name, 
+                p.product_price, 
+                p.image_path, 
+                c.category
+            FROM product p
+            LEFT JOIN product_categories c 
+                ON p.category_id = c.category_id
+            ORDER BY c.category_id
+        ");
+        $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-//     if (!move_uploaded_file($_FILES['pop']['tmp_name'], $target)) {
-//         $_SESSION['error'] = "Failed to upload receipt.";
-//         // header("Location: checkout.php");
-//         exit();
-//     }
+        $grouped = [];
+        foreach ($products as $p) {
+            if (strtolower($p['category']) === 'Frappe') continue;
+            $grouped[$p['category']][] = $p;
+        }
 
-//     $receiptPath = $filename;
-    
-// }
+        ob_start();
+        foreach ($grouped as $category => $items): ?>
+          <div class="category-title"><?= htmlspecialchars($category) ?></div>
+          <div class="row">
+            <?php foreach ($items as $item): 
+                $img = !empty($item['image_path']) 
+                      ?  htmlspecialchars($item['image_path']) 
+                      : "uploads/default.jpg";
+            ?>
+              <div class="col-md-4 mb-4">
+                <div class="menu-card">
+                  <img src="<?= $img ?>" alt="<?= htmlspecialchars($item['product_name']) ?>">
+                  <div class="menu-name"><?= htmlspecialchars($item['product_name']) ?></div>
+                  <div class="menu-price">₱<?= number_format($item['product_price'], 2) ?></div>
+                </div>
+              </div>
+            <?php endforeach; ?>
+          </div>
+        <?php endforeach;
+        $html = ob_get_clean();
+
+        echo json_encode(['status' => 'success', 'html' => $html]);
+    } catch (Exception $e) {
+        echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+    }
+    exit;
+}
+
 
 // Place the order(online cashier)
 if (isset($_POST['ref']) && $_POST['ref'] === "place_order") {
@@ -286,214 +347,6 @@ if (isset($_POST['ref']) && $_POST['ref'] === "place_order") {
 
     exit();
 }
-
-
-// Fetch both online and walk-in orders for admin panel
-if (isset($_POST['ref']) && $_POST['ref'] === "fetch_orders") {
-    try {
-        // --- Get Online Orders ---
-        $stmtOnline = $db->conn->prepare("
-            SELECT o.order_id AS id, 
-                   CONCAT(c.customer_FN, ' ', c.customer_LN) AS customer_name,
-                   o.total_amount, 
-                   o.receipt, 
-                   o.ref_no, 
-                   o.order_date AS order_date,
-                   'Online' AS order_channel
-            FROM order_online o
-            JOIN customers c ON o.customer_id = c.customer_ID
-        ");
-        $stmtOnline->execute();
-        $onlineOrders = $stmtOnline->fetchAll(PDO::FETCH_ASSOC);
-
-        // --- Get POS (Walk-in) Orders ---
-        $stmtPos = $db->conn->prepare("
-            SELECT p.pos_id AS id, 
-                   'Walk-in Customer' AS customer_name, 
-                   p.total_amount, 
-                   NULL AS receipt, 
-                   p.payment_method AS ref_no, 
-                   p.created_at AS order_date,
-                   'POS' AS order_channel
-            FROM order_pos p
-        ");
-        $stmtPos->execute();
-        $posOrders = $stmtPos->fetchAll(PDO::FETCH_ASSOC);
-
-        // --- Merge and sort by date ---
-        $orders = array_merge($onlineOrders, $posOrders);
-        usort($orders, function($a, $b) {
-            return strtotime($b['order_date']) - strtotime($a['order_date']);
-        });
-
-        echo json_encode(['status' => 'success', 'orders' => $orders]);
-    } catch (Exception $e) {
-        echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
-    }
-    exit;
-}
-
-
-// Place the POS order
-if (isset($_POST['ref']) && $_POST['ref'] === "place_pos_order") {
-    $cart = json_decode($_POST['cart'] ?? "[]", true);
-    $paymentMethod  = $_POST['payment_method'] ?? 'Cash';
-    $cashReceived   = floatval($_POST['cash_received'] ?? 0);
-
-    if (empty($cart)) {
-        echo json_encode(['status' => 'error', 'message' => 'Cart is empty']);
-        exit();
-    }
-
-    $total = 0;
-    foreach ($cart as $item) {
-        $total += floatval($item['price']) * intval($item['quantity']);
-    }
-
-    $change = ($paymentMethod === 'Cash') ? max($cashReceived - $total, 0) : 0;
-
-    try {
-        $db->conn->beginTransaction();
-
-        $stmtPos = $db->conn->prepare("
-            INSERT INTO order_pos (total_amount, payment_method, created_at)
-            VALUES (:total_amount, :payment_method, NOW())
-        ");
-        $stmtPos->execute([
-            ':total_amount'   => $total,
-            ':payment_method' => $paymentMethod
-        ]);
-        $posID = $db->conn->lastInsertId();
-
-        $stmtItem = $db->conn->prepare("
-            INSERT INTO order_item (order_id, pos_id, product_id, quantity, price)
-            VALUES (NULL, :pos_id, :product_id, :qty, :price)
-        ");
-        foreach ($cart as $item) {
-            $stmtItem->execute([
-                ':pos_id'     => $posID,
-                ':product_id' => intval($item['id']),
-                ':qty'        => intval($item['quantity']),
-                ':price'      => floatval($item['price'])
-            ]);
-        }
-
-        $stmtPayment = $db->conn->prepare("
-            INSERT INTO payment (order_id, pos_id, payment_date, payment_method, payment_amount, payment_status)
-            VALUES (NULL, :pos_id, NOW(), :method, :amount, 'Completed')
-        ");
-        $stmtPayment->execute([
-            ':pos_id' => $posID,
-            ':method' => $paymentMethod,
-            ':amount' => $total
-        ]);
-
-        $db->conn->commit();
-
-        echo json_encode([
-            'status' => 'success',
-            'message' => 'POS order placed successfully',
-            'change'  => number_format($change, 2)
-        ]);
-    } catch (Exception $e) {
-        $db->conn->rollBack();
-        echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
-    }
-    exit();
-}
-
-
-// Handle Registration
-if (isset($_POST['ref']) && $_POST['ref'] === "register_customer") {
-    $fname    = trim($_POST['first_name'] ?? '');
-    $lname    = trim($_POST['last_name'] ?? '');
-    $username = trim($_POST['username'] ?? '');
-    $email    = trim($_POST['email'] ?? '');
-    $password = $_POST['password'] ?? '';
-
-    // REQUIRED check
-    if ($fname === '' || $lname === '' || $username === '' || $email === '' || $password === '') {
-        echo json_encode(['status' => 'error', 'message' => 'All fields are required.']);
-        exit;
-    }
-    // EMAIL format check
-    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
-        echo json_encode(['status' => 'error', 'message' => 'Invalid email address.']);
-        exit;
-    }
-    // PASSWORD strength check
-    if (!preg_match('/^(?=.*[A-Z])(?=.*\W)(?=.*\d).{6,}$/', $password)) {
-        echo json_encode(['status' => 'error', 'message' => 'Password must contain at least 6 characters, 1 uppercase, 1 number, and 1 special character.']);
-        exit;
-    }
-
-    try {
-        $success = $db->registerCustomer($fname, $lname, $username, $email, $password);
-        if ($success) {
-            echo json_encode(['status' => 'success', 'message' => 'Your account has been created successfully.']);
-        } else {
-            echo json_encode(['status' => 'error', 'message' => 'Username or Email already taken.']);
-        }
-    } catch (Exception $e) {
-        echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
-    }
-    exit;
-}
-
-
-
-if (isset($_POST['ref']) && $_POST['ref'] === "menu_preview") {
-    try {
-        $stmt = $db->conn->query("
-            SELECT 
-                p.product_id, 
-                p.product_name, 
-                p.product_price, 
-                p.image_path, 
-                c.category
-            FROM product p
-            LEFT JOIN product_categories c 
-                ON p.category_id = c.category_id
-            ORDER BY c.category_id
-        ");
-        $products = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        $grouped = [];
-        foreach ($products as $p) {
-            if (strtolower($p['category']) === 'Frappe') continue;
-            $grouped[$p['category']][] = $p;
-        }
-
-        ob_start();
-        foreach ($grouped as $category => $items): ?>
-          <div class="category-title"><?= htmlspecialchars($category) ?></div>
-          <div class="row">
-            <?php foreach ($items as $item): 
-                $img = !empty($item['image_path']) 
-                      ?  htmlspecialchars($item['image_path']) 
-                      : "uploads/default.jpg";
-            ?>
-              <div class="col-md-4 mb-4">
-                <div class="menu-card">
-                  <img src="<?= $img ?>" alt="<?= htmlspecialchars($item['product_name']) ?>">
-                  <div class="menu-name"><?= htmlspecialchars($item['product_name']) ?></div>
-                  <div class="menu-price">₱<?= number_format($item['product_price'], 2) ?></div>
-                </div>
-              </div>
-            <?php endforeach; ?>
-          </div>
-        <?php endforeach;
-        $html = ob_get_clean();
-
-        echo json_encode(['status' => 'success', 'html' => $html]);
-    } catch (Exception $e) {
-        echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
-    }
-    exit;
-}
-
-
-
 
 
 
