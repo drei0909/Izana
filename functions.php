@@ -1,7 +1,9 @@
 <?php
 session_start();
 require_once('./classes/database.php');
-
+require 'vendor/autoload.php';
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
 
 header('Content-Type: application/json');
 
@@ -142,6 +144,27 @@ if (isset($_POST['ref']) && $_POST['ref'] == 'delete_cart_item') {
 }
 
 
+/**
+ * Generate a secure verification code.
+ *
+ * @param int $length Length of the code to generate (default 4).
+ * @return string Uppercase alphanumeric verification code.
+ */
+function generate_verification_code($length = 4) {
+    // Characters to use (uppercase letters + digits)
+    $chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    $maxIndex = strlen($chars) - 1;
+    $code = '';
+
+    for ($i = 0; $i < $length; $i++) {
+        // Use random_int for cryptographically secure random numbers
+        $index = random_int(0, $maxIndex);
+        $code .= $chars[$index];
+    }
+
+    return $code;
+}
+
 // Handle Registration
 if (isset($_POST['ref']) && $_POST['ref'] === "register_customer") {
     $fname    = trim($_POST['first_name'] ?? '');
@@ -149,6 +172,8 @@ if (isset($_POST['ref']) && $_POST['ref'] === "register_customer") {
     $username = trim($_POST['username'] ?? '');
     $email    = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
+    // Code Generator
+    $verification_code	 = generate_verification_code();
 
     if ($fname === '' || $lname === '' || $username === '' || $email === '' || $password === '') {
         echo json_encode(['status' => 'error', 'message' => 'All fields are required.']);
@@ -166,26 +191,23 @@ if (isset($_POST['ref']) && $_POST['ref'] === "register_customer") {
     }
 
     try {
-        $success = $db->registerCustomer($fname, $lname, $username, $email, $password);
+        $success = $db->registerCustomer($fname, $lname, $username, $email, $password, $verification_code);
         if ($success) {
 
-            // ✅ Send welcome email
-            require 'vendor/autoload.php';
-            use PHPMailer\PHPMailer\PHPMailer;
-            use PHPMailer\PHPMailer\Exception;
+
 
             $mail = new PHPMailer(true);
 
             try {
                 $mail->isSMTP();
-                $mail->Host = 'smtp.gmail.com';
+                $mail->Host = 'smtp.hostinger.com';
                 $mail->SMTPAuth = true;
-                $mail->Username = 'your_email@gmail.com'; // change this
-                $mail->Password = 'your_app_password';     // use app password
+                $mail->Username = 'info@izanacafe.shop'; // change this
+                $mail->Password = 'Izana@Cafe9';     // use app password
                 $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
                 $mail->Port = 587;
 
-                $mail->setFrom('your_email@gmail.com', 'Izana Coffee Shop');
+                $mail->setFrom('info@izanacafe.shop', 'Izana Coffee Shop');
                 $mail->addAddress($email, "$fname $lname");
 
                 $mail->isHTML(true);
@@ -193,7 +215,7 @@ if (isset($_POST['ref']) && $_POST['ref'] === "register_customer") {
                 $mail->Body = "
                     <h3>Hello $fname!</h3>
                     <p>Thank you for registering at <strong>Izana Coffee Shop</strong> ☕</p>
-                    <p>We’re excited to have you onboard! Enjoy our brews and stay tuned for updates!</p>
+                    <p>Use this code <b>$verification_code</b> to verify your account</p>
                 ";
 
                 $mail->send();
@@ -211,7 +233,34 @@ if (isset($_POST['ref']) && $_POST['ref'] === "register_customer") {
     exit;
 }
 
+// Handle Email Verification
+if (isset($_POST['ref']) && $_POST['ref'] === "email_verification") {
+    $verification_code = $_POST['verification_code'] ?? '';
+    $email = $_POST['email'] ?? '';
 
+   
+    if ($email === '' || $verification_code === '') {
+        echo json_encode(['status' => 'error', 'message' => 'All fields are required.']);
+        exit;
+    }
+
+    if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
+        echo json_encode(['status' => 'error', 'message' => 'Invalid email address.']);
+        exit;
+    }
+
+    try {
+        $success = $db->emailVerify($email, $verification_code);
+        if ($success) {
+            echo json_encode(['status' => 'success', 'message' => 'Your account has been verified successfully.']);
+        } else {
+            echo json_encode(['status' => 'error', 'message' => 'Wrong verification code']);
+        }
+    } catch (Exception $e) {
+        echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+    }
+    exit;
+}
 
 //handle the fetching of updates on admin side(Menu preview)
 if (isset($_POST['ref']) && $_POST['ref'] === "menu_preview") {

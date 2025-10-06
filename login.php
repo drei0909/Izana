@@ -22,6 +22,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
         $alert = "<script>Swal.fire('No Account Found', 'No user found with this username.', 'warning');</script>";
     } elseif ($result === 'wrong_password') {
         $alert = "<script>Swal.fire('Login Failed', 'Incorrect password. Please try again.', 'error');</script>";
+    } elseif ($result === 'account_is_not_verified') {
+        $alert = "<script>Swal.fire('Login Failed', 'Email Address is not verified', 'error');</script>";
     } elseif (is_array($result)) {
         $_SESSION['customer_ID'] = $result['customer_id'];
         $_SESSION['customer_FN'] = $result['customer_FN'];

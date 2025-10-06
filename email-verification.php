@@ -241,30 +241,19 @@ $db = new database();
   <div class="icon-box">
     <i class="fas fa-mug-hot"></i>
   </div>
-  <h2 class="title">Join Izana</h2>
+  <h2 class="title">Verify your account</h2>
 
-  <form id="registrationForm" method="POST" autocomplete="off">
+  <form id="emailVerifyForm" method="POST" autocomplete="off">
     <div class="mb-3">
-      <label for="first_name" class="form-label">First Name</label>
-      <input type="text" name="first_name" class="form-control" autocomplete="new-first-name" required>
+      <label for="email" class="form-label">Email</label>
+      <input type="text" name="email" readonly class="form-control" autocomplete="new-first-name" value="<?= $_GET['email']?>" required>
     </div>
     <div class="mb-3">
-      <label for="last_name" class="form-label">Last Name</label>
-      <input type="text" name="last_name" class="form-control" autocomplete="new-last-name" required>
+      <label for="verification_code	" class="form-label">Verification Code</label>
+      <input type="text" name="verification_code" class="form-control" autocomplete="new-first-name" required>
     </div>
-    <div class="mb-3">
-      <label for="username" class="form-label">Username</label>
-      <input type="text" name="username" class="form-control" autocomplete="new-username" required>
-    </div>
-    <div class="mb-3">
-      <label for="email" class="form-label">Email Address</label>
-      <input type="email" name="email" id="email" class="form-control" autocomplete="new-email" required>
-    </div>
-    <div class="mb-3">
-      <label for="password" class="form-label">Password</label>
-      <input type="password" name="password" class="form-control" autocomplete="new-password" required>
-    </div>
-    <button type="submit" class="btn-coffee mt-2" id="registerBtn">Register</button>
+    
+    <button type="submit" class="btn-coffee mt-2" id="verifyBtn">Verify</button>
   </form>
 
   <div class="text-center mt-4">
@@ -297,24 +286,34 @@ function showInfo() {
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
 <script>
-$("#registrationForm").on("submit", function(e) {
+$("#emailVerifyForm").on("submit", function(e) {
     e.preventDefault();
 
-    let email = $("#email").val(); 
-    $("#registerBtn").prop('disabled',true).text("Creating an account...");
+    $("#verifyBtn").prop('disabled',true).text("Loading...");
 
     $.ajax({
         url: "functions.php",
         type: "POST",
-        data: $(this).serialize() + "&ref=register_customer",
+        data: $(this).serialize() + "&ref=email_verification",
         dataType: "json",
         success: function(response) {
             if (response.status === "success") {
-                // Swal.fire("Registered!", response.message, "success");
-                // $("#registrationForm")[0].reset();
-              window.location.href="email-verification.php?email="+email;
+                // Swal.fire("Verified!", response.message, "success");
+                // $("#emailVerifyForm")[0].reset();
+              Swal.fire({
+                title: "Verified!",
+                text: response.message,
+                icon: "success",
+                confirmButtonText: "OK"
+              }).then((result) => {
+                if (result.isConfirmed) {
+                  // Redirect to login page
+                  window.location.href = "login.php"; // change to your actual login page
+                }
+              });
+
             } else {
-              $("#registerBtn").prop('disabled',false).text("Register...");
+              $("#verifyBtn").prop('disabled',false).text("Verify");
               Swal.fire("Error", response.message, "error");
             }
         },

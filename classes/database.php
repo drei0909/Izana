@@ -1,7 +1,7 @@
 <?php
 class Database {
     private $host = "localhost";    
-    private $db_name = "izana";
+    private $db_name = "izana_3";
     private $username = "root";
     private $password = "";
     public $conn;
@@ -19,7 +19,7 @@ class Database {
         }
     }
 
- public function registerCustomer($fn, $ln, $username, $email, $password) {
+ public function registerCustomer($fn, $ln, $username, $email, $password, $verification_code) {
     // Check for duplicate username or email
     $checkSql = "SELECT COUNT(*) FROM Customer WHERE customer_username = :username OR customer_email = :email";
     $checkStmt = $this->conn->prepare($checkSql);
@@ -33,17 +33,43 @@ class Database {
     }
 
     // Insert user with hashed password
-    $sql = "INSERT INTO Customer (customer_FN, customer_LN, customer_username, customer_email, customer_password)
-            VALUES (:fn, :ln, :username, :email, :password)";
+    $sql = "INSERT INTO Customer (customer_FN, customer_LN, customer_username, customer_email, customer_password, verification_code)
+            VALUES (:fn, :ln, :username, :email, :password, :verification_code)";
     $stmt = $this->conn->prepare($sql);
     $stmt->execute([
         ':fn' => $fn,
         ':ln' => $ln,
         ':username' => $username,
         ':email' => $email,
-        ':password' => password_hash($password, PASSWORD_BCRYPT)
+        ':password' => password_hash($password, PASSWORD_BCRYPT),
+        ':verification_code' => $verification_code
     ]);
     return $this->conn->lastInsertId();
+}
+
+public function emailVerify($email, $code) {
+    // Fetch the customer record directly
+    $sql = "SELECT verification_code FROM Customer WHERE customer_email = :email";
+    $stmt = $this->conn->prepare($sql);
+    $stmt->execute([':email' => $email]);
+    $customer = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if ($customer) {
+        $saved_verification_code = $customer['verification_code'];
+        // die($saved_verification_code .' '. $code);
+        if ($saved_verification_code == $code) {
+            // Optional: mark as verified in database
+            $updateSql = "UPDATE Customer SET is_verified = 1 WHERE customer_email = :email";
+            $updateStmt = $this->conn->prepare($updateSql);
+            $updateStmt->execute([':email' => $email]);
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    // If no customer found
+    return 'not_found';
 }
 
 
@@ -56,6 +82,10 @@ class Database {
 
     if (!$user) {
         return 'no_user'; 
+    }
+
+    if ($user['is_verified'] == 0) {
+        return 'account_is_not_verified'; 
     }
 
     if (!password_verify($password, $user['customer_password'])) {
