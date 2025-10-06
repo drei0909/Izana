@@ -242,15 +242,15 @@ function card_html($p) {
     flex-shrink: 0;
   }
 
-.sidebar a.active {
-  background: var(--accent);
-  color: #fff;
-  font-weight: 700;
-}
+  .sidebar a.active {
+    background: var(--accent);
+    color: #fff;
+    font-weight: 700;
+  }
 
-.sidebar a {
-  transition: background 0.2s ease, color 0.2s ease;
-}
+  .sidebar a {
+    transition: background 0.2s ease, color 0.2s ease;
+  }
 
 
     

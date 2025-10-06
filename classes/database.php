@@ -1,7 +1,7 @@
 <?php
 class Database {
     private $host = "localhost";    
-    private $db_name = "izana_3";
+    private $db_name = "izana";
     private $username = "root";
     private $password = "";
     public $conn;
@@ -19,7 +19,7 @@ class Database {
         }
     }
 
- public function registerCustomer($fn, $ln, $username, $email, $password, $verification_code) {
+public function registerCustomer($fn, $ln, $username, $email, $password, $verification_code) {
     // Check for duplicate username or email
     $checkSql = "SELECT COUNT(*) FROM Customer WHERE customer_username = :username OR customer_email = :email";
     $checkStmt = $this->conn->prepare($checkSql);
@@ -33,7 +33,7 @@ class Database {
     }
 
     // Insert user with hashed password
-    $sql = "INSERT INTO Customer (customer_FN, customer_LN, customer_username, customer_email, customer_password, verification_code)
+     $sql = "INSERT INTO Customer (customer_FN, customer_LN, customer_username, customer_email, customer_password, verification_code)
             VALUES (:fn, :ln, :username, :email, :password, :verification_code)";
     $stmt = $this->conn->prepare($sql);
     $stmt->execute([
@@ -43,9 +43,11 @@ class Database {
         ':email' => $email,
         ':password' => password_hash($password, PASSWORD_BCRYPT),
         ':verification_code' => $verification_code
+        
     ]);
     return $this->conn->lastInsertId();
 }
+
 
 public function emailVerify($email, $code) {
     // Fetch the customer record directly
@@ -72,7 +74,6 @@ public function emailVerify($email, $code) {
     return 'not_found';
 }
 
-
 //loginCustomer method
  public function loginCustomer($username, $password) {
     $sql = "SELECT * FROM Customer WHERE customer_username = :username";
@@ -80,13 +81,10 @@ public function emailVerify($email, $code) {
     $stmt->execute([':username' => $username]);
     $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    if (!$user) {
-        return 'no_user'; 
-    }
-
     if ($user['is_verified'] == 0) {
         return 'account_is_not_verified'; 
     }
+
 
     if (!password_verify($password, $user['customer_password'])) {
         return 'wrong_password'; 
@@ -296,11 +294,6 @@ public function loginAdmin_L($username, $password) {
     return $admin;
 }
 
-// public function getAllCustomers() {
-//     $stmt = $this->conn->prepare("SELECT * FROM customer ORDER BY created_at DESC");
-//     $stmt->execute();
-//     return $stmt->fetchAll(PDO::FETCH_ASSOC);
-// }
 
 
 public function getAllOrder() {
@@ -382,49 +375,11 @@ public function getProductById($productId) {
     return $stmt->fetch(PDO::FETCH_ASSOC);
 }
 
-// public function getSalesReport($start = null, $end = null) {
-//     $sql = "SELECT o.order_id, o.order_channel, o.order_date,
-//                    c.customer_FN, c.customer_LN,
-//                    p.payment_method, p.payment_amount
-//             FROM `order` o
-//             LEFT JOIN customer c ON o.customer_id = c.customer_id
-//             LEFT JOIN payment p ON o.order_id = p.order_id
-//             WHERE 1";
-
-//     $params = [];
-
-//     if ($start && $end) {
-//         $sql .= " AND DATE(o.order_date) BETWEEN ? AND ?";
-//         $params[] = $start;
-//         $params[] = $end;
-//     }
-
-//     $sql .= " ORDER BY o.order_date DESC";
-//     $stmt = $this->conn->prepare($sql);
-//     $stmt->execute($params);
-//     return $stmt->fetchAll(PDO::FETCH_ASSOC);
-// }
 
 
 
-// public function getSalesChartData($start, $end, $period = 'daily') {
-//   $dateExpr = $period=='weekly'
-//     ? "YEAR(o.order_date), WEEK(o.order_date,1)"
-//     : "DATE(o.order_date)";
-//   $labelExpr = $period=='weekly'
-//     ? "CONCAT(YEAR(o.order_date),'‑W',WEEK(o.order_date,1))"
-//     : "DATE(o.order_date)";
-//   $sql = "SELECT $labelExpr AS label, SUM(p.payment_amount) AS total
-//           FROM `order` o
-//           LEFT JOIN payment p ON p.order_id = o.order_id
-//           WHERE 1";
-//   $params = [];
-//   if ($start&&$end){$sql.=" AND DATE(o.order_date) BETWEEN ? AND ?"; $params=[$start,$end];}
-//   $sql.=" GROUP BY $dateExpr ORDER BY MIN(o.order_date)";
-//   $stmt = $this->conn->prepare($sql);
-//   $stmt->execute($params);
-//   return $stmt->fetchAll(PDO::FETCH_ASSOC);
-// }
+
+
 
 public function getAdminById($admin_ID) {
     $stmt = $this->conn->prepare("SELECT * FROM admin WHERE admin_ID = ?");
@@ -443,16 +398,7 @@ public function updateAdminPassword($admin_ID, $hashedPassword) {
 }
 
 
-// public function getTotalOrders() {
-//     $stmt = $this->conn->query("SELECT COUNT(*) FROM `order`");
-//     return $stmt->fetchColumn();
-// }
 
-// public function getTotalSales() {
-//     $stmt = $this->conn->query("SELECT SUM(total_amount) FROM `order`");
-//     $total = $stmt->fetchColumn();
-//     return $total ?? 0;
-// }
 
 
 
@@ -470,21 +416,7 @@ public function isEmailExists($email) {
     return $stmt->fetchColumn() > 0;
 }
 
-// function getOrderById($orderId) {
-//     global $pdo;
-//     $stmt = $pdo->prepare("SELECT o.*, c.customer_name 
-//                            FROM `order` o 
-//                            JOIN customers c ON o.customer_ID = c.customer_ID 
-//                            WHERE o.order_ID = :orderId");
-//     $stmt->execute(['orderId' => $orderId]);
-//     return $stmt->fetch(PDO::FETCH_ASSOC);
-// }
 
-// // Update order status (returns true on success)
-// public function updateOrderStatus($orderID, $newStatus) {
-//     $stmt = $this->conn->prepare("UPDATE `order` SET order_status = ? WHERE order_id = ?");
-//     return $stmt->execute([$newStatus, $orderID]);
-// }
 
 public function getAllCustomers() {
     $sql = "SELECT * FROM customer ORDER BY created_at DESC";
@@ -509,29 +441,6 @@ public function countCustomers($search) {
 }
 
 
-// public function searchOrder($keyword) {
-//     if (empty($keyword)) {
-//         $sql = "SELECT o.*, c.customer_FN, c.customer_LN, c.customer_email
-//                 FROM `order` o
-//                 JOIN customer c ON o.customer_id = c.customer_id
-//                 ORDER BY o.order_date DESC";
-//         $stmt = $this->conn->prepare($sql);
-//         $stmt->execute();
-//     } else {
-//         $sql = "SELECT o.*, c.customer_FN, c.customer_LN, c.customer_email
-//                 FROM `order` o
-//                 JOIN customer c ON o.customer_id = c.customer_id
-//                 WHERE o.order_id LIKE :keyword
-//                    OR CONCAT(c.customer_FN, ' ', c.customer_LN) LIKE :keyword
-//                    OR c.customer_FN LIKE :keyword
-//                    OR c.customer_LN LIKE :keyword
-//                    OR c.customer_email LIKE :keyword
-//                 ORDER BY o.order_date DESC";
-//         $stmt = $this->conn->prepare($sql);
-//         $stmt->execute([':keyword' => "%$keyword%"]);
-//     }
-//     return $stmt->fetchAll(PDO::FETCH_ASSOC);
-// }
 
 
  // Get total walk-in orders
@@ -548,39 +457,7 @@ public function countCustomers($search) {
 }
 
 
-// public function getOrders($status = null) {
-//     $sql = "SELECT 
-//                 o.order_id, 
-//                 o.customer_id, 
-//                 o.created_at, 
-//                 o.status, 
-//                 o.total_amount, 
-//                 o.receipt, 
-//                 o.ref_no,
-//                 c.customer_FN, 
-//                 c.customer_LN, 
-//                 c.customer_email,
-//                 p.payment_method, 
-//                 p.payment_status
-//             FROM order_online o
-//             INNER JOIN customer c 
-//                 ON o.customer_id = c.customer_id
-//             LEFT JOIN payment p 
-//                 ON o.order_id = p.order_id";
 
-//             if($status != ''){
-//                 $sql .= " WHERE o.status = $status";
-//             }
-
-//             $sql .= " ORDER BY o.created_at DESC"; 
-
-//     $stmt = $this->conn->prepare($sql);
-//     $stmt->execute();
-
-//     $sql = "SELECT * FROM order_pos";
-
-//     return $stmt->fetchAll(PDO::FETCH_ASSOC);
-// }
 
 
 public function getOrders($status = null) {

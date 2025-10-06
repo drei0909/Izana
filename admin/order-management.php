@@ -152,12 +152,6 @@ $(document).off("dblclick", ".order-item").on("dblclick", ".order-item", functio
 });
 
 
-
-
-
-
-
-
         function refreshOrderQue(){
           $.ajax({
             url: "admin_functions.php",

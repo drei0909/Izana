@@ -13,7 +13,7 @@ if (!isset($_SESSION['admin_ID'])) {
 
 $totalProducts = $db->conn->query("SELECT COUNT(*) FROM product")->fetchColumn();
 
-// ✅ Fetch ALL categories
+// Fetch ALL categories
 $stmt = $db->conn->prepare("SELECT * FROM product_categories ORDER BY created_at DESC");
 $stmt->execute();
 $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);

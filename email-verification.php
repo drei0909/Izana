@@ -127,7 +127,7 @@ $db = new database();
       .text-center { color: #f0f0f0; margin-top: 15px; }
       .text-center a { color: #f2c9a0; font-weight: 600; text-decoration: none; }
       .text-center a:hover { text-decoration: underline; }
-      /* ✅ Extra Mobile Responsiveness */
+      
   @media (max-width: 768px) {
     body {
       padding: 20px 10px; 
@@ -187,7 +187,7 @@ $db = new database();
     }
   }
 
-    /* ✅ Tablet & smaller */
+   
   @media (max-width: 768px) {
     .back-home {
       padding: 6px 14px;
@@ -197,7 +197,7 @@ $db = new database();
     }
   }
 
-  /* ✅ Small phones */
+  
   @media (max-width: 480px) {
     .back-home {
       padding: 5px 12px;
@@ -207,7 +207,7 @@ $db = new database();
     }
   }
 
-  /* 📱 Mobile & tablet fix */
+ 
   @media (max-width: 768px) {
     body {
       background-attachment: scroll; /* Prevents zoom/cutoff issue */
