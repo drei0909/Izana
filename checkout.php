@@ -31,7 +31,7 @@ unset($_SESSION['flash']);
 <!DOCTYPE html>
     <html lang="en">
     <head>
-    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Checkout | Izana Coffee</title>
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -162,6 +162,27 @@ unset($_SESSION['flash']);
             border: 1px solid var(--gray-light);
             color: var(--text-light);
         }
+
+            @media (max-width: 768px) {
+        .checkout-container {
+            margin: 90px 15px;
+            padding: 20px;
+        }
+
+        .checkout-title {
+            font-size: 1.8rem;
+        }
+
+        .btn-place-order {
+            font-size: 0.95rem;
+            padding: 10px;
+        }
+
+        .navbar-brand img {
+            height: 60px;
+        }
+}
+
     </style>
 </head>
 <body>
@@ -182,94 +203,84 @@ unset($_SESSION['flash']);
         <strong>Note:</strong> For your online order, please note that it's <b>pickup only</b> , and you can easily pay the total amount by <b>scanning the QR code</b> or sending it to the <b>Gcash account</b> provided. <b>And then input the reference number together with the proof of payment</b>.
     </div>
 
-    <div class="row">
+    <div class="row g-4">
+    <!-- ORDER SUMMARY FIRST on all devices -->
+    <div class="col-lg-8 col-md-7 col-12 order-1">
+        <!-- 🧾 Order Summary Section -->
+        <p><strong>Customer:</strong> <?= htmlspecialchars($customer_name); ?></p>
 
-        <div class="col-md-8"> 
-            <p><strong>Customer:</strong> <?= htmlspecialchars($customer_name); ?></p>
+        <?php if ($flash): ?>
+            <div class="alert alert-<?= $flash['type'] === 'success' ? 'success' : 'danger' ?>">
+                <?= htmlspecialchars($flash['message']); ?>
+            </div>
+        <?php endif; ?>
 
-                <?php if ($flash): ?>
-                    <div class="alert alert-<?= $flash['type'] === 'success' ? 'success' : 'danger' ?>">
-                        <?= htmlspecialchars($flash['message']); ?>
-                    </div>
-                <?php endif; ?>
+        <?php if (empty($cart)): ?>
+            <div class="alert alert-warning text-center">
+                Your cart is empty. Please go back to the <a href="menu.php" class="alert-link">menu</a>.
+            </div>
+        <?php else: ?>
+            <form action="place_order.php" method="post" enctype="multipart/form-data">
+                <input type="hidden" name="order_channel" value="online">
 
-                <?php if (empty($cart)): ?>
-                    <div class="alert alert-warning text-center">
-                        Your cart is empty. Please go back to the <a href="menu.php" class="alert-link">menu</a> to add items.
-                    </div>
-
-                <?php else: ?>
-
-                    <form action="place_order.php" method="post" enctype="multipart/form-data">
-                        <input type="hidden" name="order_channel" value="online">
-                        <table class="table table-bordered align-middle">
-                            <thead>
+                <div class="table-responsive">
+                    <table class="table table-bordered align-middle text-center">
+                        <thead>
+                            <tr>
+                                <th>Description</th>
+                                <th>Price (₱)</th>
+                                <th>Qty</th>
+                                <th>Subtotal (₱)</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php $total = 0;
+                            foreach ($cart as $item):
+                                $subtotal = $item['product_price'] * $item['qty'];
+                                $total += $subtotal; ?>
                                 <tr>
-                                    <th>Description</th>
-                                    <th>Price (₱)</th>
-                                    <th>Qty</th>
-                                    <th>Subtotal (₱)</th>
+                                    <td><?= htmlspecialchars($item['product_name']); ?></td>
+                                    <td>₱<?= number_format($item['product_price'], 2); ?></td>
+                                    <td><?= (int)$item['qty']; ?></td>
+                                    <td>₱<?= number_format($subtotal, 2); ?></td>
                                 </tr>
-                            </thead>
-                            <tbody>
-                                <?php $total = 0;
-                                foreach ($cart as $item):
-                                    $subtotal = $item['product_price'] * $item['qty'];
-                                    $total += $subtotal; ?>
-                                    <tr>
-                                        <td><?= htmlspecialchars($item['product_name']); ?></td>
-                                        <td>₱<?= number_format($item['product_price'], 2); ?></td>
-                                        <td><?= (int)$item['qty']; ?></td>
-                                        <td>₱<?= number_format($subtotal, 2); ?></td>
-                                    </tr>
-                                <?php endforeach; ?>    
+                            <?php endforeach; ?>    
 
-                                <tr>
-                                    <td colspan="3" class="text-end fw-bold">Total:</td>
-                                    <td class="fw-bold" id="totalDisplay">₱<?= number_format($total, 2); ?></td>
-                                </tr>
-                            </tbody>
-                        </table>
+                            <tr>
+                                <td colspan="3" class="text-end fw-bold">Total:</td>
+                                <td class="fw-bold text-success">₱<?= number_format($total, 2); ?></td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </form>
+        <?php endif; ?>
+    </div>
 
-                        <div class="mb-3" id="gcash_upload" style="display:none;">
-                            <label class="form-label">Upload GCash Receipt:</label>
-                            <input type="file" class="form-control" name="gcash_receipt" accept=".jpg,.jpeg,.png" />
-                        </div>
+    <!-- PAYMENT / UPLOAD SECTION AFTER ORDERS -->
+    <div class="col-lg-4 col-md-5 col-12 order-2 text-center">
+        <img src="uploads/qr.JPEG" alt="GCash QR Code" class="img-fluid mb-3" style="max-width:200px; border-radius:10px;">
+        
+        <h6 class="fw-bold mb-1">GCash Account Name:</h6>
+        <p class="mb-2" style="color:#b07542;">GIAN ANDREI B.</p>
 
-                    
-                    </form>
-                <?php endif; ?>
-        </div>
+        <h6 class="fw-bold mb-1">GCash Number:</h6>
+        <p class="mb-3" style="color:#b07542;">0966-540-4987</p>
 
-        <div class="col-md-4">
-                
-            <!-- Store QR Code -->
-            <img src="uploads/qr.JPEG" alt="GCash QR Code" class="img-fluid mb-3" style="max-width:250px; border-radius:10px;">
-            
-            <!-- GCash Owner Info -->
-            <h6 class="fw-bold mb-1">GCash Account Name:</h6>
-            <p class="mb-3" style="font-size:1.1rem; color:#b07542;">GIAN ANDREI B.</p>
-            
-            <h6 class="fw-bold mb-1">GCash Number:</h6>
-            <p class="mb-3" style="font-size:1.1rem; color:#b07542;">0966-540-4987</p>
-            
-            <!-- Customer Input -->
-            <div class="mb-3 text-start">
+        <div class="text-start">
             <label for="ref_no" class="form-label">Reference #</label>
-            <input type="text" class="form-control" id="ref_no" name="ref_no" placeholder="Enter the Reference #" required>
-            </div>
+            <input type="text" class="form-control mb-3" id="ref_no" name="ref_no" placeholder="Enter Reference #" required>
 
-            <!-- Upload Receipt (Required) -->
-            <div class="mb-3 text-start">
             <label for="pop" class="form-label">Upload Proof of Payment</label>
-            <input type="file" class="form-control" id="pop" name="pop" accept=".jpg,.jpeg,.png" required>
-            </div>
-            <button type="submit" class="btn btn-place-order">Place Order</button>
-        </div>
+            <input type="file" class="form-control mb-3" id="pop" name="pop" accept=".jpg,.jpeg,.png" required>
 
-
+            <button type="submit" class="btn btn-place-order w-100">Place Order</button>
         </div>
     </div>
+</div>
+
+</div>
+
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>

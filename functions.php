@@ -150,17 +150,16 @@ if (isset($_POST['ref']) && $_POST['ref'] === "register_customer") {
     $email    = trim($_POST['email'] ?? '');
     $password = $_POST['password'] ?? '';
 
-    // REQUIRED check
     if ($fname === '' || $lname === '' || $username === '' || $email === '' || $password === '') {
         echo json_encode(['status' => 'error', 'message' => 'All fields are required.']);
         exit;
     }
-    // EMAIL format check
+
     if (!filter_var($email, FILTER_VALIDATE_EMAIL)) {
         echo json_encode(['status' => 'error', 'message' => 'Invalid email address.']);
         exit;
     }
-    // PASSWORD strength check
+
     if (!preg_match('/^(?=.*[A-Z])(?=.*\W)(?=.*\d).{6,}$/', $password)) {
         echo json_encode(['status' => 'error', 'message' => 'Password must contain at least 6 characters, 1 uppercase, 1 number, and 1 special character.']);
         exit;
@@ -170,49 +169,39 @@ if (isset($_POST['ref']) && $_POST['ref'] === "register_customer") {
         $success = $db->registerCustomer($fname, $lname, $username, $email, $password);
         if ($success) {
 
+            // ✅ Send welcome email
+            require 'vendor/autoload.php';
+            use PHPMailer\PHPMailer\PHPMailer;
+            use PHPMailer\PHPMailer\Exception;
 
-
-
-            // EMAIL NOTIF USING PHPMAILER
             $mail = new PHPMailer(true);
 
             try {
-                // Server settings
-                $mail->isSMTP();                                            
-                $mail->Host       = 'smtp.gmail.com';                     
-                $mail->SMTPAuth   = true;                                   
-                $mail->Username   = 'your_email@gmail.com'; // Your Gmail address
-                $mail->Password   = 'your_app_password';  // Use App Password (not your Gmail password)
-                $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;         
-                $mail->Port       = 587;                                    
+                $mail->isSMTP();
+                $mail->Host = 'smtp.gmail.com';
+                $mail->SMTPAuth = true;
+                $mail->Username = 'your_email@gmail.com'; // change this
+                $mail->Password = 'your_app_password';     // use app password
+                $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+                $mail->Port = 587;
 
-                // Recipients
-                $mail->setFrom('your_email@gmail.com', 'Your Website Name');
-                $mail->addAddress('recipient@example.com', 'John Doe');     
+                $mail->setFrom('your_email@gmail.com', 'Izana Coffee Shop');
+                $mail->addAddress($email, "$fname $lname");
 
-                // Content
-                $mail->isHTML(true);                                  
-                $mail->Subject = 'Verify Your Account';
-                $mail->Body    = '
-                    <h2>Welcome to Our Website!</h2>
-                    <p>Thank you for registering. Please click the link below to verify your account:</p>
-                    <p><a href="https://yourdomain.com/verify.php?token=12345">Verify My Account</a></p>
-                    <p>If you did not register, please ignore this message.</p>
-                ';
-                $mail->AltBody = 'Please verify your account by visiting this link: https://yourdomain.com/verify.php?token=12345';
+                $mail->isHTML(true);
+                $mail->Subject = 'Welcome to Izana Coffee Shop!';
+                $mail->Body = "
+                    <h3>Hello $fname!</h3>
+                    <p>Thank you for registering at <strong>Izana Coffee Shop</strong> ☕</p>
+                    <p>We’re excited to have you onboard! Enjoy our brews and stay tuned for updates!</p>
+                ";
 
                 $mail->send();
-                echo 'Verification email has been sent successfully!';
             } catch (Exception $e) {
-                echo "Email could not be sent. Mailer Error: {$mail->ErrorInfo}";
+                error_log('Mailer Error: ' . $mail->ErrorInfo);
             }
-            // EMAIL NOTIF USING PHPMAILER
 
-
-
-
-
-            echo json_encode(['status' => 'success', 'message' => 'Your account has been created successfully! We’ve sent an email to verify your account.']);
+            echo json_encode(['status' => 'success', 'message' => 'Your account has been created successfully. Check your email!']);
         } else {
             echo json_encode(['status' => 'error', 'message' => 'Username or Email already taken.']);
         }
@@ -221,6 +210,7 @@ if (isset($_POST['ref']) && $_POST['ref'] === "register_customer") {
     }
     exit;
 }
+
 
 
 //handle the fetching of updates on admin side(Menu preview)
@@ -307,7 +297,7 @@ if (isset($_POST['ref']) && $_POST['ref'] === "place_order") {
         exit();
     }
 
-    // --- Calculate total from cart ---
+    
     $stmt = $db->conn->prepare("
         SELECT SUM(c.qty * p.product_price) AS total
         FROM cart c
@@ -325,7 +315,7 @@ if (isset($_POST['ref']) && $_POST['ref'] === "place_order") {
     try {
         $db->conn->beginTransaction();
 
-        // --- Insert order into order_online ---
+        
         $insertOrder = $db->conn->prepare("
             INSERT INTO order_online (customer_id, total_amount, receipt, ref_no, created_at, status)
             VALUES (:customer_id, :total_amount, :receipt, :ref_no, NOW(), :status)
@@ -338,9 +328,9 @@ if (isset($_POST['ref']) && $_POST['ref'] === "place_order") {
             ':status'       => 1
         ]);
 
-        $orderID = $db->conn->lastInsertId(); // ✅ new order_id
+        $orderID = $db->conn->lastInsertId(); 
 
-        // --- Insert each cart item into order_item ---
+        
         $cartItems = $db->conn->prepare("
             SELECT c.product_id, c.qty, p.product_price
             FROM cart c
@@ -390,6 +380,8 @@ if (isset($_POST['ref']) && $_POST['ref'] === "place_order") {
 
     exit();
 }
+
+
 
 
 ?>
