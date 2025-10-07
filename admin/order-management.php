@@ -24,29 +24,46 @@ $adminName = htmlspecialchars($_SESSION['admin_FN'] ?? 'Admin');
 </style>
 
 <!-- modal -->
-<div class="modal fade" id="viewOrderModal" tabindex="-1" aria-labelledby="simpleModalLabel" aria-hidden="true">
-  <div class="modal-dialog">
+<div class="modal fade" id="viewOrderModal" tabindex="-1" aria-labelledby="viewOrderLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
     <div class="modal-content">
-      
+
       <!-- Header -->
       <div class="modal-header">
-        <h5 class="modal-title" id="simpleModalLabel">Order Details</h5>
+        <h5 class="modal-title" id="viewOrderLabel">Order Details</h5>
         <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
       </div>
 
       <!-- Body -->
       <div class="modal-body">
+        <div class="mb-1">
+          <p><strong>Customer:</strong> <span class="customer-name"></span></p>
+          <p><strong>Reference No:</strong> <span class="ref-no"></span></p>
+          <p><strong>Contact Number:</strong> <span class="con-no"></span></p>
 
-        <div class="order-items"></div>
+
+        </div>
+
+        <div class="order-items mb-0"></div>
+
+        <!-- <div class="receipt text-center"></div> -->
       </div>
 
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      <!-- Footer -->
+      <div class="modal-footer justify-content-between">
+        <button class="btn btn-danger btn-sm btn-cancel-order">
+          <i class="fas fa-times"></i> Cancel
+        </button>
+
+        <button class="btn btn-success btn-sm btn-complete-order">
+          <i class="fas fa-check"></i> Complete
+        </button>
       </div>
 
     </div>
   </div>
 </div>
+
 
 <div class="wrapper">
 
@@ -68,6 +85,9 @@ $adminName = htmlspecialchars($_SESSION['admin_FN'] ?? 'Admin');
 </div>
 
 </div>
+
+<!-- ✅ SweetAlert2 -->
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <!-- jQuery (needed for DataTables only) -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
@@ -124,6 +144,97 @@ $adminName = htmlspecialchars($_SESSION['admin_FN'] ?? 'Admin');
         });
 
 
+      // Handle Cancel and Completed button actions
+      $(document).ready(function() {
+
+    $(document).on('click', '.btn-cancel-order', function() {
+    const orderId = $(this).data('order-id');
+    const row = $(this).closest('li'); // assuming your queue uses <li> items
+
+    Swal.fire({
+        title: 'Cancel this order?',
+        text: 'This order will be moved to Cancelled Orders in Sales Report.',
+        icon: 'warning',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, Cancel it!',
+        cancelButtonText: 'No',
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $.ajax({
+                url: 'admin_functions.php',
+                method: 'POST',
+                data: { ref: 'cancel_order', order_id: orderId },
+                dataType: 'json',
+                success: function(response) {
+                    if (response.status === 'success')
+                               {
+                        Swal.fire('Cancelled!', response.message, 'success');
+
+                        // Remove from order queue visually
+                        row.fadeOut(500, function() { $(this).remove(); });
+
+                        // Update Sales Report dynamically (optional)
+                        let cancelled = parseFloat($('#cancelledSales').text()) || 0;
+                        cancelled += parseFloat(response.total_amount);
+                        $('#cancelledSales').text(cancelled.toFixed(2));
+
+                        // Also update total sales if needed
+                        let total = parseFloat($('#totalSales').text()) || 0;
+                        total -= parseFloat(response.total_amount);
+                        $('#totalSales').text(total.toFixed(2));
+                    } else {
+                        Swal.fire('Error!', response.message, 'error');
+                    }
+                },
+                error: function() {
+                    Swal.fire('Error!', 'Something went wrong.', 'error');
+                }
+            });
+        }
+    });
+});
+
+
+    // // Complete Order
+    // $(document).on('click', '.btn-complete-order', function() {
+    //     const orderId = $(this).data('order-id');
+    //     const row = $(this).closest('tr');
+
+    //     Swal.fire({
+    //         title: 'Mark as Completed?',
+    //         text: 'This will move the order to the sales report.',
+    //         icon: 'question',
+    //         showCancelButton: true,
+    //         confirmButtonText: 'Yes, Complete it!',
+    //         cancelButtonText: 'No',
+    //     }).then((result) => {
+    //         if (result.isConfirmed) {
+    //             $.ajax({
+    //                 url: 'admin_functions.php',
+    //                 method: 'POST',
+    //                 data: { ref: 'complete_order', order_id: orderId },
+    //                 dataType: 'json',
+    //                 success: function(response) {
+    //                     if (response.status === 'success') {
+    //                         Swal.fire('Done!', response.message, 'success');
+    //                         // Optional: visually mark as completed
+    //                         row.addClass('table-success');
+    //                         row.find('.order-status').text('Completed ✅');
+    //                         row.fadeOut(1000, function() { $(this).remove(); });
+    //                     } else {
+    //                         Swal.fire('Error!', response.message, 'error');
+    //                     }
+    //                 },
+    //                 error: function() {
+    //                     Swal.fire('Error!', 'Something went wrong.', 'error');
+    //                 }
+    //             });
+    //         }
+    //     });
+    // });
+
+});
+
       // Enable double-click to view order details
 $(document).off("dblclick", ".order-item").on("dblclick", ".order-item", function() {
     const orderId = $(this).data("id");
@@ -149,6 +260,71 @@ $(document).off("dblclick", ".order-item").on("dblclick", ".order-item", functio
             $(".order-items").html("<p class='text-danger text-center'>Error fetching order data.</p>");
         }
     });
+});
+
+
+
+function viewOrder(orderId) {
+    $("#viewOrderModal").modal("show");
+    $(".order-items").html("<p class='text-center text-muted'>Loading...</p>");
+    $(".customer-name, .ref-no, .receipt").html(""); // clear previous data
+
+    $.ajax({
+        url: "admin_functions.php",
+        method: "POST",
+        data: { ref: "get_order_item", order_id: orderId },
+        dataType: "json",
+        success: function(response) {
+            if (response.status === "success") {
+                $(".order-items").html(response.html);
+
+                // Fetch customer name and ref_no
+                $.ajax({
+                    url: "admin_functions.php",
+                    method: "POST",
+                    data: { ref: "get_order_info", order_id: orderId },
+                    dataType: "json",
+                    success: function(info) {
+                        if (info.status === "success") {
+                            $(".customer-name").text(info.customer_FN + " " + info.customer_LN);
+                            $(".ref-no").text(info.ref_no || "N/A");
+                            $(".con-no").text(info.con-no || "N/A");
+
+                            if (info.receipt) {
+                                $(".receipt").html(`
+                                    <p class="fw-bold">Receipt:</p>
+                                    <img src="../uploads/receipts/${info.receipt}" class="img-fluid rounded shadow-sm border"
+                                         style="max-width: 350px; cursor: zoom-in;"
+                                         onclick="window.open(this.src)">
+                                `);
+                            } else {
+                                $(".receipt").html("<p class='text-muted'>No receipt uploaded.</p>");
+                            }
+
+                            // Update buttons
+                            $("#viewOrderModal .btn-cancel-order, #viewOrderModal .btn-complete-order")
+                                .data("order-id", orderId);
+                        }
+                    },
+                    error: function() {
+                        $(".customer-name, .ref-no").text("Error fetching customer info");
+                    }
+                });
+
+            } else {
+                $(".order-items").html("<p class='text-danger text-center'>Unable to load order items.</p>");
+            }
+        },
+        error: function() {
+            $(".order-items").html("<p class='text-danger text-center'>Server error occurred.</p>");
+        }
+    });
+}
+
+// Trigger modal on double-click or button
+$(document).on("dblclick", ".order-item, .btn-view-order", function() {
+    const orderId = $(this).data("order-id") || $(this).data("id");
+    viewOrder(orderId);
 });
 
 

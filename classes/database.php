@@ -19,7 +19,7 @@ class Database {
         }
     }
 
-public function registerCustomer($fn, $ln, $username, $email, $password, $verification_code) {
+public function registerCustomer($fn, $ln, $username, $email, $contact, $password, $verification_code) {
     // Check for duplicate username or email
     $checkSql = "SELECT COUNT(*) FROM Customer WHERE customer_username = :username OR customer_email = :email";
     $checkStmt = $this->conn->prepare($checkSql);
@@ -33,14 +33,15 @@ public function registerCustomer($fn, $ln, $username, $email, $password, $verifi
     }
 
     // Insert user with hashed password
-     $sql = "INSERT INTO Customer (customer_FN, customer_LN, customer_username, customer_email, customer_password, verification_code)
-            VALUES (:fn, :ln, :username, :email, :password, :verification_code)";
+     $sql = "INSERT INTO Customer (customer_FN, customer_LN, customer_username, customer_email, customer_contact, customer_password, verification_code)
+            VALUES (:fn, :ln, :username, :email,:contact, :password, :verification_code)";
     $stmt = $this->conn->prepare($sql);
     $stmt->execute([
         ':fn' => $fn,
         ':ln' => $ln,
         ':username' => $username,
         ':email' => $email,
+        ':contact' => $contact,
         ':password' => password_hash($password, PASSWORD_BCRYPT),
         ':verification_code' => $verification_code
         
@@ -206,7 +207,7 @@ public function getCustomerByID($customerID) {
 }
 
 public function getCustomerOrders($customerID) {
-    $stmt = $this->conn->prepare("SELECT * FROM `order_online` WHERE customer_id = ? ORDER BY order_date DESC");
+    $stmt = $this->conn->prepare("SELECT * FROM `order_online` WHERE customer_id = ? ORDER BY created_at DESC");
     $stmt->execute([$customerID]);
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
@@ -300,7 +301,7 @@ public function getAllOrder() {
     $sql = "
         SELECT 
             p.pos_id AS order_id,
-            'walk-in' AS order_channel,   -- Since this is POS, we tag as walk-in
+            'walk-in' AS order_pos,   -- Since this is POS, we tag as walk-in
             p.total_amount,
             p.payment_method,
             p.created_at AS order_date,
@@ -328,25 +329,37 @@ public function addProduct($name, $price, $category_id, $imagePath) {
     return $stmt->execute([$name, $price, $category_id, $imagePath]);
 }
 
-public function updateProduct($id, $name, $price, $category, $imagePath) {
+public function updateProduct($id, $name, $price, $category, $imagePath = null, $bestSeller = 0)
+{
     if ($imagePath === null) {
-        // Explicitly clear the image_path when null
+        //Case: image removed or unchanged
         $stmt = $this->conn->prepare("
             UPDATE product 
-            SET product_name = ?, product_price = ?, category_id = ?, image_path = NULL
+            SET 
+                product_name = ?, 
+                product_price = ?, 
+                category_id = ?, 
+                best_seller = ?, 
+                image_path = NULL
             WHERE product_id = ?
         ");
-        return $stmt->execute([$name, $price, $category, $id]);
+        return $stmt->execute([$name, $price, $category, $bestSeller, $id]);
     } else {
-        // Update with new/old image
+        //Case: new or existing image
         $stmt = $this->conn->prepare("
             UPDATE product 
-            SET product_name = ?, product_price = ?, category_id = ?, image_path = ?
+            SET 
+                product_name = ?, 
+                product_price = ?, 
+                category_id = ?, 
+                image_path = ?, 
+                best_seller = ?
             WHERE product_id = ?
         ");
-        return $stmt->execute([$name, $price, $category, $imagePath, $id]);
+        return $stmt->execute([$name, $price, $category, $imagePath, $bestSeller, $id]);
     }
 }
+
 
 
 

@@ -239,136 +239,25 @@ if (isset($_POST['ref']) && $_POST['ref'] === "place_pos_order") {
 }
 
 
-// Place the order(online cashier)
-if (isset($_POST['ref']) && $_POST['ref'] === "place_order") {
-    $customerID = intval($_SESSION['customer_ID']);
-    $refNo      = trim($_POST['ref_no'] ?? '');
-    $receiptPath = null;
 
-    // --- Validate receipt upload ---
-    if (isset($_FILES['pop']) && $_FILES['pop']['error'] === 0) {
-        $ext = strtolower(pathinfo($_FILES['pop']['name'], PATHINFO_EXTENSION));
-        $allowed = ['jpg', 'jpeg', 'png'];
-
-        if (!in_array($ext, $allowed)) {
-            echo json_encode(['status' => 'error', 'message' => 'Invalid file type. Only JPG, JPEG, or PNG allowed.']);
-            exit();
-        }
-
-        if (!is_dir('uploads/receipts')) mkdir('uploads/receipts', 0777, true);
-
-        $filename = uniqid('gcash_', true) . '.' . $ext;
-        $target   = 'uploads/receipts/' . $filename;
-
-        if (!move_uploaded_file($_FILES['pop']['tmp_name'], $target)) {
-            echo json_encode(['status' => 'error', 'message' => 'Failed to upload receipt.']);
-            exit();
-        }
-
-        $receiptPath = $filename;
-    } else {
-        echo json_encode(['status' => 'error', 'message' => 'Proof of payment is required.']);
-        exit();
-    }
-
-    // --- Calculate total from cart ---
-    $stmt = $db->conn->prepare("
-        SELECT SUM(c.qty * p.product_price) AS total
-        FROM cart c
-        INNER JOIN product p ON c.product_id = p.product_id
-        WHERE c.customer_id = :customer_id
-    ");
-    $stmt->execute([':customer_id' => $customerID]);
-    $total = $stmt->fetchColumn() ?? 0;
-
-    if ($total <= 0) {
-        echo json_encode(['status' => 'error', 'message' => 'Cart is empty.']);
-        exit();
-    }
-
-    try {
-        $db->conn->beginTransaction();
-
-        $insertOrder = $db->conn->prepare("
-            INSERT INTO order_online (customer_id, total_amount, receipt, ref_no, created_at, status)
-            VALUES (:customer_id, :total_amount, :receipt, :ref_no, NOW(), :status)
-        ");
-        $insertOrder->execute([
-            ':customer_id' => $customerID,
-            ':total_amount' => $total,
-            ':receipt'      => $receiptPath,
-            ':ref_no'       => $refNo,
-            ':status'       => 0
-        ]);
-
-        $orderID = $db->conn->lastInsertId();
-
-        // --- Insert each cart item into order_item ---
-        $cartItems = $db->conn->prepare("
-            SELECT c.product_id, c.qty, p.product_price
-            FROM cart c
-            INNER JOIN product p ON c.product_id = p.product_id
-            WHERE c.customer_id = :customer_id
-        ");
-        $cartItems->execute([':customer_id' => $customerID]);
-        $items = $cartItems->fetchAll(PDO::FETCH_ASSOC);
-
-        $insertItem = $db->conn->prepare("
-            INSERT INTO order_item (order_id, pos_id, product_id, quantity, price)
-            VALUES (:order_id, :pos_id, :product_id, :quantity, :price)
-        ");
-
-        foreach ($items as $item) {
-            $insertItem->execute([
-                ':order_id'   => $orderID,
-                ':pos_id'     => null, 
-                ':product_id' => $item['product_id'],
-                ':quantity'   => $item['qty'],
-                ':price'      => $item['product_price']
-            ]);
-        }
-
-        // --- Insert payment record ---
-        $insertPayment = $db->conn->prepare("
-            INSERT INTO payment (order_id, payment_date, payment_method, payment_amount, payment_status)
-            VALUES (:order_id, NOW(), :method, :amount, :status)
-        ");
-        $insertPayment->execute([
-            ':order_id' => $orderID,
-            ':method'   => 'GCash',
-            ':amount'   => $total,
-            ':status'   => 'Pending'  // admin will confirm later
-        ]);
-
-        $clear = $db->conn->prepare("DELETE FROM cart WHERE customer_id = :customer_id");
-        $clear->execute([':customer_id' => $customerID]);
-
-        $db->conn->commit();
-
-        echo json_encode(['status' => 'success']);
-    } catch (Exception $e) {
-        $db->conn->rollBack();
-        echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
-    }
-
-    exit();
-}
 
 // Fetch both online and walk-in orders for admin panel
 if (isset($_POST['ref']) && $_POST['ref'] === "fetch_orders") {
     try {
         // --- Get Online Orders ---
         $stmtOnline = $db->conn->prepare("
-            SELECT o.order_id AS id, 
-                   CONCAT(c.customer_FN, ' ', c.customer_LN) AS customer_name,
-                   o.total_amount, 
-                   o.receipt, 
-                   o.ref_no, 
-                   o.created_at AS order_date,
-                   'Online' AS order_channel
-            FROM order_online o
-            JOIN customer c ON o.customer_id = c.customer_ID
-        ");
+    SELECT o.order_id AS id, 
+           CONCAT(c.customer_FN, ' ', c.customer_LN) AS customer_name,
+           o.status AS order_status,
+           o.total_amount, 
+           o.receipt, 
+           o.ref_no, 
+           o.created_at AS order_date,
+           'Online' AS order_channel
+    FROM order_online o
+    JOIN customer c ON o.customer_id = c.customer_ID
+");
+
         $stmtOnline->execute();
         $onlineOrders = $stmtOnline->fetchAll(PDO::FETCH_ASSOC);
 
@@ -399,7 +288,107 @@ if (isset($_POST['ref']) && $_POST['ref'] === "fetch_orders") {
     exit;
 }
 
+// Cancel Order (Void)
+if (isset($_POST['ref']) && $_POST['ref'] === 'cancel_order') {
+    $order_id = intval($_POST['order_id']);
 
+    try {
+        // Update order status to 0 (Cancelled)
+        $stmt = $db->conn->prepare("UPDATE order_online SET status = 4 WHERE order_id = ?");
+        $stmt->execute([$order_id]);
+
+        // Fetch order details to update Sales Report counters dynamically
+        $stmt2 = $db->conn->prepare("SELECT total_amount  FROM order_online WHERE order_id = ?");
+        $stmt2->execute([$order_id]);
+        $order = $stmt2->fetch(PDO::FETCH_ASSOC);
+
+        echo json_encode([
+            'status' => 'success',
+            'message' => 'Order has been cancelled.',
+            'order_id' => $order_id,
+            'total_amount' => $order['total_amount'],
+            
+        ]);
+    } catch (Exception $e) {
+        echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+    }
+    exit;
+}
+
+
+// Complete Order
+if (isset($_POST['ref']) && $_POST['ref'] === 'complete_order') {
+    $order_id = intval($_POST['order_id']);
+
+    try {
+        // --- Step 1: Mark order as completed ---
+        $stmt = $db->conn->prepare("UPDATE order_online SET status = 5 WHERE order_id = ?");
+        $stmt->execute([$order_id]);
+
+        // --- Step 2: Fetch order details for insertion ---
+        $stmtFetch = $db->conn->prepare("
+            SELECT 
+                o.order_id,
+                o.total_amount,
+                o.created_at,
+                CONCAT(c.customer_FN, ' ', c.customer_LN) AS customer_name
+            FROM order_online o
+            JOIN customer c ON o.customer_id = c.customer_ID
+            WHERE o.order_id = ?
+        ");
+        $stmtFetch->execute([$order_id]);
+        $order = $stmtFetch->fetch(PDO::FETCH_ASSOC);
+
+        if ($order) {
+            // --- Step 3: Insert into sales_report (avoid duplicates) ---
+            $stmtSales = $db->conn->prepare("
+                INSERT INTO sales_report (order_id, customer_name, total_amount, order_channel, created_at)
+                VALUES (?, ?, ?, 'Online', NOW())
+                ON DUPLICATE KEY UPDATE 
+                    total_amount = VALUES(total_amount),
+                    created_at = NOW()
+            ");
+            $stmtSales->execute([
+                $order['order_id'],
+                $order['customer_name'],
+                $order['total_amount']
+            ]);
+        }
+
+        echo json_encode(['status' => 'success', 'message' => 'Order marked as completed and added to Sales Report.']);
+    } catch (Exception $e) {
+        echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+    }
+
+    exit;
+}
+
+// get order info
+if (isset($_POST['ref']) && $_POST['ref'] === 'get_order_info') {
+    $order_id = intval($_POST['order_id']);
+
+    $stmt = $db->conn->prepare("
+        SELECT o.ref_no, o.receipt, c.customer_FN, c.customer_LN
+        FROM order_online o
+        JOIN customer c ON o.customer_id = c.customer_ID
+        WHERE o.order_id = :order_id
+    ");
+    $stmt->execute([':order_id' => $order_id]);
+    $order = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if ($order) {
+        echo json_encode([
+            'status' => 'success',
+            'ref_no' => $order['ref_no'],
+            'receipt' => $order['receipt'],
+            'customer_FN' => $order['customer_FN'],
+            'customer_LN' => $order['customer_LN']
+        ]);
+    } else {
+        echo json_encode(['status' => 'error']);
+    }
+    exit;
+}
 
 
 ?>

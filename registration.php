@@ -187,7 +187,7 @@
       }
     }
 
-      /* ✅ Tablet & smaller */
+     
     @media (max-width: 768px) {
       .back-home {
         padding: 6px 14px;
@@ -197,7 +197,7 @@
       }
     }
 
-    /* ✅ Small phones */
+    
     @media (max-width: 480px) {
       .back-home {
         padding: 5px 12px;
@@ -211,14 +211,14 @@
     @media (max-width: 768px) {
       body {
         background-attachment: scroll; /* Prevents zoom/cutoff issue */
-        background-position: center top; /* Keeps image aligned */
+        background-position: center top; 
       }
     }
 
     @media (max-width: 480px) {
       body {
         background-size: cover;
-        background-position: center; /* Always center on phones */
+        background-position: center; 
       }
     }
 
@@ -237,40 +237,49 @@
     </div>
   </div>
 
-  <div class="register-container">
-    <div class="icon-box">
-      <i class="fas fa-mug-hot"></i>
-    </div>
-    <h2 class="title">Join Izana</h2>
+ <div class="register-container">
+  <div class="icon-box">
+    <i class="fas fa-mug-hot"></i>
+  </div>
+  <h2 class="title">Join Izana</h2>
 
-    <form id="registrationForm" method="POST" autocomplete="off">
-      <div class="mb-3">
+  <form id="registrationForm" method="POST" autocomplete="off">
+    <div class="row g-3">
+      <div class="col-md-6">
         <label for="first_name" class="form-label">First Name</label>
         <input type="text" name="first_name" class="form-control" autocomplete="new-first-name" required>
       </div>
-      <div class="mb-3">
+      <div class="col-md-6">
         <label for="last_name" class="form-label">Last Name</label>
         <input type="text" name="last_name" class="form-control" autocomplete="new-last-name" required>
       </div>
-      <div class="mb-3">
+      <div class="col-md-6">
         <label for="username" class="form-label">Username</label>
         <input type="text" name="username" class="form-control" autocomplete="new-username" required>
       </div>
-      <div class="mb-3">
+      <div class="col-md-6">
         <label for="email" class="form-label">Email Address</label>
         <input type="email" name="email" id="email" class="form-control" autocomplete="new-email" required>
       </div>
-      <div class="mb-3">
+      <div class="col-md-6">
+        <label for="contact" class="form-label">Contact Number</label>
+        <input type="text" name="contact" id="contact" class="form-control" pattern="^09\d{9}$" placeholder="09xxxxxxxxx" autocomplete="new-contact" required>
+        <small class="text-light">Format: 09xxxxxxxxx</small>
+      </div>
+      <div class="col-md-6">
         <label for="password" class="form-label">Password</label>
         <input type="password" name="password" class="form-control" autocomplete="new-password" required>
       </div>
-      <button type="submit" class="btn-coffee mt-2" id="registerBtn">Register</button>
-    </form>
-
-    <div class="text-center mt-4">
-      Already have an account? <a href="Login.php">Login here</a>
     </div>
+
+    <button type="submit" class="btn-coffee mt-4" id="registerBtn">Register</button>
+  </form>
+
+  <div class="text-center mt-4">
+    Already have an account? <a href="Login.php">Login here</a>
   </div>
+</div>
+
 
   <!-- Info Script -->
   <script>
@@ -283,7 +292,7 @@
             <li>✔️ All fields are required</li>
             <li>✔️ Use a <strong>valid email address</strong></li>
             <li>✔️ Username must be unique</li>
-            <li>✔️ Minimum 6 characters, 1 uppercase, 1 special character, 1 number</li>
+            <li>✔️ Minimum 4 characters, 1 uppercase, 1 special character, 1 number</li>
           </ul>
         </div>`,
       icon: 'info',
@@ -324,6 +333,15 @@
       });
   });
   </script>
+
+  <script>
+  window.addEventListener('load', () => {
+    document.querySelectorAll('input').forEach(input => {
+      input.value = ''; // clears autofill text
+    });
+  });
+</script>
+
 
   </body>
   </html>

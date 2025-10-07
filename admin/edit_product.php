@@ -36,7 +36,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         $imagePath = null; // mark as removed
     }
 
-    // ✅ Upload new image (replaces old one if exists)
+    // Upload new image (replaces old one if exists)
     if (isset($_FILES['image']) && $_FILES['image']['error'] === 0) {
         $ext = strtolower(pathinfo($_FILES['image']['name'], PATHINFO_EXTENSION));
         $allowed = ['jpg', 'jpeg', 'png', 'gif'];
@@ -103,7 +103,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
              value="<?= htmlspecialchars($product['category_id']) ?>" required>
     </div>
 
-<!--Product Image Section -->
     <div class="mb-3">
       <label class="form-label">Current Image</label><br>
       <?php if (!empty($product['image_path'])): ?>
@@ -118,6 +117,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
         <p>No image uploaded.</p>
       <?php endif; ?>
     </div>
+
+    
 
     <div class="mb-3">
       <label class="form-label">Change Image</label>

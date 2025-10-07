@@ -243,16 +243,13 @@ $db = new database();
 <!-- Gallery -->
 <section class="gallery container my-5 mb-5 pb-5">
   <div class="row g-4">
-    <div class="col-6 col-md-4 col-lg-3">
+    <div class="col-6 col-md-4 col-lg-4">
       <img src="uploads/cof.jpg" alt="Coffee cup" class="img-fluid rounded shadow-sm w-100">
     </div>
-    <div class="col-6 col-md-4 col-lg-3">
-      <img src="uploads/bgggg.jpg" alt="Barista pouring" class="img-fluid rounded shadow-sm w-100">
-    </div>
-    <div class="col-6 col-md-4 col-lg-3">
+    <div class="col-6 col-md-4 col-lg-4">
       <img src="uploads/cofff.jpg" alt="Cafe interior" class="img-fluid rounded shadow-sm w-100">
     </div>
-    <div class="col-6 col-md-4 col-lg-3">
+    <div class="col-6 col-md-4 col-lg-4">
       <img src="uploads/bg.jpg" alt="Cafe ambiance" class="img-fluid rounded shadow-sm w-100">
     </div>
   </div>
@@ -302,7 +299,7 @@ $db = new database();
     <a href="https://maps.app.goo.gl/hNkEcc3FzmerVUjh9" target="_blank" 
        title="Find us on Google Maps" 
        style="color: inherit; text-decoration: none;">
-      <i class="fas fa-map-marker-alt me-2"></i> San Antonio, Batangas
+      <i class="fas fa-map-marker-alt me-2"></i> San Antonio, Quezon
     </a>
   </p>
 
@@ -321,7 +318,7 @@ $db = new database();
   <p class="fw-semibold mt-3">Contact Us:</p>
   <p>
     <a href="tel:+639123456789" style="color: inherit; text-decoration: none;">
-      <i class="fas fa-phone-alt me-2"></i> +63 912 345 6789
+      <i class="fas fa-phone-alt me-2"></i> +63 908 141 4131
     </a>
   </p>
 </div>

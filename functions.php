@@ -171,11 +171,13 @@ if (isset($_POST['ref']) && $_POST['ref'] === "register_customer") {
     $lname    = trim($_POST['last_name'] ?? '');
     $username = trim($_POST['username'] ?? '');
     $email    = trim($_POST['email'] ?? '');
+    $contact  = trim($_POST['contact'] ?? '');
     $password = $_POST['password'] ?? '';
+  
     // Code Generator
     $verification_code	 = generate_verification_code();
 
-    if ($fname === '' || $lname === '' || $username === '' || $email === '' || $password === '') {
+    if ($fname === '' || $lname === '' || $username === '' || $email === '' || $email === '' ||$password === '') {
         echo json_encode(['status' => 'error', 'message' => 'All fields are required.']);
         exit;
     }
@@ -191,7 +193,7 @@ if (isset($_POST['ref']) && $_POST['ref'] === "register_customer") {
     }
 
     try {
-        $success = $db->registerCustomer($fname, $lname, $username, $email, $password, $verification_code);
+        $success = $db->registerCustomer($fname, $lname, $username, $email, $contact, $password, $verification_code);
         if ($success) {
 
 
@@ -314,6 +316,78 @@ if (isset($_POST['ref']) && $_POST['ref'] === "menu_preview") {
 }
 
 
+// Fetch notifications
+if (isset($_POST['ref']) && $_POST['ref'] === 'fetch_notifications') {
+    try {
+        $customer_id = $_SESSION['customer_id'] ?? null;
+        if (!$customer_id) {
+            echo json_encode(['status' => 'error', 'message' => 'Not logged in']);
+            exit;
+        }
+
+        // Fetch last 10 notifications for this customer
+        $stmt = $db->conn->prepare("
+            SELECT id, message, is_read, created_at
+            FROM notifications
+            WHERE customer_id = ?
+            ORDER BY created_at DESC
+            LIMIT 10
+        ");
+        $stmt->execute([$customer_id]);
+        $notifications = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        // Unread count
+        $stmtUnread = $db->conn->prepare("
+            SELECT COUNT(*) FROM notifications WHERE customer_id = ? AND is_read = 0
+        ");
+        $stmtUnread->execute([$customer_id]);
+        $unreadCount = $stmtUnread->fetchColumn();
+
+        echo json_encode([
+            'status' => 'success',
+            'unread_count' => $unreadCount,
+            'notifications' => $notifications
+        ]);
+    } catch (Exception $e) {
+        echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+    }
+    exit;
+}
+
+// Mark all as read
+if (isset($_POST['ref']) && $_POST['ref'] === 'mark_notifications_read') {
+    try {
+        $customer_id = $_SESSION['customer_id'] ?? null;
+        if ($customer_id) {
+            $stmt = $db->conn->prepare("
+                UPDATE notifications SET is_read = 1 WHERE customer_id = ? AND is_read = 0
+            ");
+            $stmt->execute([$customer_id]);
+        }
+        echo json_encode(['status' => 'success']);
+    } catch (Exception $e) {
+        echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+    }
+    exit;
+}
+
+// Fetch cart item count
+if (isset($_POST['ref']) && $_POST['ref'] === 'get_cart_count') {
+    $customer_id = $_SESSION['customer_ID'] ?? null;
+    if (!$customer_id) {
+        echo json_encode(['status' => 'error', 'message' => 'Not logged in']);
+        exit;
+    }
+
+    $stmt = $db->conn->prepare("SELECT COUNT(*) FROM cart WHERE customer_id = ?");
+    $stmt->execute([$customer_id]);
+    $count = $stmt->fetchColumn();
+
+    echo json_encode(['status' => 'success', 'count' => intval($count)]);
+    exit;
+}
+
+
 // Place the order(online cashier)
 if (isset($_POST['ref']) && $_POST['ref'] === "place_order") {
     $customerID = intval($_SESSION['customer_ID']);
@@ -346,7 +420,7 @@ if (isset($_POST['ref']) && $_POST['ref'] === "place_order") {
         exit();
     }
 
-    
+    // --- Calculate total from cart ---
     $stmt = $db->conn->prepare("
         SELECT SUM(c.qty * p.product_price) AS total
         FROM cart c
@@ -364,7 +438,6 @@ if (isset($_POST['ref']) && $_POST['ref'] === "place_order") {
     try {
         $db->conn->beginTransaction();
 
-        
         $insertOrder = $db->conn->prepare("
             INSERT INTO order_online (customer_id, total_amount, receipt, ref_no, created_at, status)
             VALUES (:customer_id, :total_amount, :receipt, :ref_no, NOW(), :status)
@@ -374,12 +447,12 @@ if (isset($_POST['ref']) && $_POST['ref'] === "place_order") {
             ':total_amount' => $total,
             ':receipt'      => $receiptPath,
             ':ref_no'       => $refNo,
-            ':status'       => 1
+            ':status'       => 0
         ]);
 
-        $orderID = $db->conn->lastInsertId(); 
+        $orderID = $db->conn->lastInsertId();
 
-        
+        // --- Insert each cart item into order_item ---
         $cartItems = $db->conn->prepare("
             SELECT c.product_id, c.qty, p.product_price
             FROM cart c

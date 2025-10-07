@@ -320,37 +320,53 @@ function card_html($p) {
 
 <!-- Navbar -->
 <nav class="navbar navbar-expand-lg navbar-dark navbar-custom fixed-top">
+  <div class="container-fluid" style="max-width:1400px;">
+    <a class="navbar-brand" href="#">
+      <img src="uploads/izana_logo.png" alt="IZANA Logo" style="height: 80px;">
+    </a>
 
-              <div class="container-fluid" style="max-width:1400px;">
-              <a class="navbar-brand" href="#"><img src="uploads/izana_logo.png" alt="IZANA Logo" style="height: 80px;" ></a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
+      <span class="navbar-toggler-icon"></span>
+    </button>
 
-              <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
-              <span class="navbar-toggler-icon"></span>
-              </button>
+    <div class="collapse navbar-collapse justify-content-end" id="navMenu">
+      <ul class="navbar-nav align-items-center">
+        <!-- Notification Bell -->
+        <li class="nav-item me-3 position-relative">
+          <button class="btn btn-light rounded-circle position-relative" id="btnNotification">
+            <i class="fas fa-bell text-dark"></i>
+            <span class="badge bg-danger rounded-pill position-absolute top-0 start-100 translate-middle" id="notificationCount" style="font-size: 0.7rem; display:none;">0</span>
+          </button>
 
-              <div class="collapse navbar-collapse justify-content-end" id="navMenu">
-              <ul class="navbar-nav align-items-center">
-              <li class="nav-item me-3">
+          <!-- Dropdown Notifications -->
+          <div class="dropdown-menu dropdown-menu-end shadow p-2" id="notificationDropdown" style="min-width: 250px; max-height: 300px; overflow-y: auto;">
+            <div id="notificationList">
+              <p class="text-center text-muted small m-2">No notifications</p>
+            </div>
+          </div>
+        </li>
 
-              <button class="btn btn-warning rounded-circle" 
-              id="btnShowCartModal"
-              data-bs-toggle="modal" 
-              data-bs-target="#cartModal">
-              <i class="fas fa-shopping-cart"></i>
-              </button>
+        <!-- Cart -->
+        <li class="nav-item me-3 position-relative">
+          <button class="btn btn-warning rounded-circle position-relative" id="btnShowCartModal" data-bs-toggle="modal" data-bs-target="#cartModal">
+            <i class="fas fa-shopping-cart"></i>
+            <span class="badge bg-danger rounded-pill position-absolute top-0 start-100 translate-middle" id="cartCount" style="font-size: 0.7rem; display:none;">0</span>
+          </button>
+        </li>
 
-              </li>
-              <li class="nav-item dropdown">
-              <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">Menu</a>
-              <ul class="dropdown-menu dropdown-menu-end">
-              <li><a class="dropdown-item" href="profile.php">Profile</a></li>
-              <li><a class="dropdown-item text-danger" href="Logout.php">Logout</a></li>
+        <!-- Dropdown Menu -->
+        <li class="nav-item dropdown">
+          <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">Menu</a>
+          <ul class="dropdown-menu dropdown-menu-end">
+            <li><a class="dropdown-item" href="profile.php">Profile</a></li>
+            <li><a class="dropdown-item text-danger" href="Logout.php">Logout</a></li>
           </ul>
         </li>
       </ul>
     </div>
   </div>
 </nav>
+
 
 
 <div class="container-menu">
@@ -429,6 +445,109 @@ function card_html($p) {
 <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
 
 <script>
+
+
+  $(document).ready(function() {
+ 
+  function updateCartCount() {
+    $.ajax({
+      url: "functions.php",
+      method: "POST",
+      data: { ref: "get_cart_count" },
+      dataType: "json",
+      success: function(res) {
+        if (res.status === "success") {
+          if (res.count > 0) {
+            $("#cartCount").text(res.count).show();
+          } else {
+            $("#cartCount").hide();
+          }
+        }
+      }
+    });
+  }
+
+
+  function loadNotifications() {
+    $.ajax({
+      url: "functions.php",
+      method: "POST",
+      data: { ref: "fetch_notifications" },
+      dataType: "json",
+      success: function(res) {
+        if (res.status === "success") {
+          let notifList = "";
+          if (res.notifications.length > 0) {
+            res.notifications.forEach(n => {
+              notifList += `
+                <div class="p-2 border-bottom ${n.is_read ? 'bg-white' : 'bg-light'}">
+                  <small>${n.message}</small><br>
+                  <small class="text-muted" style="font-size: 0.7rem;">${n.created_at}</small>
+                </div>`;
+            });
+          } else {
+            notifList = '<p class="text-center text-muted small m-2">No notifications</p>';
+          }
+          $("#notificationList").html(notifList);
+          if (res.unread_count > 0) {
+            $("#notificationCount").text(res.unread_count).show();
+          } else {
+            $("#notificationCount").hide();
+          }
+        }
+      }
+    });
+  }
+
+  
+  updateCartCount();
+  loadNotifications();
+
+  setInterval(() => {
+    updateCartCount();
+    loadNotifications();
+  }, 2000); 
+
+  
+  $("#btnNotification").on("click", function(e) {
+    e.stopPropagation();
+    $("#notificationDropdown").toggle();
+
+    // Mark all as read
+    $.ajax({
+      url: "functions.php",
+      method: "POST",
+      data: { ref: "mark_notifications_read" },
+      success: function() {
+        $("#notificationCount").hide();
+      }
+    });
+  });
+
+  
+  $(document).on("click", function(e) {
+    if (!$(e.target).closest("#btnNotification, #notificationDropdown").length) {
+      $("#notificationDropdown").hide();
+    }
+  });
+
+  
+  
+  $(document).on('click', '.btn-coffee', function() {
+    setTimeout(updateCartCount, 700);
+  });
+
+  
+ 
+  
+  $("#btnShowCartModal").on("click", function() {
+    updateCartCount();
+  });
+  $(document).on('click', '.delete-cart-item', function() {
+    setTimeout(updateCartCount, 700);
+  });
+});
+
 
   //show cart
   $(document).ready(function(){
@@ -511,7 +630,7 @@ function card_html($p) {
     let cart = [];
     let productOptions = [];
 
-     // Fetch product options for replacement list
+     
 document.addEventListener('DOMContentLoaded', () => {
       fetch('get_products.php')
       .then(r => r.json())

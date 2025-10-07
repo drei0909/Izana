@@ -29,20 +29,18 @@ $adminName = htmlspecialchars($_SESSION['admin_FN'] ?? 'Admin');
 
                 <h4 class="section-title"><i class="fas fa-chart-bar me-2"></i>Sales Report</h4>
 
-                <!-- Filter Dates -->
+                <!-- Order Type Filter -->
                 <div class="card mb-4">
                     <div class="card-body">
-                        <div class="row g-3">
-                            <div class="col-md-3">
-                                <label for="startDate" class="form-label">Start Date</label>
-                                <input type="date" id="startDate" class="form-control" value="<?= date('Y-m-01') ?>">
-                            </div>
-                            <div class="col-md-3">
-                                <label for="endDate" class="form-label">End Date</label>
-                                <input type="date" id="endDate" class="form-control" value="<?= date('Y-m-d') ?>">
-                            </div>
-                            <div class="col-md-3 d-flex align-items-end">
-                                <button id="filterBtn" class="btn btn-outline-primary">Filter</button>
+                        <div class="row g-3 align-items-end">
+                            <div class="col-md-4">
+                                <label for="orderType" class="form-label">Select Order Type</label>
+                                <select id="orderType" class="form-select">
+                                    <option value="All" selected>All Orders</option>
+                                    <option value="Online">Online Orders</option>
+                                    <option value="POS">POS Orders</option>
+                                    <option value="Cancelled">Cancelled Orders</option>
+                                </select>
                             </div>
                         </div>
                     </div>
@@ -78,7 +76,7 @@ $adminName = htmlspecialchars($_SESSION['admin_FN'] ?? 'Admin');
                         <div class="card text-center">
                             <div class="card-body">
                                 <h6>Cancelled Orders</h6>
-                                <h4>₱<span id="totalSales">0.00</span></h4>
+                                <h4>₱<span id="cancelledSales">0.00</span></h4>
                             </div>
                         </div>
                     </div>
@@ -91,11 +89,9 @@ $adminName = htmlspecialchars($_SESSION['admin_FN'] ?? 'Admin');
                         <table id="ordersTable" class="table table-bordered table-hover">
                             <thead>
                                 <tr>
-                                    <th>Order ID</th>
                                     <th>Order Type</th>
                                     <th>Customer</th>
                                     <th>Total Amount</th>
-                                    <th>Payment Method</th>
                                     <th>Payment Status</th>
                                     <th>Date</th>
                                     <th>Action</th>
@@ -121,71 +117,87 @@ $adminName = htmlspecialchars($_SESSION['admin_FN'] ?? 'Admin');
 <script>
 $(document).ready(function(){
 
+    let dataTable;
     let walkinSales = 0;
     let onlineSales = 0;
+    let cancelledSales = 0;
     let totalSales = 0;
-    let dataTable;
 
-    function fetchOrders(startDate = '', endDate = '') {
-        $.ajax({
-            url: 'admin_functions.php',
-            type: 'POST',
-            data: { ref: 'fetch_orders' },
-            dataType: 'json',
-            success: function(res){
-                if(res.status === 'success'){
-                    let html = '';
-                    walkinSales = 0;
-                    onlineSales = 0;
-                    totalSales = 0;
+  function fetchOrders(orderType = 'All') {
+    $.ajax({
+        url: 'admin_functions.php',
+        type: 'POST',
+        data: { ref: 'fetch_orders' },
+        dataType: 'json',
+        success: function(res) {
+            if (res.status === 'success') {
+                let html = '';
+                walkinSales = 0;
+                onlineSales = 0;
+                cancelledSales = 0;
 
-                    res.orders.forEach(order => {
-                        // Filter by dates if specified
-                        if(startDate && endDate){
-                            const orderDate = new Date(order.order_date);
-                            const start = new Date(startDate);
-                            const end = new Date(endDate);
-                            if(orderDate < start || orderDate > end) return;
-                        }
+                res.orders.forEach(order => {
+                    const status = parseInt(order.order_status); // Ensure numeric
 
-                        html += `<tr>
-                            <td>${order.id}</td>
-                            <td>${order.order_channel}</td>
-                            <td>${order.customer_name || 'Walk-in Customer'}</td>
-                            <td>₱${parseFloat(order.total_amount).toFixed(2)}</td>
-                            <td>${order.ref_no || order.payment_method}</td>
-                            <td>${order.payment_status === 'Completed' ? '<span class="badge bg-success">Completed</span>' : '<span class="badge bg-warning">Pending</span>'}</td>
-                            <td>${order.order_date}</td>
-                            <td>
-                                <button class="btn btn-outline-danger btn-sm deleteOrder" data-id="${order.id}">Delete</button>
-                            </td>
-                        </tr>`;
+                    // Filter by order type
+                    if (orderType !== 'All') {
+                        if (orderType === 'Cancelled' && status !== 4) return;
+                        if (orderType !== 'Cancelled' && order.order_channel !== orderType) return;
+                    }
 
-                        if(order.order_channel === 'Online') onlineSales += parseFloat(order.total_amount);
-                        if(order.order_channel === 'POS') walkinSales += parseFloat(order.total_amount);
-                    });
+                    // Build table row
+                    html += `<tr>
+                        <td>${order.order_channel}</td>
+                        <td>${order.customer_name || 'Walk-in Customer'}</td>
+                        <td>₱${parseFloat(order.total_amount).toFixed(2)}</td>
+                        <td>${
+                            status === 4 
+                                ? '<span class="badge bg-danger">Cancelled</span>'
+                                : order.payment_status === 'Completed'
+                                    ? '<span class="badge bg-success">Completed</span>'
+                                    : '<span class="badge bg-warning">Pending</span>'
+                        }</td>
+                        <td>${order.order_date}</td>
+                        <td>
+                            <button class="btn btn-outline-danger btn-sm deleteOrder" data-id="${order.id}">Delete</button>
+                        </td>
+                    </tr>`;
 
-                    totalSales = walkinSales + onlineSales;
+                    // Update sales totals
+                    if (status !== 4) { // Only include active/completed orders
+                        if (order.order_channel === 'Online') onlineSales += parseFloat(order.total_amount);
+                        if (order.order_channel === 'POS') walkinSales += parseFloat(order.total_amount);
+                    } else {
+                        cancelledSales += parseFloat(order.total_amount);
+                    }
+                });
 
-                    $('#ordersBody').html(html);
-                    $('#walkinSales').text(walkinSales.toFixed(2));
-                    $('#onlineSales').text(onlineSales.toFixed(2));
-                    $('#totalSales').text(totalSales.toFixed(2));
+                totalSales = walkinSales + onlineSales;
 
-                    if(dataTable) dataTable.destroy();
-                    dataTable = $('#ordersTable').DataTable({ order: [[6, 'desc']] });
-                }
+                $('#ordersBody').html(html);
+                $('#walkinSales').text(walkinSales.toFixed(2));
+                $('#onlineSales').text(onlineSales.toFixed(2));
+                $('#totalSales').text(totalSales.toFixed(2));
+                $('#cancelledSales').text(cancelledSales.toFixed(2));
+
+                // Initialize or refresh DataTable
+                if (dataTable) dataTable.destroy();
+                dataTable = $('#ordersTable').DataTable({ order: [[4, 'desc']] }); // date column index = 4
             }
-        });
-    }
+        },
+        error: function() {
+            console.error('Error fetching orders');
+        }
+    });
+}
 
+    // Initial load
     fetchOrders();
 
-    // Filter button
-    $('#filterBtn').click(function(){
-        let start = $('#startDate').val();
-        let end = $('#endDate').val();
-        fetchOrders(start, end);
+    // Change order type filter
+    $('#orderType').change(function(){
+        let type = $(this).val();
+        fetchOrders(type);
     });
 
     // Delete order
@@ -206,7 +218,7 @@ $(document).ready(function(){
                     dataType: 'json',
                     success: function(res){
                         Swal.fire('Deleted!', res.message || 'Order deleted.', 'success');
-                        fetchOrders();
+                        fetchOrders($('#orderType').val());
                     }
                 });
             }
@@ -215,6 +227,5 @@ $(document).ready(function(){
 
 });
 </script>
-
 </body>
 </html>
