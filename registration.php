@@ -276,7 +276,7 @@
   </form>
 
   <div class="text-center mt-4">
-    Already have an account? <a href="Login.php">Login here</a>
+    Already have an account? <a href="login.php">Login here</a>
   </div>
 </div>
 
@@ -306,40 +306,49 @@
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 
   <script>
-  $("#registrationForm").on("submit", function(e) {
-      e.preventDefault();
+$("#registrationForm").on("submit", function(e) {
+  e.preventDefault();
 
-      let email = $("#email").val(); 
-      $("#registerBtn").prop('disabled',true).text("Creating an account...");
+  let email = $("#email").val();
+  $("#registerBtn").prop("disabled", true).text("Creating an account...");
 
-      $.ajax({
-          url: "functions.php",
-          type: "POST",
-          data: $(this).serialize() + "&ref=register_customer",
-          dataType: "json",
-          success: function(response) {
-              if (response.status === "success") {
-                  // Swal.fire("Registered!", response.message, "success");
-                  // $("#registrationForm")[0].reset();
-                window.location.href="email-verification.php?email="+email;
-              } else {
-                $("#registerBtn").prop('disabled',false).text("Register...");
-                Swal.fire("Error", response.message, "error");
-              }
-          },
-          error: function() {
-              Swal.fire("Error", "Something went wrong. Please try again.", "error");
+  $.ajax({
+    url: "functions.php",
+    type: "POST",
+    data: $(this).serialize() + "&ref=register_customer",
+    dataType: "json",
+    success: function(response) {
+      if (response.status === "success") {
+        Swal.fire({
+          title: "Registered!",
+          text: response.message + " Please check your email for the verification code.",
+          icon: "success",
+          confirmButtonText: "Verify Now",
+        }).then((result) => {
+          if (result.isConfirmed) {
+            // redirect only AFTER SweetAlert confirmation
+            window.location.href = "email-verification.php?email=" + encodeURIComponent(email);
           }
-      });
+        });
+      } else {
+        $("#registerBtn").prop("disabled", false).text("Register");
+        Swal.fire("Error", response.message, "error");
+      }
+    },
+    error: function() {
+      $("#registerBtn").prop("disabled", false).text("Register");
+      Swal.fire("Error", "Something went wrong. Please try again.", "error");
+    },
   });
-  </script>
+});
+</script>
 
-  <script>
-  window.addEventListener('load', () => {
-    document.querySelectorAll('input').forEach(input => {
-      input.value = ''; // clears autofill text
-    });
+<script>
+window.addEventListener("load", () => {
+  document.querySelectorAll("input").forEach((input) => {
+    input.value = ""; // clears autofill
   });
+});
 </script>
 
 

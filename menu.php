@@ -1,95 +1,83 @@
 <?php
 session_start();
+require_once('./classes/database.php');
+require_once(__DIR__ . "/classes/config.php");
 
-  require_once('./classes/database.php');
-  require_once (__DIR__. "/classes/config.php");
+$db = new Database();
 
-  $db = new Database();
-
-  if (!isset($_SESSION['customer_ID'])) {
-  header("Location: login.php");
-  exit();
+if (!isset($_SESSION['customer_ID'])) {
+    header("Location: login.php");
+    exit();
 }
 
+$customer_id = $_SESSION['customer_ID'];
 
-// Check if category_id is set in the URL, if not, set it to null or a default value
-$categoryId = isset($_GET['category_id']) ? $_GET['category_id'] : null;
-// Fetch products based on the category_id, or return an empty array if it's null
+// ✅ Check if customer is blocked
+$stmt = $db->conn->prepare("SELECT status FROM customer WHERE customer_id = ?");
+$stmt->execute([$customer_id]);
+$customer = $stmt->fetch(PDO::FETCH_ASSOC);
+$isBlocked = ($customer && strtolower($customer['status']) === 'blocked');
+
+// Fetch category
+$categoryId = $_GET['category_id'] ?? null;
 $products = $db->getAllProducts($categoryId) ?? [];
-// Fetch product categories (this part remains unchanged)
 $stmt = $db->conn->prepare("SELECT * FROM product_categories WHERE is_active = 1");
 $stmt->execute();
 $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-
-
+// Group products by category
 $grouped = [];
-  foreach ($products as $p) {
-  $cat = $p['category_id'] ?? 'Other';
-  $catKey = is_string($cat) ? $cat : (string)$cat;
-  $grouped[$catKey][] = [
-  'product_id' => (int)($p['product_id'] ?? 0),
-  'product_name' => $p['product_name'] ?? 'Unnamed',
-  'product_price' => (float)($p['product_price'] ?? 0),
-  'best' => isset($p['best']) ? (bool)$p['best'] : (($p['product_categoy'] ?? '') == 1),
-  'stock' => $p['stock_quantity'] ?? 0,
-  'status' => $p['is_active'] ?? 1,
-  'raw' => $p
-    ];
+foreach ($products as $p) {
+    $cat = $p['category_id'] ?? 'Other';
+    $grouped[$cat][] = $p;
 }
 
+// 🔹 Escape helper
 function escape($s) {
     return htmlspecialchars($s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
+//  Product card generator (fixed)
 function card_html($p) {
-    // ensure expected values exist
-    $id = (int)($p['product_id'] ?? 0);
-    $name = escape($p['product_name'] ?? 'Unnamed');
-    $priceFmt = number_format((float)($p['product_price'] ?? 0), 2);
-    $best = !empty($p['best']) ? true : false;
-    $status = (int)($p['status'] ?? 1);
+    $id = (int)$p['product_id'];
+    $name = escape($p['product_name']);
+    $priceFmt = number_format($p['product_price'], 2);
+    $best = !empty($p['best']);
+    $img = escape($p['image'] ?? 'uploads/default.jpg');
+    $isActive = $p['is_active'] ?? 1;
+    $isBlocked = $GLOBALS['isBlocked'];
 
-    // try to read image path from raw data if present, fallback to placeholder
-    $img = 'uploads/default.jpg';
-    if (!empty($p['raw']['image']) ) {              // adjust field name if different
-        $img = escape($p['raw']['image']);
-    } elseif (!empty($p['raw']['image_path'])) {
-        $img = escape($p['raw']['image_path']);
-    }
+    // Disable if product inactive OR customer blocked
+    $disabled = ($isActive == 0 || $isBlocked) ? 'disabled' : '';
+    $inactiveClass = ($isActive == 0 || $isBlocked) ? 'faded' : '';
 
     $bestLabel = $best ? '<span class="badge-best">Best Seller</span>' : '';
-    $disabledAttr = $status === 0 ? 'disabled' : '';
-    $btnHtml = $status === 0
-        ? '<button class="btn btn-coffee mt-2" disabled></button>'
-        : '<button class="btn btn-coffee mt-2">Add</button>';
-    $inactiveClass = $status === 0 ? 'faded' : '';
 
-    $dataPrice = htmlspecialchars((string)($p['product_price'] ?? '0'), ENT_QUOTES);
-    $dataName  = htmlspecialchars($name, ENT_QUOTES);
-
-    $html  = '<div class="col-12 col-sm-6 col-lg-4">';
-    $html .= '<div class="menu-card ' . $inactiveClass . '" data-product-id="' . $id . '" data-product-price="' . $dataPrice . '" data-product-name="' . $dataName . '">';
-    $html .= '<div class="card-media">';
-    $html .= '<img src="' . $img . '" alt="' . $dataName . '">';
-    $html .= $bestLabel;
-    $html .= '</div>'; // card-media
-    $html .= '<div class="menu-body">';
-    $html .= '<div class="menu-name">' . $name . '</div>';
-    $html .= '<div class="menu-bottom">';
-    $html .= '<div class="menu-price">₱' . $priceFmt . '</div>';
-    $html .= '<div class="controls">';
-    $html .= '<input type="number" min="1" max="99" value="1" class="quantity-input" ' . $disabledAttr . '>';
-    $html .= $btnHtml;
-    $html .= '</div>'; // controls
-    $html .= '</div>'; // menu-bottom
-    $html .= '</div>'; // menu-body
-    $html .= '</div>'; // menu-card
-    $html .= '</div>'; // column
-
-    return $html;
+    return <<<HTML
+    <div class="col-12 col-sm-6 col-lg-4">
+      <div class="menu-card {$inactiveClass}" data-id="{$id}">
+        <div class="card-media">
+          <img src="{$img}" alt="{$name}">
+          {$bestLabel}
+        </div>
+        <div class="menu-body">
+          <div class="menu-name">{$name}</div>
+          <div class="menu-bottom">
+            <div class="menu-price">₱{$priceFmt}</div>
+            <div class="controls">
+              <input type="number" min="1" max="99" value="1" class="quantity-input" {$disabled}>
+              <button class="btn btn-coffee mt-2 add-to-cart" data-id="{$id}" {$disabled}>
+                Add
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+HTML;
 }
 ?>
+
 
 <!DOCTYPE html>
 		<html lang="en">
@@ -411,6 +399,15 @@ function card_html($p) {
 <?php endforeach; ?>
 
 
+            <?php if ($isBlocked): ?>
+          <div class="alert alert-danger text-center mt-4">
+            <i class="fas fa-ban me-1"></i> Your account is blocked. Ordering is disabled.
+          </div>
+        <?php endif; ?>
+
+
+
+
     </main>
   </div>
 </div>
@@ -444,60 +441,92 @@ function card_html($p) {
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
 
+
 <script>
-
-
-  $(document).ready(function() {
- 
-  function updateCartCount() {
-    $.ajax({
-      url: "functions.php",
-      method: "POST",
-      data: { ref: "get_cart_count" },
-      dataType: "json",
-      success: function(res) {
-        if (res.status === "success") {
-          if (res.count > 0) {
-            $("#cartCount").text(res.count).show();
-          } else {
-            $("#cartCount").hide();
+$(document).ready(function() {
+  
+    function updateCartCount() {
+      $.ajax({
+        url: "functions.php",
+        method: "POST",
+        data: { ref: "get_cart_count" },
+        dataType: "json",
+        success: function(res) {
+          if (res.status === "success") {
+            if (res.count > 0) {
+              $("#cartCount").text(res.count).show();
+            } else {
+              $("#cartCount").hide();
+            }
           }
         }
-      }
-    });
-  }
+      });
+}
 
+// Load notifications
+function loadNotifications() {
+  $.ajax({
+    url: "functions.php",
+    method: "POST",
+    data: { ref: "fetch_notifications" },
+    dataType: "json",
+    success: function(res) {
+      if (res.status === "success") {
+        let notifList = "";
+        if (res.notifications.length > 0) {
+          res.notifications.forEach(n => {
+            notifList += `
+              <div class="p-2 border-bottom ${n.is_read == 1 ? 'bg-white' : 'bg-light'}">
+                <small>${n.message}</small><br>
+                <small class="text-muted" style="font-size: 0.7rem;">${n.created_at}</small>
+              </div>`;
+          });
+        } else {
+          notifList = '<p class="text-center text-muted small m-2">No notifications</p>';
+        }
 
-  function loadNotifications() {
-    $.ajax({
-      url: "functions.php",
-      method: "POST",
-      data: { ref: "fetch_notifications" },
-      dataType: "json",
-      success: function(res) {
-        if (res.status === "success") {
-          let notifList = "";
-          if (res.notifications.length > 0) {
-            res.notifications.forEach(n => {
-              notifList += `
-                <div class="p-2 border-bottom ${n.is_read ? 'bg-white' : 'bg-light'}">
-                  <small>${n.message}</small><br>
-                  <small class="text-muted" style="font-size: 0.7rem;">${n.created_at}</small>
-                </div>`;
-            });
-          } else {
-            notifList = '<p class="text-center text-muted small m-2">No notifications</p>';
-          }
-          $("#notificationList").html(notifList);
-          if (res.unread_count > 0) {
-            $("#notificationCount").text(res.unread_count).show();
-          } else {
-            $("#notificationCount").hide();
-          }
+        $("#notificationList").html(notifList);
+
+        // Update unread badge
+        if (res.unread_count > 0) {
+          $("#notificationCount").text(res.unread_count).show();
+        } else {
+          $("#notificationCount").hide();
         }
       }
-    });
-  }
+    }
+  });
+}
+
+// Mark notifications as read
+function markNotificationsRead() {
+  $.ajax({
+    url: "functions.php",
+    method: "POST",
+    data: { ref: "mark_notifications_read" },
+    dataType: "json",
+    success: function(res) {
+      if (res.status === "success") {
+        $("#notificationCount").hide(); // Hide badge immediately
+        loadNotifications(); // Refresh list
+      }
+    }
+  });
+}
+
+// When user clicks the bell, mark as read
+$("#notificationDropdown").on("click", function() {
+  markNotificationsRead();
+});
+
+
+// Load notifications when the page opens
+$(document).ready(function() {
+  loadNotifications();
+
+  // Auto-refresh notifications every 5 seconds
+  setInterval(loadNotifications, 5000);
+});
 
   
   updateCartCount();
@@ -509,7 +538,7 @@ function card_html($p) {
   }, 2000); 
 
   
-  $("#btnNotification").on("click", function(e) {
+$("#btnNotification").on("click", function(e) {
     e.stopPropagation();
     $("#notificationDropdown").toggle();
 
@@ -522,7 +551,7 @@ function card_html($p) {
         $("#notificationCount").hide();
       }
     });
-  });
+});
 
   
   $(document).on("click", function(e) {
@@ -551,7 +580,7 @@ function card_html($p) {
 
   //show cart
   $(document).ready(function(){
-          window.getCart = function(){
+  window.getCart = function(){
           $.ajax({
           url: "functions.php",
           method: "POST",
@@ -622,8 +651,23 @@ function card_html($p) {
             }
       });
 
-    });
   });
+  });
+
+  //BLOCK
+  $(document).on('click', '.add-to-cart', function(e) {
+    <?php if ($isBlocked): ?>
+      e.preventDefault();
+      Swal.fire({
+        icon: 'error',
+        title: 'Access Denied',
+        text: 'Your account is blocked. Please contact the coffee shop admin.',
+        confirmButtonColor: '#b07542'
+      });
+      return false;
+    <?php endif; ?>
+  });
+
 
 
 (function(){
@@ -643,35 +687,35 @@ document.addEventListener('DOMContentLoaded', () => {
   const checkoutBtn = document.getElementById('checkoutBtn');
   if (checkoutBtn) {
       checkoutBtn.addEventListener('click', () => {
-      // Ask server for current cart before proceeding
 
-          $.ajax({
-            url: "functions.php",
-            method: "POST",
-            data: { ref: "show_cart" },
-            dataType: "json",
-            success: function(response) {
-              if (response.status === "success" && response.cart_grand_total && parseFloat(response.cart_grand_total.replace(/,/g,'')) > 0) {
-                // proceed to checkout (server-side cart has items)
-                window.location.href = 'checkout.php';
-              } else {
-                Swal.fire({ icon:'warning', title:'Cart is Empty!', text:'Add something to checkout.', confirmButtonColor: '#b07542' });
-              }
-            },
-            error: function() {
-              Swal.fire({ icon:'error', title:'Unable to verify cart', text:'Please try again.' });
-            }
-          });
+      // Ask server for current cart before proceedi
+      $.ajax({
+        url: "functions.php",
+        method: "POST",
+        data: { ref: "show_cart" },
+        dataType: "json",
+        success: function(response) {
+          if (response.status === "success" && response.cart_grand_total && parseFloat(response.cart_grand_total.replace(/,/g,'')) > 0) {
+            // proceed to checkout (server-side cart has items)
+            window.location.href = 'checkout.php';
+          } else {
+            Swal.fire({ icon:'warning', title:'Cart is Empty!', text:'Add something to checkout.', confirmButtonColor: '#b07542' });
+          }
+        },
+        error: function() {
+          Swal.fire({ icon:'error', title:'Unable to verify cart', text:'Please try again.' });
+        }
+      });
     });
   }
 
     // Smooth scroll for category links
     document.querySelectorAll('aside.sidebar a[href^="#"]').forEach(a => {
-      a.addEventListener('click', (e) => {
-      e.preventDefault();
-      const el = document.querySelector(a.getAttribute('href'));
-      if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    });
+        a.addEventListener('click', (e) => {
+        e.preventDefault();
+        const el = document.querySelector(a.getAttribute('href'));
+        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      });
   });
 });
 

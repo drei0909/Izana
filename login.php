@@ -1,174 +1,154 @@
-<?php
+<?php 
 session_start();
-require_once('./classes/database.php');
-$db = new database();
-$alert = '';
-
-if(isset($_SESSION['customer_ID'])) {
-    header("Location: menu.php");
-    exit();
-}
-
-
-$username = '';
-
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
-    $username = $_POST['username'];
-    $password = $_POST['password'];
-
-    $result = $db->loginCustomer($username, $password);
-
-    if ($result === 'no_user') {
-        $alert = "<script>Swal.fire('No Account Found', 'No user found with this username.', 'warning');</script>";
-    } elseif ($result === 'wrong_password') {
-        $alert = "<script>Swal.fire('Login Failed', 'Incorrect password. Please try again.', 'error');</script>";
-    } elseif ($result === 'account_is_not_verified') {
-        $alert = "<script>Swal.fire('Login Failed', 'Email Address is not verified', 'error');</script>";
-    } elseif (is_array($result)) {
-        $_SESSION['customer_ID'] = $result['customer_id'];
-        $_SESSION['customer_FN'] = $result['customer_FN'];
-        $_SESSION['is_new'] = $result['is_new'];
-
-        if ($result['is_new']) {
-            $_SESSION['show_promo'] = true;
-        }
-
-        header("Location: menu.php");
-        exit();
-    } else {
-        $alert = "<script>Swal.fire('Error', 'Something went wrong. Please try again.', 'error');</script>";
-    }
-}
+$username = ''; 
 ?>
 
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<title>Login | Izana</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Quicksand:wght@400;600&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-<link rel="icon" type="image/svg+xml" href="uploads/icon.svg">
-<style>
-body {
-    font-family: 'Quicksand', sans-serif;
-    margin: 0; padding: 0;
-    background: url('uploads/bgg.jpg') no-repeat center center fixed;
-    background-size: cover;
-    color: #1e1e1e;
-    min-height: 100vh;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-}
+  <meta charset="UTF-8">
+  <title>Login | Izana</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Quicksand:wght@400;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+  <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+  <link rel="icon" type="image/svg+xml" href="uploads/icon.svg">
 
-body::before {
-    content: "";
-    position: fixed;
-    top: 0; left: 0;
-    width: 100%; height: 100%;
-    background: rgba(0,0,0,0.55);
-    z-index: -1;
-}
-
-.back-home {
-    position: fixed; top: 20px; left: 20px;
-    background: rgba(255,255,255,0.15);
-    border: 2px solid #f5f5f5;
-    color: #f5f5f5;
-    padding: 8px 18px;
-    border-radius: 30px;
-    font-weight: 600;
-    text-decoration: none;
-    transition: all 0.3s ease-in-out;
-}
-.back-home:hover { background: #b07542; color: #fff; }
-
-.login-container {
-    width: 100%;
-    max-width: 500px;
-    background: rgba(255, 248, 230, 0.15);
-    border: 1px solid rgba(255,255,255,0.25);
-    border-radius: 18px;
-    padding: 40px 35px;
-    box-shadow: 0 12px 30px rgba(0,0,0,0.35);
-    backdrop-filter: blur(10px);
-    text-align: center;
-}
-
-.icon-box { font-size: 3rem; color: #b07542; margin-bottom: 10px; }
-
-.title {
-    font-family: 'Playfair Display', serif;
-    font-size: 2.4rem;
-    color: #fff8f3;
-    margin-bottom: 25px;
-    text-shadow: 1px 1px 2px #4b3a2f;
-}
-
-.form-label { font-weight: 600; color: #f5e9dc; font-size: 0.95rem; }
-.form-control {
-    border-radius: 30px;
-    padding: 12px;
-    background-color: #f7f5f0;
-    border: 1px solid #d2b79e;
-    color: #4b3a2f;
-}
-.form-control:focus {
-    box-shadow: 0 0 0 0.2rem rgba(176,117,66,0.25);
-    border-color: #b07542;
-}
-
-.btn-coffee {
-    background-color: #b07542;
-    color: #fff;
-    font-weight: 600;
-    border: none;
-    padding: 12px;
-    width: 100%;
-    border-radius: 30px;
-    letter-spacing: 1px;
-    transition: all 0.3s ease-in-out;
-}
-.btn-coffee:hover { background-color: #8a5c33; }
-
-.text-center { color: #f0f0f0; margin-top: 15px; }
-.text-center a { color: #f2c9a0; font-weight: 600; text-decoration: none; }
-.text-center a:hover { text-decoration: underline; }
-
-@media (max-width: 576px) {
-    .login-container { margin: 30px 15px; padding: 30px 25px; }
-}
-</style>
+  <style>
+    body {
+      font-family: 'Quicksand', sans-serif;
+      background: url('uploads/bgg.jpg') no-repeat center center fixed;
+      background-size: cover;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.55);
+      z-index: -1;
+    }
+    .back-home {
+      position: fixed;
+      top: 20px; left: 20px;
+      background: rgba(255,255,255,0.15);
+      border: 2px solid #f5f5f5;
+      color: #f5f5f5;
+      padding: 8px 18px;
+      border-radius: 30px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.3s ease-in-out;
+    }
+    .back-home:hover { background: #b07542; color: #fff; }
+    .login-container {
+      width: 100%; max-width: 500px;
+      background: rgba(255, 248, 230, 0.15);
+      border: 1px solid rgba(255,255,255,0.25);
+      border-radius: 18px;
+      padding: 40px 35px;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.35);
+      backdrop-filter: blur(10px);
+      text-align: center;
+    }
+    .icon-box { font-size: 3rem; color: #b07542; margin-bottom: 10px; }
+    .title {
+      font-family: 'Playfair Display', serif;
+      font-size: 2.4rem;
+      color: #fff8f3;
+      margin-bottom: 25px;
+      text-shadow: 1px 1px 2px #4b3a2f;
+    }
+    .form-label { font-weight: 600; color: #f5e9dc; font-size: 0.95rem; }
+    .form-control {
+      border-radius: 30px; padding: 12px;
+      background-color: #f7f5f0;
+      border: 1px solid #d2b79e; color: #4b3a2f;
+    }
+    .btn-coffee {
+      background-color: #b07542; color: #fff;
+      font-weight: 600; border: none;
+      padding: 12px; width: 100%;
+      border-radius: 30px; letter-spacing: 1px;
+      transition: all 0.3s ease-in-out;
+    }
+    .btn-coffee:hover { background-color: #8a5c33; }
+    .text-center { color: #f0f0f0; margin-top: 15px; }
+    .text-center a { color: #f2c9a0; font-weight: 600; text-decoration: none; }
+    .text-center a:hover { text-decoration: underline; }
+  </style>
 </head>
 <body>
+  <a href="home.php" class="back-home"><i class="fas fa-home me-2"></i>Home</a>
 
-<a href="home.php" class="back-home"><i class="fas fa-home me-2"></i>Home</a>
-
-<div class="login-container">
-  <div class="icon-box"><i class="fas fa-mug-hot"></i></div>
-  <h2 class="title">Welcome Back</h2>
-  <form method="POST" action="" autocomplete="off">
-    <div class="mb-3">
-      <label class="form-label">Username</label>
-      <input type="text" name="username" class="form-control" required 
-             value="<?= htmlspecialchars($username) ?>" autocomplete="off">
+  <div class="login-container">
+    <div class="icon-box"><i class="fas fa-mug-hot"></i></div>
+    <h2 class="title">Welcome Back</h2>
+    <form id="loginForm" method="POST" autocomplete="off">
+      <div class="mb-3">
+        <label class="form-label">Username</label>
+        <input type="text" name="username" class="form-control" required 
+               value="<?= htmlspecialchars($username) ?>" autocomplete="off">
+      </div>
+      <div class="mb-3">
+        <label class="form-label">Password</label>
+        <input type="password" name="password" class="form-control" required autocomplete="new-password">
+      </div>
+      <button type="submit" id="loginBtn" class="btn-coffee mt-2">Login</button>
+    </form>
+    <div class="text-center mt-4">
+      Don't have an account? <a href="registration.php">Register here</a>
     </div>
-    <div class="mb-3">
-      <label class="form-label">Password</label>
-      <input type="password" name="password" class="form-control" required autocomplete="new-password">
-    </div>
-    <button type="submit" name="login" class="btn-coffee mt-2">Login</button>
-  </form>
-  <div class="text-center mt-4">
-    Don't have an account? <a href="registration.php">Register here</a>
   </div>
-</div>
 
-<?= $alert ?>
+  <script>
+  $("#loginForm").on("submit", function(e) {
+      e.preventDefault();
+      $("#loginBtn").prop("disabled", true).text("Logging in...");
 
+      $.ajax({
+          url: "functions.php",
+          type: "POST",
+          data: $(this).serialize() + "&ref=login_customer",
+          dataType: "json",
+          success: function(response) {
+              $("#loginBtn").prop("disabled", false).text("Login");
+
+              if (response.status === "success") {
+                  const title = response.is_new 
+                    ? `Welcome, ${response.name}! 🎉` 
+                    : "Login Successful!";
+                  const text = response.is_new 
+                    ? "Thanks for joining Izana Coffee Shop!" 
+                    : "Redirecting to your menu...";
+
+                  Swal.fire({
+                      title: title,
+                      text: text,
+                      icon: "success",
+                      timer: 2000,
+                      showConfirmButton: false
+                  });
+
+                  setTimeout(() => {
+                      window.location.href = response.redirect;
+                  }, 2000);
+              } else {
+                  Swal.fire("Login Failed", response.message, "error");
+              }
+          },
+          error: function() {
+              $("#loginBtn").prop("disabled", false).text("Login");
+              Swal.fire("Error", "Something went wrong. Please try again.", "error");
+          }
+      });
+  });
+  </script>
 </body>
 </html>

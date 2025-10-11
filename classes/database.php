@@ -1,9 +1,9 @@
 <?php
 class Database {
     private $host = "localhost";    
-    private $db_name = "u892739778_izana";
-    private $username = "u892739778_izana";
-    private $password = "u892739778_Izana";
+    private $db_name = "izana";
+    private $username = "root";
+    private $password = "";
     public $conn;
 
     // Connect to the database
@@ -21,7 +21,7 @@ class Database {
 
 public function registerCustomer($fn, $ln, $username, $email, $contact, $password, $verification_code) {
     // Check for duplicate username or email
-    $checkSql = "SELECT COUNT(*) FROM Customer WHERE customer_username = :username OR customer_email = :email";
+    $checkSql = "SELECT COUNT(*) FROM customer WHERE customer_username = :username OR customer_email = :email";
     $checkStmt = $this->conn->prepare($checkSql);
     $checkStmt->execute([
         ':username' => $username,
@@ -33,7 +33,7 @@ public function registerCustomer($fn, $ln, $username, $email, $contact, $passwor
     }
 
     // Insert user with hashed password
-     $sql = "INSERT INTO Customer (customer_FN, customer_LN, customer_username, customer_email, customer_contact, customer_password, verification_code)
+     $sql = "INSERT INTO customer (customer_FN, customer_LN, customer_username, customer_email, customer_contact, customer_password, verification_code)
             VALUES (:fn, :ln, :username, :email,:contact, :password, :verification_code)";
     $stmt = $this->conn->prepare($sql);
     $stmt->execute([
@@ -52,7 +52,7 @@ public function registerCustomer($fn, $ln, $username, $email, $contact, $passwor
 
 public function emailVerify($email, $code) {
     // Fetch the customer record directly
-    $sql = "SELECT verification_code FROM Customer WHERE customer_email = :email";
+    $sql = "SELECT verification_code FROM customer WHERE customer_email = :email";
     $stmt = $this->conn->prepare($sql);
     $stmt->execute([':email' => $email]);
     $customer = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -62,7 +62,7 @@ public function emailVerify($email, $code) {
         // die($saved_verification_code .' '. $code);
         if ($saved_verification_code == $code) {
             // Optional: mark as verified in database
-            $updateSql = "UPDATE Customer SET is_verified = 1 WHERE customer_email = :email";
+            $updateSql = "UPDATE customer SET is_verified = 1 WHERE customer_email = :email";
             $updateStmt = $this->conn->prepare($updateSql);
             $updateStmt->execute([':email' => $email]);
             return true;
@@ -75,24 +75,33 @@ public function emailVerify($email, $code) {
     return 'not_found';
 }
 
-//loginCustomer method
- public function loginCustomer($username, $password) {
-    $sql = "SELECT * FROM Customer WHERE customer_username = :username";
-    $stmt = $this->conn->prepare($sql);
-    $stmt->execute([':username' => $username]);
-    $user = $stmt->fetch(PDO::FETCH_ASSOC);
+public function loginCustomer($username, $password) {
+    try {
+        $sql = "SELECT * FROM customer WHERE customer_username = :username LIMIT 1";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute([':username' => $username]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    if ($user['is_verified'] == 0) {
-        return 'account_is_not_verified'; 
+        if (!$user) {
+            return ['status' => 'error', 'message' => 'user_not_found'];
+        }
+
+        if ((int)$user['is_verified'] === 0) {
+            return ['status' => 'error', 'message' => 'account_is_not_verified'];
+        }
+
+        if (!password_verify($password, $user['customer_password'])) {
+            return ['status' => 'error', 'message' => 'wrong_password'];
+        }
+
+        return ['status' => 'success', 'user' => $user];
+
+    } catch (PDOException $e) {
+        return ['status' => 'error', 'message' => 'db_error', 'details' => $e->getMessage()];
     }
-
-
-    if (!password_verify($password, $user['customer_password'])) {
-        return 'wrong_password'; 
-    }
-
-    return $user;
 }
+
+
 
   // Get all products
 public function getAllProducts($category_id = null) {
@@ -432,12 +441,21 @@ public function isEmailExists($email) {
 
 
 public function getAllCustomers() {
-    $sql = "SELECT * FROM customer ORDER BY created_at DESC";
-    $stmt = $this->conn->prepare($sql);
-    $stmt->execute();
-    
-    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    try {
+        // Fetch all customers with status (active or blocked)
+        $sql = "SELECT customer_id, customer_FN, customer_LN, customer_email, created_at, status 
+                FROM customer 
+                ORDER BY created_at DESC";
+        $stmt = $this->conn->prepare($sql);
+        $stmt->execute();
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    } catch (PDOException $e) {
+        error_log("Error fetching customers: " . $e->getMessage());
+        return [];
+    }
 }
+
 
 
 public function countCustomers($search) {

@@ -28,7 +28,7 @@ if ($_POST['ref'] == 'get_order_item') {
     if ($stmt->execute()) {
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // Fetch receipt from orders table
+        // Fetch receipt from order_onlinee table
         $stmtOrder = $db->conn->prepare("SELECT receipt FROM order_online WHERE order_id = :order_id");
         $stmtOrder->bindParam(':order_id', $order_id, PDO::PARAM_INT);
         $stmtOrder->execute();
@@ -116,32 +116,63 @@ if ($_POST['ref'] == 'get_orders_que') {
 }
 
 
-// updates order statis
-if ($_POST['ref'] == 'update_order_stats') {
-    $order_id = intval($_POST['id']);
-    $status = intval($_POST['status']);
-    $orderType = $_POST['orderType'];
+// --- Update Order Status + Notify Customer ---
+if (isset($_POST['ref']) && $_POST['ref'] === 'update_order_stats') {
+    header('Content-Type: application/json; charset=utf-8');
+    error_reporting(0);
 
-    
+    $order_id  = intval($_POST['id'] ?? 0);
+    $status    = intval($_POST['status'] ?? 0);
+    $orderType = $_POST['orderType'] ?? '';
 
-    if($orderType == 'online'){
-        $stmt = $db->conn->prepare("
-            UPDATE order_online 
-            SET status = ?
-            WHERE order_id = ?
-        ");
-        return $stmt->execute([$status, $order_id]);
+    try {
+        // --- Update order table ---
+        if ($orderType === 'online') {
+            $stmt = $db->conn->prepare("UPDATE order_online SET status = ? WHERE order_id = ?");
+            $stmt->execute([$status, $order_id]);
+        } else {
+            $stmt = $db->conn->prepare("UPDATE order_pos SET status = ? WHERE pos_id = ?");
+            $stmt->execute([$status, $order_id]);
+        }
 
-    }else{
-        $stmt = $db->conn->prepare("
-            UPDATE order_pos 
-            SET status = ?
-            WHERE pos_id = ?
-        ");
-        return $stmt->execute([$status, $order_id]);
+        // --- Get customer for online order ---
+        $customer_id = null;
+        if ($orderType === 'online') {
+            $getCust = $db->conn->prepare("SELECT customer_id FROM order_online WHERE order_id = ?");
+            $getCust->execute([$order_id]);
+            $cust = $getCust->fetch(PDO::FETCH_ASSOC);
+            $customer_id = $cust['customer_id'] ?? null;
+        }
+
+        // --- Insert notification if online ---
+        if ($customer_id) {
+            $message = match ($status) {
+                2       => "Your order #$order_id is now being prepared.",
+                3       => "Your order #$order_id is ready for pickup!",
+                default => "Your order #$order_id status has been updated.",
+            };
+
+            $insert = $db->conn->prepare("
+                INSERT INTO notifications (customer_id, order_id, message, is_read, created_at)
+                VALUES (?, ?, ?, 0, NOW())
+            ");
+            $insert->execute([$customer_id, $order_id, $message]);
+        }
+
+        echo json_encode([
+            'status'  => 'success',
+            'message' => 'Order status updated successfully.'
+        ]);
+    } catch (Throwable $e) {
+        echo json_encode([
+            'status'  => 'error',
+            'message' => 'Server error: ' . $e->getMessage()
+        ]);
     }
-    
+    exit;
 }
+
+
 
 // Place the POS order
 if (isset($_POST['ref']) && $_POST['ref'] === "place_pos_order") {
@@ -239,24 +270,22 @@ if (isset($_POST['ref']) && $_POST['ref'] === "place_pos_order") {
 }
 
 
-
-
 // Fetch both online and walk-in orders for admin panel
 if (isset($_POST['ref']) && $_POST['ref'] === "fetch_orders") {
-    try {
-        // --- Get Online Orders ---
-        $stmtOnline = $db->conn->prepare("
-    SELECT o.order_id AS id, 
-           CONCAT(c.customer_FN, ' ', c.customer_LN) AS customer_name,
-           o.status AS order_status,
-           o.total_amount, 
-           o.receipt, 
-           o.ref_no, 
-           o.created_at AS order_date,
-           'Online' AS order_channel
-    FROM order_online o
-    JOIN customer c ON o.customer_id = c.customer_ID
-");
+            try {
+                // --- Get Online Orders ---
+                $stmtOnline = $db->conn->prepare("
+            SELECT o.order_id AS id, 
+                CONCAT(c.customer_FN, ' ', c.customer_LN) AS customer_name,
+                o.status AS order_status,
+                o.total_amount, 
+                o.receipt, 
+                o.ref_no, 
+                o.created_at AS order_date,
+                'Online' AS order_channel
+            FROM order_online o
+            JOIN customer c ON o.customer_id = c.customer_ID
+        ");
 
         $stmtOnline->execute();
         $onlineOrders = $stmtOnline->fetchAll(PDO::FETCH_ASSOC);
@@ -364,31 +393,157 @@ if (isset($_POST['ref']) && $_POST['ref'] === 'complete_order') {
 }
 
 // get order info
-if (isset($_POST['ref']) && $_POST['ref'] === 'get_order_info') {
-    $order_id = intval($_POST['order_id']);
+if ($_POST['ref'] == 'get_order_info') {
+    $order_id = $_POST['order_id'];
 
-    $stmt = $db->conn->prepare("
-        SELECT o.ref_no, o.receipt, c.customer_FN, c.customer_LN
+    $query = $db->conn->prepare("
+        SELECT o.ref_no, o.receipt, c.customer_FN, c.customer_LN, c.customer_contact
         FROM order_online o
-        JOIN customer c ON o.customer_id = c.customer_ID
-        WHERE o.order_id = :order_id
+        INNER JOIN customer c ON o.customer_id = c.customer_id
+        WHERE o.order_id = ?
     ");
-    $stmt->execute([':order_id' => $order_id]);
-    $order = $stmt->fetch(PDO::FETCH_ASSOC);
+    $query->execute([$order_id]);
+    $info = $query->fetch(PDO::FETCH_ASSOC);
 
-    if ($order) {
+    if ($info) {
         echo json_encode([
             'status' => 'success',
-            'ref_no' => $order['ref_no'],
-            'receipt' => $order['receipt'],
-            'customer_FN' => $order['customer_FN'],
-            'customer_LN' => $order['customer_LN']
+            'ref_no' => $info['ref_no'],
+            'receipt' => $info['receipt'],
+            'customer_FN' => $info['customer_FN'],
+            'customer_LN' => $info['customer_LN'],
+            'customer_contact' => $info['customer_contact']
         ]);
     } else {
-        echo json_encode(['status' => 'error']);
+        echo json_encode(['status' => 'error', 'message' => 'Order info not found']);
     }
     exit;
 }
+
+
+// INSERT NOTIFICATION (called after admin updates status)
+if (isset($_POST['ref']) && $_POST['ref'] === 'insert_notification') {
+    $order_id = intval($_POST['order_id']);
+    $message = trim($_POST['message']);
+
+    // Fetch customer ID from the order table
+    $stmt = $db->conn->prepare("SELECT customer_id FROM order_online WHERE order_id = ?");
+    $stmt->execute([$order_id]);
+    $customer = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if ($customer) {
+        $customer_id = $customer['customer_id'];
+        $insert = $db->conn->prepare("
+            INSERT INTO notifications (customer_id, order_id, message, is_read)
+            VALUES (?, ?, ?, 0)
+        ");
+        $insert->execute([$customer_id, $order_id, $message]);
+        echo json_encode(['status' => 'success']);
+    } else {
+        echo json_encode(['status' => 'error', 'message' => 'Customer not found for this order.']);
+    }
+
+    exit();
+}
+
+
+// BLOCK / UNBLOCK CUSTOMER
+if (isset($_POST['ref']) && $_POST['ref'] === 'update_customer_status') {
+    header('Content-Type: application/json');
+
+    $customer_id = intval($_POST['customer_id'] ?? 0);
+    $action      = trim($_POST['action'] ?? '');
+
+    if ($customer_id <= 0 || empty($action)) {
+        echo json_encode(['status' => 'error', 'message' => 'Invalid request.']);
+        exit;
+    }
+
+    try {
+        // Determine new status
+        $newStatus = ($action === 'block') ? 'blocked' : 'active';
+
+        // Update in database
+        $stmt = $db->conn->prepare("UPDATE customer SET status = ? WHERE customer_ID = ?");
+        $stmt->execute([$newStatus, $customer_id]);
+
+        // Add a notification to customer (optional)
+        $message = ($action === 'block') 
+            ? "Your account has been temporarily blocked by the admin." 
+            : "Your account has been reactivated. You can now continue ordering.";
+
+        $notif = $db->conn->prepare("
+            INSERT INTO notifications (customer_id, order_id, message, is_read, created_at)
+            VALUES (?, NULL, ?, 0, NOW())
+        ");
+        $notif->execute([$customer_id, $message]);
+
+        echo json_encode([
+            'status' => 'success',
+            'message' => "Customer has been {$newStatus}.",
+            'new_status' => $newStatus
+        ]);
+    } catch (Exception $e) {
+        echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+    }
+    exit;
+}
+
+// Fetch single customer details
+if (isset($_POST['ref']) && $_POST['ref'] === 'get_customer_details') {
+    require_once('../classes/database.php');
+    $db = new Database();
+
+    $id = intval($_POST['customer_id'] ?? 0);
+
+    
+    if ($id <= 0) {
+        echo json_encode(['status' => 'error', 'message' => 'Invalid customer ID.']);
+        exit;
+    }
+
+    
+    $stmt = $db->conn->prepare("
+        SELECT 
+            customer_FN, 
+            customer_LN, 
+            customer_email, 
+            customer_contact, 
+            status, 
+            created_at, 
+            is_verified, 
+            last_login
+        FROM customer 
+        WHERE customer_id = ?
+    ");
+    $stmt->execute([$id]);
+    $cust = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if ($cust) {
+        echo json_encode([
+            'status' => 'success',
+            'data' => [
+                'full_name'   => trim(($cust['customer_FN'] ?? '') . ' ' . ($cust['customer_LN'] ?? '')),
+                'email'       => $cust['customer_email'] ?? 'N/A',
+                'contact'     => $cust['customer_contact'] ?? 'N/A',
+                'status'      => strtolower($cust['status'] ?? '') === 'blocked' ? 'blocked' : 'active',
+                'is_verified' => ($cust['is_verified'] ?? 0) == 1 ? 'Yes' : 'No',
+                'last_login'  => !empty($cust['last_login']) 
+                                 ? date('M d, Y h:i A', strtotime($cust['last_login'])) 
+                                 : 'Never',
+                'created_at'  => !empty($cust['created_at']) 
+                                 ? date('M d, Y h:i A', strtotime($cust['created_at'])) 
+                                 : '-'
+            ]
+        ]);
+    } else {
+        echo json_encode(['status' => 'error', 'message' => 'Customer not found.']);
+    }
+
+    exit;
+}
+
+
 
 
 ?>

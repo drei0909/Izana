@@ -71,7 +71,27 @@ function card_html($p) {
 <?php include('templates/header.php'); ?>
 
 <style>
-  .menu-card { transition: transform 0.2s, box-shadow 0.2s; border-radius: 12px; background: #fff; padding: 10px; }
+ .menu-card {
+  width: 220px;             
+  height: 300px;            
+  border-radius: 12px;
+  background: #fff;
+  padding: 10px;
+  transition: transform 0.2s, box-shadow 0.2s;
+  overflow: hidden;          /* prevents content overflow */
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between; /* ensures content stays balanced */
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+}
+
+.menu-card img {
+  width: 100%;
+  height: 160px;             /* consistent image size */
+  object-fit: cover;         /* prevents distortion */
+  border-radius: 10px;
+}
+
   .cart-container { background: #fff; padding: 15px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
   .cart-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; border-radius: 8px; background: #fff7e6; margin-bottom: 6px; font-size: 14px; }
   .btn-add { background-color: #b07542; border: none; color: #fff; font-size: 13px; }
@@ -113,8 +133,11 @@ function card_html($p) {
               $catRow = $stmt->fetch(PDO::FETCH_ASSOC);
               $catName = $catRow ? $catRow['category'] : "Other";
           ?>
-          <section class="mb-4">
-           <h4 class="border-bottom pb-2 mb-3 text-dark fw-bold"><?= strtoupper(escape($catName)) ?></h4>
+                  <section class="mb-4" data-category-id="<?= $catId ?>">
+            <h4 class="border-bottom pb-2 mb-3 text-dark fw-bold" data-cat-id="<?= $catId ?>">
+              <?= strtoupper(escape($catName)) ?>
+            </h4>
+
 
             <div class="row gy-3">
               <?php foreach($items as $item) echo card_html($item); ?>
@@ -247,32 +270,51 @@ document.getElementById("orderForm").addEventListener("submit", function(e){
 </body>
 </html>
 <script>
-// 🔍 SEARCH + CATEGORY FILTER
 document.addEventListener("DOMContentLoaded", function () {
   const searchInput = document.getElementById("searchInput");
   const categoryFilter = document.getElementById("categoryFilter");
 
   function filterProducts() {
-    const searchTerm = searchInput.value.toLowerCase();
+    const searchTerm = searchInput.value.trim().toLowerCase();
     const selectedCategory = categoryFilter.value;
 
-    // Loop through all menu cards
-    document.querySelectorAll(".menu-card").forEach(card => {
-      const productName = card.querySelector(".menu-name")?.textContent.toLowerCase() || "";
-      const cardCategory = card.closest("section")?.getAttribute("data-category") || "";
+    // Loop through each section (category group)
+    document.querySelectorAll("section").forEach(section => {
+      const cards = section.querySelectorAll(".menu-card");
+      let visibleCount = 0;
 
-      const matchesSearch = productName.includes(searchTerm);
-      const matchesCategory = selectedCategory === "" || selectedCategory === cardCategory;
+      cards.forEach(card => {
+        const productName = card.querySelector(".menu-name")?.textContent.toLowerCase() || "";
+        const cardCategory = section.getAttribute("data-category-id"); // category ID from PHP
 
-      // Show or hide
-      card.parentElement.style.display = (matchesSearch && matchesCategory) ? "block" : "none";
+        const matchesSearch = productName.includes(searchTerm);
+        const matchesCategory = selectedCategory === "" || selectedCategory === cardCategory;
+
+        if (matchesSearch && matchesCategory) {
+          card.closest(".col-12, .col-sm-6, .col-lg-4").style.display = "block";
+          visibleCount++;
+        } else {
+          card.closest(".col-12, .col-sm-6, .col-lg-4").style.display = "none";
+        }
+      });
+
+      // Hide the entire section if it has no visible products
+      section.style.display = visibleCount > 0 ? "block" : "none";
     });
   }
+
+  // Add data-category-id to each section for filtering
+  document.querySelectorAll("section").forEach(section => {
+    const heading = section.querySelector("h4");
+    const catId = heading?.getAttribute("data-cat-id");
+    if (catId) section.setAttribute("data-category-id", catId);
+  });
 
   searchInput.addEventListener("input", filterProducts);
   categoryFilter.addEventListener("change", filterProducts);
 });
 </script>
+
 
 </body>
 </html>

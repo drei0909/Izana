@@ -1,5 +1,7 @@
 <?php
-session_start();
+if (session_status() === PHP_SESSION_NONE) {
+    session_start();
+}
 require_once('./classes/database.php');
 require 'vendor/autoload.php';
 use PHPMailer\PHPMailer\PHPMailer;
@@ -225,7 +227,7 @@ if (isset($_POST['ref']) && $_POST['ref'] === "register_customer") {
                 error_log('Mailer Error: ' . $mail->ErrorInfo);
             }
 
-            echo json_encode(['status' => 'success', 'message' => 'Your account has been created successfully. Check your email!']);
+            echo json_encode(['status' => 'success', 'message' => 'Your account has been created successfully.']);
         } else {
             echo json_encode(['status' => 'error', 'message' => 'Username or Email already taken.']);
         }
@@ -316,41 +318,59 @@ if (isset($_POST['ref']) && $_POST['ref'] === "menu_preview") {
 }
 
 
+
 // Fetch notifications
-if (isset($_POST['ref']) && $_POST['ref'] === 'fetch_notifications') {
-    try {
-        $customer_id = $_SESSION['customer_id'] ?? null;
-        if (!$customer_id) {
-            echo json_encode(['status' => 'error', 'message' => 'Not logged in']);
-            exit;
-        }
+if ($_POST['ref'] === 'fetch_notifications') {
 
-        // Fetch last 10 notifications for this customer
-        $stmt = $db->conn->prepare("
-            SELECT id, message, is_read, created_at
-            FROM notifications
-            WHERE customer_id = ?
-            ORDER BY created_at DESC
-            LIMIT 10
-        ");
-        $stmt->execute([$customer_id]);
-        $notifications = $stmt->fetchAll(PDO::FETCH_ASSOC);
-
-        // Unread count
-        $stmtUnread = $db->conn->prepare("
-            SELECT COUNT(*) FROM notifications WHERE customer_id = ? AND is_read = 0
-        ");
-        $stmtUnread->execute([$customer_id]);
-        $unreadCount = $stmtUnread->fetchColumn();
-
-        echo json_encode([
-            'status' => 'success',
-            'unread_count' => $unreadCount,
-            'notifications' => $notifications
-        ]);
-    } catch (Exception $e) {
-        echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
     }
+
+    $customer_id = $_SESSION['customer_ID'] ?? null;
+
+    if (!$customer_id) {
+        echo json_encode(["status" => "error", "message" => "No customer logged in."]);
+        exit;
+    }
+
+    // Fetch all notifications
+    $stmt = $db->conn->prepare("SELECT * FROM notifications WHERE customer_id = ? ORDER BY created_at DESC");
+    $stmt->execute([$customer_id]);
+    $notifications = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+    // Count unread notifications
+    $unread_stmt = $db->conn->prepare("SELECT COUNT(*) AS unread_count FROM notifications WHERE customer_id = ? AND is_read = 0");
+    $unread_stmt->execute([$customer_id]);
+    $unread_count = (int)($unread_stmt->fetch(PDO::FETCH_ASSOC)['unread_count'] ?? 0);
+
+    echo json_encode([
+        "status" => "success",
+        "notifications" => $notifications,
+        "unread_count" => $unread_count
+    ]);
+    exit;
+}
+
+
+
+//Mark all notifications as read
+if ($_POST['ref'] === 'mark_notifications_read') {
+
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+
+    $customer_id = $_SESSION['customer_ID'] ?? null;
+
+    if (!$customer_id) {
+        echo json_encode(["status" => "error", "message" => "No customer logged in."]);
+        exit;
+    }
+
+    $update = $db->conn->prepare("UPDATE notifications SET is_read = 1 WHERE customer_id = ? AND is_read = 0");
+    $update->execute([$customer_id]);
+
+    echo json_encode(["status" => "success", "message" => "All notifications marked as read."]);
     exit;
 }
 
@@ -447,7 +467,7 @@ if (isset($_POST['ref']) && $_POST['ref'] === "place_order") {
             ':total_amount' => $total,
             ':receipt'      => $receiptPath,
             ':ref_no'       => $refNo,
-            ':status'       => 0
+            ':status'       => 1
         ]);
 
         $orderID = $db->conn->lastInsertId();
@@ -489,6 +509,17 @@ if (isset($_POST['ref']) && $_POST['ref'] === "place_order") {
             ':status'   => 'Pending'  // admin will confirm later
         ]);
 
+
+               // Create "Pending Order" Notification ---
+        if ($customerID && $orderID) {
+            $message = "Your order #$orderID has been placed and is now pending confirmation.";
+            $notif = $db->conn->prepare("
+                INSERT INTO notifications (customer_id, order_id, message, is_read, created_at)
+                VALUES (?, ?, ?, 0, NOW())
+            ");
+            $notif->execute([$customerID, $orderID, $message]);
+        }
+
         $clear = $db->conn->prepare("DELETE FROM cart WHERE customer_id = :customer_id");
         $clear->execute([':customer_id' => $customerID]);
 
@@ -501,6 +532,103 @@ if (isset($_POST['ref']) && $_POST['ref'] === "place_order") {
     }
 
     exit();
+}
+
+// Handle Customer Login
+if (isset($_POST['ref']) && $_POST['ref'] === "login_customer") {
+    header('Content-Type: application/json');
+
+    $username = trim($_POST['username'] ?? '');
+    $password = trim($_POST['password'] ?? '');
+
+    if ($username === '' || $password === '') {
+        echo json_encode(['status' => 'error', 'message' => 'All fields are required.']);
+        exit;
+    }
+
+    $result = $db->loginCustomer($username, $password);
+
+    if ($result['status'] !== 'success') {
+        $messages = [
+            'user_not_found' => 'No user found with this username.',
+            'account_is_not_verified' => 'Account not verified yet.',
+            'wrong_password' => 'Incorrect password.',
+            'db_error' => 'Database error occurred. Please try again.'
+        ];
+
+        $msg = $messages[$result['message']] ?? 'Unexpected error.';
+        echo json_encode(['status' => 'error', 'message' => $msg]);
+        exit;
+    }
+
+    $user = $result['user'];
+
+    // Start session
+    $_SESSION['customer_ID'] = $user['customer_id'];
+    $_SESSION['customer_FN'] = $user['customer_FN'];
+
+    // Detect new user (first time login)
+    $is_new = empty($user['last_login']);
+    $name = htmlspecialchars($user['customer_FN']);
+
+    // Update last login timestamp
+    $stmt = $db->conn->prepare("UPDATE customer SET last_login = NOW() WHERE customer_id = ?");
+    $stmt->execute([$user['customer_id']]);
+
+    echo json_encode([
+        'status' => 'success',
+        'redirect' => 'menu.php',
+        'is_new' => $is_new,
+        'name' => $name
+    ]);
+    exit;
+}
+
+// --- Handle Rebuy Order ---
+if (isset($_POST['ref']) && $_POST['ref'] === 'rebuy_order') {
+    if (session_status() === PHP_SESSION_NONE) session_start();
+
+    $customer_id = $_SESSION['customer_ID'] ?? null;
+    $order_id = intval($_POST['order_id'] ?? 0);
+
+    if (!$customer_id || !$order_id) {
+        echo json_encode(['status' => 'error', 'message' => 'Invalid request.']);
+        exit;
+    }
+
+    try {
+        // Get previous order items
+        $stmt = $db->conn->prepare("
+            SELECT product_id, quantity
+            FROM order_item
+            WHERE order_id = ?
+        ");
+        $stmt->execute([$order_id]);
+        $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        if (!$items) {
+            echo json_encode(['status' => 'error', 'message' => 'No items found in this order.']);
+            exit;
+        }
+
+        // Clear current cart
+        $clear = $db->conn->prepare("DELETE FROM cart WHERE customer_id = ?");
+        $clear->execute([$customer_id]);
+
+        // Insert all items again
+        $insert = $db->conn->prepare("
+            INSERT INTO cart (customer_id, product_id, qty)
+            VALUES (?, ?, ?)
+        ");
+        foreach ($items as $item) {
+            $insert->execute([$customer_id, $item['product_id'], $item['quantity']]);
+        }
+
+        echo json_encode(['status' => 'success']);
+    } catch (Exception $e) {
+        echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+    }
+    exit;
 }
 
 

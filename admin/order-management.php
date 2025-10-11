@@ -39,7 +39,7 @@ $adminName = htmlspecialchars($_SESSION['admin_FN'] ?? 'Admin');
         <div class="mb-1">
           <p><strong>Customer:</strong> <span class="customer-name"></span></p>
           <p><strong>Reference No:</strong> <span class="ref-no"></span></p>
-          <p><strong>Contact Number:</strong> <span class="con-no"></span></p>
+          <p><strong>Customer Number:</strong> <span class="con-no"></span></p>
 
 
         </div>
@@ -86,7 +86,7 @@ $adminName = htmlspecialchars($_SESSION['admin_FN'] ?? 'Admin');
 
 </div>
 
-<!-- ✅ SweetAlert2 -->
+
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
 <!-- jQuery (needed for DataTables only) -->
@@ -109,6 +109,7 @@ $adminName = htmlspecialchars($_SESSION['admin_FN'] ?? 'Admin');
 <?php endif; ?>
 
 <script>
+  
     $(document).ready(function(){
         $('#productTable').DataTable();
 
@@ -144,8 +145,8 @@ $adminName = htmlspecialchars($_SESSION['admin_FN'] ?? 'Admin');
         });
 
 
-      // Handle Cancel and Completed button actions
-      $(document).ready(function() {
+// Handle Cancel and Completed button actions
+$(document).ready(function() {
 
     $(document).on('click', '.btn-cancel-order', function() {
     const orderId = $(this).data('order-id');
@@ -193,49 +194,9 @@ $adminName = htmlspecialchars($_SESSION['admin_FN'] ?? 'Admin');
         }
     });
 });
-
-
-    // // Complete Order
-    // $(document).on('click', '.btn-complete-order', function() {
-    //     const orderId = $(this).data('order-id');
-    //     const row = $(this).closest('tr');
-
-    //     Swal.fire({
-    //         title: 'Mark as Completed?',
-    //         text: 'This will move the order to the sales report.',
-    //         icon: 'question',
-    //         showCancelButton: true,
-    //         confirmButtonText: 'Yes, Complete it!',
-    //         cancelButtonText: 'No',
-    //     }).then((result) => {
-    //         if (result.isConfirmed) {
-    //             $.ajax({
-    //                 url: 'admin_functions.php',
-    //                 method: 'POST',
-    //                 data: { ref: 'complete_order', order_id: orderId },
-    //                 dataType: 'json',
-    //                 success: function(response) {
-    //                     if (response.status === 'success') {
-    //                         Swal.fire('Done!', response.message, 'success');
-    //                         // Optional: visually mark as completed
-    //                         row.addClass('table-success');
-    //                         row.find('.order-status').text('Completed ✅');
-    //                         row.fadeOut(1000, function() { $(this).remove(); });
-    //                     } else {
-    //                         Swal.fire('Error!', response.message, 'error');
-    //                     }
-    //                 },
-    //                 error: function() {
-    //                     Swal.fire('Error!', 'Something went wrong.', 'error');
-    //                 }
-    //             });
-    //         }
-    //     });
-    // });
-
 });
 
-      // Enable double-click to view order details
+// Enable double-click to view order details
 $(document).off("dblclick", ".order-item").on("dblclick", ".order-item", function() {
     const orderId = $(this).data("id");
     $("#viewOrderModal").modal("show");
@@ -278,7 +239,7 @@ function viewOrder(orderId) {
             if (response.status === "success") {
                 $(".order-items").html(response.html);
 
-                // Fetch customer name and ref_no
+                // Fetch customer name and ref_no and contact
                 $.ajax({
                     url: "admin_functions.php",
                     method: "POST",
@@ -288,7 +249,7 @@ function viewOrder(orderId) {
                         if (info.status === "success") {
                             $(".customer-name").text(info.customer_FN + " " + info.customer_LN);
                             $(".ref-no").text(info.ref_no || "N/A");
-                            $(".con-no").text(info.con-no || "N/A");
+                            $(".con-no").text(info.customer_contact || "N/A");
 
                             if (info.receipt) {
                                 $(".receipt").html(`
@@ -369,22 +330,38 @@ $(document).on("dblclick", ".order-item, .btn-view-order", function() {
                     console.log(`${orderName} moved to ${newStatusText} (status: ${newStatus})`);
 
                     // AJAX update
-                    $.ajax({
-                      url: "admin_functions.php",
-                      type: 'POST',
-                      data: { 
-                        ref: "update_order_stats",
-                        id: orderId,
-                        status: newStatus,
-                        orderType: orderType,
-                      },
-                      success: function(response) {
-                        // console.log('Updated:', response);
-                      },
-                      error: function(xhr, status, error) {
-                        // console.error('AJAX Error:', error);
-                      }
-                    });
+                        $.ajax({
+                          url: "admin_functions.php",
+                          type: "POST",
+                          data: { 
+                            ref: "update_order_stats",
+                            id: orderId,
+                            status: newStatus,
+                            orderType: orderType
+                          },
+                          dataType: "json",
+                          success: function(response) {
+                            if (response.status === "success") {
+                              // ✅ SweetAlert toast feedback for admin
+                              Swal.fire({
+                                toast: true,
+                                position: 'top-end',
+                                icon: 'success',
+                                title: `Order #${orderId} updated to ${newStatusText}`,
+                                showConfirmButton: false,
+                                timer: 1500
+                              });
+                            } else {
+                              Swal.fire('Error', response.message || 'Failed to update order.', 'error');
+                            }
+                          },
+                          error: function(xhr, status, error) {
+                            Swal.fire('Error', 'Unable to update order status.', 'error');
+                            console.error('AJAX Error:', error);
+                          }
+                        });
+
+
                   }
                 }).disableSelection();
 

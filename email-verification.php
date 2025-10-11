@@ -111,13 +111,7 @@ $db = new database();
     z-index: 1000;       
   }
 
-    .top-buttons a,
-    .top-buttons .info-icon {
-      color: #f5f5f5;        
-      font-weight: 600;
-      margin-left: 10px;
-      transition: color 0.3s ease;
-    }
+   
 
     .top-buttons a:hover,
     .top-buttons .info-icon:hover {
@@ -228,14 +222,7 @@ $db = new database();
 <body>
 
 
-<div class="top-buttons">
-  <a href="home.php" class="back-home me-3 text-decoration-none">
-    <i class="fas fa-home me-2"></i>Home
-  </a>
-  <div class="info-icon" onclick="showInfo()" style="cursor: pointer;">
-    <i class="fas fa-circle-info"></i> Info
-  </div>
-</div>
+
 
 <div class="register-container">
   <div class="icon-box">
@@ -246,7 +233,8 @@ $db = new database();
   <form id="emailVerifyForm" method="POST" autocomplete="off">
     <div class="mb-3">
       <label for="email" class="form-label">Email</label>
-      <input type="text" name="email" readonly class="form-control" autocomplete="new-first-name" value="<?= $_GET['email']?>" required>
+     <input type="text" name="email" readonly class="form-control"
+  value="<?= isset($_GET['email']) ? htmlspecialchars($_GET['email']) : '' ?>" required>
     </div>
     <div class="mb-3">
       <label for="verification_code	" class="form-label">Verification Code</label>
@@ -256,10 +244,7 @@ $db = new database();
     <button type="submit" class="btn-coffee mt-2" id="verifyBtn">Verify</button>
   </form>
 
-  <div class="text-center mt-4">
-    Already have an account? <a href="Login.php">Login here</a>
-  </div>
-</div>
+  
 
 <!-- Info Script -->
 <script>
