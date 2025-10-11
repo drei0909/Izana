@@ -186,7 +186,7 @@ $db = new database();
 
 
   <div class="header-content text-center">
-    <h1>Where Every Sip Feels Like Home</h1>
+    <h1>Where Every Sip Feels Like Homeeee</h1>
     <a href="menu_preview.php" class="btn">Explore Our Products</a>
   </div>
 </header>
@@ -332,3 +332,24 @@ $db = new database();
 
 
 
+<a href="home.php" class="back-home"><i class="fas fa-home me-2"></i>Home</a>
+
+<div class="login-container">
+  <div class="icon-box"><i class="fas fa-mug-hot"></i></div>
+  <h2 class="title">Welcome Back</h2>
+  <form method="POST" action="" autocomplete="off">
+    <div class="mb-3">
+      <label class="form-label">Username</label>
+      <input type="text" name="username" class="form-control" required 
+             value="<?= htmlspecialchars($username) ?>" autocomplete="off">
+    </div>
+    <div class="mb-3">
+      <label class="form-label">Password</label>
+      <input type="password" name="password" class="form-control" required autocomplete="new-password">
+    </div>
+    <button type="submit" name="login" class="btn-coffee mt-2">Login</button>
+  </form>
+  <div class="text-center mt-4">
+    Don't have an account? <a href="registration.php">Register here</a>
+  </div>
+</div>
