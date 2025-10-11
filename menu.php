@@ -1,83 +1,105 @@
 <?php
 session_start();
-require_once('./classes/database.php');
-require_once(__DIR__ . "/classes/config.php");
 
-$db = new Database();
+  require_once('./classes/database.php');
+  require_once (__DIR__. "/classes/config.php");
 
-if (!isset($_SESSION['customer_ID'])) {
-    header("Location: login.php");
-    exit();
+  $db = new Database();
+
+  if (!isset($_SESSION['customer_ID'])) {
+  header("Location: login.php");
+  exit();
 }
+
 
 $customer_id = $_SESSION['customer_ID'];
 
-// ✅ Check if customer is blocked
 $stmt = $db->conn->prepare("SELECT status FROM customer WHERE customer_id = ?");
 $stmt->execute([$customer_id]);
 $customer = $stmt->fetch(PDO::FETCH_ASSOC);
 $isBlocked = ($customer && strtolower($customer['status']) === 'blocked');
 
-// Fetch category
-$categoryId = $_GET['category_id'] ?? null;
+
+// Check if category_id is set in the URL, if not, set it to null or a default value
+$categoryId = isset($_GET['category_id']) ? $_GET['category_id'] : null;
+// Fetch products based on the category_id, or return an empty array if it's null
 $products = $db->getAllProducts($categoryId) ?? [];
+// Fetch product categories (this part remains unchanged)
 $stmt = $db->conn->prepare("SELECT * FROM product_categories WHERE is_active = 1");
 $stmt->execute();
 $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-// Group products by category
+
+
 $grouped = [];
-foreach ($products as $p) {
-    $cat = $p['category_id'] ?? 'Other';
-    $grouped[$cat][] = $p;
+  foreach ($products as $p) {
+  $cat = $p['category_id'] ?? 'Other';
+  $catKey = is_string($cat) ? $cat : (string)$cat;
+  $grouped[$catKey][] = [
+  'product_id' => (int)($p['product_id'] ?? 0),
+  'product_name' => $p['product_name'] ?? 'Unnamed',
+  'product_price' => (float)($p['product_price'] ?? 0),
+  'best' => isset($p['best']) ? (bool)$p['best'] : (($p['product_categoy'] ?? '') == 1),
+  'stock' => $p['stock_quantity'] ?? 0,
+  'status' => $p['is_active'] ?? 1,
+  'raw' => $p
+    ];
 }
 
-// 🔹 Escape helper
 function escape($s) {
     return htmlspecialchars($s, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
 }
 
-//  Product card generator (fixed)
 function card_html($p) {
-    $id = (int)$p['product_id'];
-    $name = escape($p['product_name']);
-    $priceFmt = number_format($p['product_price'], 2);
-    $best = !empty($p['best']);
-    $img = escape($p['image'] ?? 'uploads/default.jpg');
+    // ensure expected values exist
+    $id = (int)($p['product_id'] ?? 0);
+    $name = escape($p['product_name'] ?? 'Unnamed');
+    $priceFmt = number_format((float)($p['product_price'] ?? 0), 2);
+    $best = !empty($p['best']) ? true : false;
+    $status = (int)($p['status'] ?? 1);
     $isActive = $p['is_active'] ?? 1;
     $isBlocked = $GLOBALS['isBlocked'];
 
     // Disable if product inactive OR customer blocked
-    $disabled = ($isActive == 0 || $isBlocked) ? 'disabled' : '';
-    $inactiveClass = ($isActive == 0 || $isBlocked) ? 'faded' : '';
+    $disabledAttr = ($status === 0 || $isBlocked) ? 'disabled' : '';
+    $inactiveClass = ($status === 0 || $isBlocked) ? 'faded' : '';
+
+    // try to read image path from raw data if present, fallback to placeholder
+    $img = 'uploads/default.jpg';
+    if (!empty($p['raw']['image'])) {              
+        $img = escape($p['raw']['image']);
+    } elseif (!empty($p['raw']['image_path'])) {
+        $img = escape($p['raw']['image_path']);
+    }
 
     $bestLabel = $best ? '<span class="badge-best">Best Seller</span>' : '';
+    $btnHtml = '<button class="btn btn-coffee mt-2" ' . $disabledAttr . '>Add</button>';
 
-    return <<<HTML
-    <div class="col-12 col-sm-6 col-lg-4">
-      <div class="menu-card {$inactiveClass}" data-id="{$id}">
-        <div class="card-media">
-          <img src="{$img}" alt="{$name}">
-          {$bestLabel}
-        </div>
-        <div class="menu-body">
-          <div class="menu-name">{$name}</div>
-          <div class="menu-bottom">
-            <div class="menu-price">₱{$priceFmt}</div>
-            <div class="controls">
-              <input type="number" min="1" max="99" value="1" class="quantity-input" {$disabled}>
-              <button class="btn btn-coffee mt-2 add-to-cart" data-id="{$id}" {$disabled}>
-                Add
-              </button>
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-HTML;
+    $dataPrice = htmlspecialchars((string)($p['product_price'] ?? '0'), ENT_QUOTES);
+    $dataName  = htmlspecialchars($name, ENT_QUOTES);
+
+    $html  = '<div class="col-12 col-sm-6 col-lg-4">';
+    $html .= '<div class="menu-card ' . $inactiveClass . '" data-product-id="' . $id . '" data-product-price="' . $dataPrice . '" data-product-name="' . $dataName . '">';
+    $html .= '<div class="card-media">';
+    $html .= '<img src="' . $img . '" alt="' . $dataName . '">';
+    $html .= $bestLabel;
+    $html .= '</div>'; // card-media
+    $html .= '<div class="menu-body">';
+    $html .= '<div class="menu-name">' . $name . '</div>';
+    $html .= '<div class="menu-bottom">';
+    $html .= '<div class="menu-price">₱' . $priceFmt . '</div>';
+    $html .= '<div class="controls">';
+    $html .= '<input type="number" min="1" max="99" value="1" class="quantity-input" ' . $disabledAttr . '>';
+    $html .= $btnHtml;
+    $html .= '</div>'; // controls
+    $html .= '</div>'; // menu-bottom
+    $html .= '</div>'; // menu-body
+    $html .= '</div>'; // menu-card
+    $html .= '</div>'; // column
+
+    return $html;
 }
 ?>
-
 
 <!DOCTYPE html>
 		<html lang="en">
@@ -399,12 +421,11 @@ HTML;
 <?php endforeach; ?>
 
 
-            <?php if ($isBlocked): ?>
+     <?php if ($isBlocked): ?>
           <div class="alert alert-danger text-center mt-4">
             <i class="fas fa-ban me-1"></i> Your account is blocked. Ordering is disabled.
           </div>
         <?php endif; ?>
-
 
 
 
@@ -436,7 +457,7 @@ HTML;
 
 
 
-  <!-- SCRIPTS -->
+ <!-- SCRIPTS -->
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 <script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
