@@ -12,7 +12,7 @@ session_start();
 }
 
 
-$customer_id = $_SESSION['customer_ID'];
+$customer_id = $_SESSION['customer_ID']; // assign session value first
 
 $stmt = $db->conn->prepare("SELECT status FROM customer WHERE customer_id = ?");
 $stmt->execute([$customer_id]);
