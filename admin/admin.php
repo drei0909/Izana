@@ -5,9 +5,10 @@ require_once('../classes/database.php');
 require_once (__DIR__. "/../classes/config.php");
 
 if (!isset($_SESSION['admin_ID'])) {
-    header("Location: admin_L.php");
+    header("Location: " . BASE_URL . "admin_L.php");
     exit();
 }
+
 
 $db = new Database();
 

@@ -1,2 +1,3 @@
 <?php
-define("BASE_URL", "http://localhost/Izana_shop/");
+define('BASE_URL', 'https://izanacafe.shop/');
+

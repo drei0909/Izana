@@ -3,12 +3,13 @@ session_start();
 
     require_once('./classes/database.php');
 
-    require_once (__DIR__. "/classes/config.php");
+    require_once (__DIR__. "./classes/config.php");
     $db = new database();
 
     if (isset($_SESSION['admin_ID'])) {
-        header("Location: ".BASE_URL."admin/admin.php");
-    exit();
+      header("Location: " . BASE_URL . "admin/admin.php");
+exit();
+
 }
 
 $alert = '';
@@ -30,6 +31,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['login'])) {
         $_SESSION['admin_FN'] = $result['admin_FN'];
 
         header("Location: ".BASE_URL."admin/admin.php");
+
         exit();
     } else {
         $alert = "<script>Swal.fire('Error', 'Unexpected error occurred. Please try again.', 'error');</script>";
