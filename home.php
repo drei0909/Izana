@@ -177,7 +177,9 @@ $db = new database();
             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="authDropdown">
               <li><a class="dropdown-item" href="login.php"><i class="fas fa-sign-in-alt me-2"></i>Login</a></li>
               <li><a class="dropdown-item" href="registration.php"><i class="fas fa-user-plus me-2"></i>Register</a></li>
+              <li><a class="dropdown-item" href="admin_L.php"><i class="fas fa-user-shield me-2"></i>Admin</a></li>
             </ul>
+
           </div>
         <?php endif; ?>
       </div>
