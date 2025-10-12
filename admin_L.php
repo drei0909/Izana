@@ -3,7 +3,7 @@ session_start();
 
     require_once('./classes/database.php');
 
-    require_once (__DIR__. "./classes/config.php");
+    require_once (__DIR__. "/classes/config.php");
     $db = new database();
 
     if (isset($_SESSION['admin_ID'])) {
