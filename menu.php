@@ -421,11 +421,9 @@ function card_html($p) {
 <?php endforeach; ?>
 
 
-     <?php if ($isBlocked): ?>
-          <div class="alert alert-danger text-center mt-4">
+          <div class="alert alert-danger text-center mt-4 account-status-msg">
             <i class="fas fa-ban me-1"></i> Your account is blocked. Ordering is disabled.
           </div>
-        <?php endif; ?>
 
 
 
@@ -519,6 +517,35 @@ function loadNotifications() {
   });
 }
 
+
+
+let account_status_msg = '<?= $isBlocked ?>';
+if(account_status_msg == '1'){ // If account is blocked
+ $(".account-status-msg").show();
+}else{
+  $(".account-status-msg").hide();
+}
+ 
+function checkAccountStatus() {
+  $.ajax({
+    url: "functions.php",
+    method: "POST",
+    data: { ref: "check_acc_status" },
+    dataType: "json",
+    success: function(res) {
+      if (res.status === "success") {
+
+        if (res.account_status == 'active') {
+          $(".account-status-msg").hide();
+        } else {
+          $(".account-status-msg").show();
+        }
+
+      }
+    }
+  });
+}
+
 // Mark notifications as read
 function markNotificationsRead() {
   $.ajax({
@@ -546,7 +573,10 @@ $(document).ready(function() {
   loadNotifications();
 
   // Auto-refresh notifications every 5 seconds
-  setInterval(loadNotifications, 5000);
+  // setInterval(
+  //   loadNotifications,
+  //   checkAccountStatus
+  // , 5000);
 });
 
   
@@ -556,6 +586,7 @@ $(document).ready(function() {
   setInterval(() => {
     updateCartCount();
     loadNotifications();
+    checkAccountStatus();
   }, 2000); 
 
   

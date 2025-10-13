@@ -138,11 +138,20 @@ $(document).ready(function(){
 
                 res.orders.forEach(order => {
                     const status = parseInt(order.order_status); // Ensure numeric
-
+          
                     // Filter by order type
                     if (orderType !== 'All') {
                         if (orderType === 'Cancelled' && status !== 4) return;
                         if (orderType !== 'Cancelled' && order.order_channel !== orderType) return;
+                    }
+               
+                    var status_msg = '';
+                    if (status === 4) {
+                        status_msg = '<span class="badge bg-danger">Cancelled</span>';
+                    } else if (status === 5) {
+                        status_msg = '<span class="badge bg-success">Completed</span>';
+                    } else {
+                        status_msg = '<span class="badge bg-warning">Pending</span>';
                     }
 
                     // Build table row
@@ -150,13 +159,7 @@ $(document).ready(function(){
                         <td>${order.order_channel}</td>
                         <td>${order.customer_name || 'Walk-in Customer'}</td>
                         <td>₱${parseFloat(order.total_amount).toFixed(2)}</td>
-                        <td>${
-                            status === 4 
-                                ? '<span class="badge bg-danger">Cancelled</span>'
-                                : order.payment_status === 'Completed'
-                                    ? '<span class="badge bg-success">Completed</span>'
-                                    : '<span class="badge bg-warning">Pending</span>'
-                        }</td>
+                        <td>${status_msg}</td>
                         <td>${order.order_date}</td>
                         <td>
                             <button class="btn btn-outline-danger btn-sm deleteOrder" data-id="${order.id}">Delete</button>

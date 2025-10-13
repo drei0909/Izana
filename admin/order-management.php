@@ -150,6 +150,7 @@ $(document).ready(function() {
 
     $(document).on('click', '.btn-cancel-order', function() {
     const orderId = $(this).data('order-id');
+    const orderType = $(this).data('order-type');
     const row = $(this).closest('li'); // assuming your queue uses <li> items
 
     Swal.fire({
@@ -164,7 +165,7 @@ $(document).ready(function() {
             $.ajax({
                 url: 'admin_functions.php',
                 method: 'POST',
-                data: { ref: 'cancel_order', order_id: orderId },
+                data: { ref: 'cancel_order', order_id: orderId, order_type: orderType },
                 dataType: 'json',
                 success: function(response) {
                     if (response.status === 'success')
@@ -198,7 +199,10 @@ $(document).ready(function() {
 
 // Enable double-click to view order details
 $(document).off("dblclick", ".order-item").on("dblclick", ".order-item", function() {
+
     const orderId = $(this).data("id");
+    const orderType = $(this).data("type");
+
     $("#viewOrderModal").modal("show");
     $(".order-items").html("<p class='text-center text-muted'>Loading...</p>");
 
@@ -207,7 +211,8 @@ $(document).off("dblclick", ".order-item").on("dblclick", ".order-item", functio
         type: "POST",
         data: {
             ref: "get_order_item",
-            order_id: orderId
+            order_id: orderId,
+            orderType: orderType
         },
         dataType: "json",
         success: function(response) {
@@ -221,23 +226,27 @@ $(document).off("dblclick", ".order-item").on("dblclick", ".order-item", functio
             $(".order-items").html("<p class='text-danger text-center'>Error fetching order data.</p>");
         }
     });
+
 });
 
 
 
-function viewOrder(orderId) {
+function viewOrder(orderId, orderType) {
     $("#viewOrderModal").modal("show");
     $(".order-items").html("<p class='text-center text-muted'>Loading...</p>");
-    $(".customer-name, .ref-no, .receipt").html(""); // clear previous data
+    $(".customer-name, .ref-no, .receipt, .con-no").html("Walk-in"); // clear previous data
 
     $.ajax({
         url: "admin_functions.php",
         method: "POST",
-        data: { ref: "get_order_item", order_id: orderId },
+        data: { ref: "get_order_item", order_id: orderId, order_type: orderType },
         dataType: "json",
         success: function(response) {
             if (response.status === "success") {
                 $(".order-items").html(response.html);
+
+                 $(".btn-cancel-order, .btn-complete-order").attr('data-order-id',orderId);
+                 $(".btn-cancel-order, .btn-complete-order").attr('data-order-type',orderType);
 
                 // Fetch customer name and ref_no and contact
                 $.ajax({
@@ -265,6 +274,8 @@ function viewOrder(orderId) {
                            // Handle "Complete Order" button
 $(document).on('click', '.btn-complete-order', function() {
     const orderId = $(this).data('order-id');
+    const orderType = $(this).data('order-type');
+    alert(orderId + " " + orderType);
     const row = $(".order-item[data-id='" + orderId + "']"); // Find order in queue
 
     Swal.fire({
@@ -281,7 +292,8 @@ $(document).on('click', '.btn-complete-order', function() {
                 method: 'POST',
                 data: {
                     ref: 'complete_order',
-                    order_id: orderId
+                    order_id: orderId,
+                    order_type: orderType
                 },
                 dataType: 'json',
                 success: function(response) {
@@ -345,7 +357,9 @@ $(document).on('click', '.btn-complete-order', function() {
 // Trigger modal on double-click or button
 $(document).on("dblclick", ".order-item, .btn-view-order", function() {
     const orderId = $(this).data("order-id") || $(this).data("id");
-    viewOrder(orderId);
+    const orderType = $(this).data("order-type");
+
+    viewOrder(orderId , orderType);
 });
 
 
@@ -435,7 +449,7 @@ $(document).on("dblclick", ".order-item, .btn-view-order", function() {
           });
         }
 
-        setInterval(refreshOrderQue, 1000);
+        setInterval(refreshOrderQue, 5000);
 
         if($(".load-order-que").length) {
           refreshOrderQue();

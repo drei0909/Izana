@@ -351,6 +351,30 @@ if ($_POST['ref'] === 'fetch_notifications') {
     exit;
 }
 
+if ($_POST['ref'] === 'check_acc_status') {
+
+    if (session_status() === PHP_SESSION_NONE) {
+        session_start();
+    }
+
+    $customer_id = $_SESSION['customer_ID'] ?? null;
+
+    if (!$customer_id) {
+        echo json_encode(["status" => "error", "message" => "No customer logged in."]);
+        exit;
+    }
+
+    // Fetch all notifications
+    $stmt = $db->conn->prepare("SELECT status FROM customer WHERE customer_id = ?");
+    $stmt->execute([$customer_id]);
+    $account = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    echo json_encode([
+        "status" => "success",
+        "account_status" => $account['status']
+    ]);
+    exit;
+}
 
 
 //Mark all notifications as read
