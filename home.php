@@ -16,29 +16,44 @@ $db = new database();
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
   <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Quicksand:wght@400;600&display=swap" rel="stylesheet">
   <link rel="icon" type="image/svg+xml" href="uploads/icon.svg">
-  <style>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700&display=swap" rel="stylesheet">
 
+ 
+  <style>
+   
     body {
-      font-family: 'Quicksand', sans-serif;
+      font-family: 'Montserrat', sans-serif;
       background-color: #fdfaf7;
       color: #4b3a2f;
+      margin: 0;
     }
 
+   
     .navbar {
       background-color: transparent;
+      transition: background-color 0.3s ease;
+    }
+
+    .navbar.transparent-navbar {
+      background-color: rgba(0, 0, 0, 0.3) !important;
+      backdrop-filter: blur(8px);
     }
 
     .navbar-brand {
-      font-family: 'Playfair Display', serif;
+      font-weight: 700;
       font-size: 2rem;
-      color: white !important;
+      color: #fff !important;
     }
 
     .nav-link {
-      color: white !important;
+      color: #fff !important;
       font-weight: 600;
+      letter-spacing: 0.5px;
     }
 
+    /* Header */
     .header {
       background: url('uploads/bgg.jpg') no-repeat center center / cover;
       height: 105vh;
@@ -65,8 +80,8 @@ $db = new database();
     }
 
     .header h1 {
-      font-family: 'Playfair Display', serif;
       font-size: 3.5rem;
+      font-weight: 700;
       margin-bottom: 20px;
     }
 
@@ -77,8 +92,14 @@ $db = new database();
       padding: 12px 28px;
       font-weight: 600;
       border: none;
+      transition: background-color 0.3s;
     }
 
+    .header .btn:hover {
+      background-color: #b18368;
+    }
+
+    /* Features */
     .features {
       padding: 60px 15px;
       text-align: center;
@@ -87,6 +108,7 @@ $db = new database();
     .features i {
       font-size: 2rem;
       color: #c69b7b;
+      margin-bottom: 10px;
     }
 
     .features h5 {
@@ -94,6 +116,7 @@ $db = new database();
       font-weight: 700;
     }
 
+    /* Gallery */
     .gallery {
       padding: 40px 0;
     }
@@ -105,6 +128,7 @@ $db = new database();
       border-radius: 10px;
     }
 
+    /* Footer */
     footer {
       background-color: #4b3a2f;
       color: #f4e7d6;
@@ -114,12 +138,18 @@ $db = new database();
     footer a {
       color: #f4e7d6;
       text-decoration: none;
+      transition: color 0.3s;
+    }
+
+    footer a:hover {
+      color: #c69b7b;
     }
 
     footer input {
       border-radius: 20px;
       padding: 8px 15px;
       border: none;
+      outline: none;
     }
 
     footer button {
@@ -128,15 +158,13 @@ $db = new database();
       padding: 8px 18px;
       border-radius: 20px;
       color: #fff;
+      font-weight: 600;
+      transition: background-color 0.3s;
     }
 
-  <style>
-
-  .transparent-navbar {
-    background-color: rgba(0, 0, 0, 0.3) !important;
-    backdrop-filter: blur(8px);
-    transition: background-color 0.3s ease;
-  }
+    footer button:hover {
+      background-color: #b18368;
+    }
   </style>
   </style>
   </head>
@@ -177,7 +205,7 @@ $db = new database();
             <ul class="dropdown-menu dropdown-menu-end" aria-labelledby="authDropdown">
               <li><a class="dropdown-item" href="login.php"><i class="fas fa-sign-in-alt me-2"></i>Login</a></li>
               <li><a class="dropdown-item" href="registration.php"><i class="fas fa-user-plus me-2"></i>Register</a></li>
-              <li><a class="dropdown-item" href="admin_L.php"><i class="fas fa-user-shield me-2"></i>Admin</a></li>
+              <!-- <li><a class="dropdown-item" href="admin_L.php"><i class="fas fa-user-shield me-2"></i>Admin</a></li> -->
             </ul>
 
           </div>
@@ -333,25 +361,3 @@ $db = new database();
 </html>
 
 
-
-<a href="home.php" class="back-home"><i class="fas fa-home me-2"></i>Home</a>
-
-<div class="login-container">
-  <div class="icon-box"><i class="fas fa-mug-hot"></i></div>
-  <h2 class="title">Welcome Back</h2>
-  <form method="POST" action="" autocomplete="off">
-    <div class="mb-3">
-      <label class="form-label">Username</label>
-      <input type="text" name="username" class="form-control" required 
-             value="<?= htmlspecialchars($username) ?>" autocomplete="off">
-    </div>
-    <div class="mb-3">
-      <label class="form-label">Password</label>
-      <input type="password" name="password" class="form-control" required autocomplete="new-password">
-    </div>
-    <button type="submit" name="login" class="btn-coffee mt-2">Login</button>
-  </form>
-  <div class="text-center mt-4">
-    Don't have an account? <a href="registration.php">Register here</a>
-  </div>
-</div>

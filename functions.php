@@ -656,6 +656,128 @@ if (isset($_POST['ref']) && $_POST['ref'] === 'rebuy_order') {
 }
 
 
+// Handle Forgot Password Request
+if (isset($_POST['ref']) && $_POST['ref'] === "forgot_password_request") {
+    $email = trim($_POST['email'] ?? '');
+
+    if ($email === '') {
+        echo json_encode(['status' => 'error', 'message' => 'Email is required.']);
+        exit;
+    }
+
+    try {
+        // ✅ FIX: Use correct column name "customer_email"
+        $stmt = $db->conn->prepare("SELECT customer_id, customer_FN FROM customer WHERE customer_email = ?");
+        $stmt->execute([$email]);
+        $user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$user) {
+            echo json_encode(['status' => 'error', 'message' => 'No account found with this email.']);
+            exit;
+        }
+
+        // Generate secure reset token
+        $token = bin2hex(random_bytes(32));
+        $expires = date('Y-m-d H:i:s', strtotime('+15 minutes'));
+
+        // Create password_resets table if not exists
+        $db->conn->prepare("
+            CREATE TABLE IF NOT EXISTS password_resets (
+                id INT AUTO_INCREMENT PRIMARY KEY,
+                customer_id INT NOT NULL,
+                token VARCHAR(255) NOT NULL,
+                expires_at DATETIME NOT NULL,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            )
+        ")->execute();
+
+        // Remove old tokens for the same user
+        $db->conn->prepare("DELETE FROM password_resets WHERE customer_id = ?")->execute([$user['customer_id']]);
+
+        // Insert new reset token
+        $db->conn->prepare("
+            INSERT INTO password_resets (customer_id, token, expires_at) VALUES (?, ?, ?)
+        ")->execute([$user['customer_id'], $token, $expires]);
+
+       $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443)
+    ? "https://" : "http://";
+$host = $_SERVER['HTTP_HOST'];
+$path = rtrim(dirname($_SERVER['PHP_SELF']), '/\\'); // detects your folder name
+$resetLink = $protocol . $host . $path . "/reset_password.php?token=$token";
+
+        $mail = new PHPMailer(true);
+        $mail->isSMTP();
+        $mail->Host = 'smtp.hostinger.com';
+        $mail->SMTPAuth = true;
+        $mail->Username = 'info@izanacafe.shop';
+        $mail->Password = 'Izana@Cafe9';
+        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+        $mail->Port = 587;
+
+        $mail->setFrom('info@izanacafe.shop', 'Izana Coffee Shop');
+        $mail->addAddress($email, $user['customer_FN']);
+        $mail->isHTML(true);
+        $mail->Subject = 'Reset Your Izana Coffee Account Password';
+        $mail->Body = "
+            <h3>Hello {$user['customer_FN']},</h3>
+            <p>Click the button below to reset your password:</p>
+            <p><a href='$resetLink' style='background:#f2c9a0;padding:10px 20px;color:#000;border-radius:5px;text-decoration:none;'>Reset Password</a></p>
+            <p>This link will expire in 15 minutes.</p>
+        ";
+
+        $mail->send();
+        echo json_encode(['status' => 'success', 'message' => 'Password reset link has been sent to your email.']);
+    } catch (Exception $e) {
+        echo json_encode(['status' => 'error', 'message' => 'Failed to send reset email.']);
+    }
+    exit;
+}
+
+// RESET PASSWORD HANDLER
+// Handle reset password (AJAX)
+if (isset($_POST['ref']) && $_POST['ref'] === 'reset_password') {
+    $token = trim($_POST['token'] ?? '');
+    $new = $_POST['new_password'] ?? '';
+    $confirm = $_POST['confirm_password'] ?? '';
+
+    if ($token === '' || $new === '' || $confirm === '') {
+        echo json_encode(['status'=>'error','message'=>'All fields are required.']); exit;
+    }
+    if ($new !== $confirm) {
+        echo json_encode(['status'=>'error','message'=>'Passwords do not match.']); exit;
+    }
+    if (strlen($new) < 6) {
+        echo json_encode(['status'=>'error','message'=>'Password must be at least 6 characters.']); exit;
+    }
+
+    try {
+        // fetch token
+        $stmt = $db->conn->prepare("SELECT customer_id, expires_at FROM password_resets WHERE token = ? LIMIT 1");
+        $stmt->execute([$token]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if (!$row) { echo json_encode(['status'=>'error','message'=>'Invalid token.']); exit; }
+        if (strtotime($row['expires_at']) < time()) {
+            $db->conn->prepare("DELETE FROM password_resets WHERE token = ?")->execute([$token]);
+            echo json_encode(['status'=>'error','message'=>'Token expired. Please request a new link.']); exit;
+        }
+
+        $hashed = password_hash($new, PASSWORD_BCRYPT);
+
+        // update user's password — use your actual column name
+        $db->conn->prepare("UPDATE customer SET customer_password = ? WHERE customer_id = ?")
+                 ->execute([$hashed, $row['customer_id']]);
+
+        // remove the token
+        $db->conn->prepare("DELETE FROM password_resets WHERE token = ?")->execute([$token]);
+
+        echo json_encode(['status'=>'success','message'=>'Password updated. You can now login.']);
+        exit;
+    } catch (Exception $e) {
+        echo json_encode(['status'=>'error','message'=>'Server error.']); exit;
+    }
+}
+
 
 
 

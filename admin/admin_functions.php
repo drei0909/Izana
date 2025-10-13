@@ -564,6 +564,53 @@ if (isset($_POST['ref']) && $_POST['ref'] === 'update_customer_status') {
     exit;
 }
 
+// Fetch customer details
+if (isset($_POST['ref']) && $_POST['ref'] === 'get_customer_details') {
+    header('Content-Type: application/json');
+
+    $customer_id = intval($_POST['customer_id'] ?? 0);
+
+    if ($customer_id <= 0) {
+        echo json_encode(['status' => 'error', 'message' => 'Invalid customer ID.']);
+        exit;
+    }
+
+    try {
+        $stmt = $db->conn->prepare("
+            SELECT 
+                customer_ID,
+                CONCAT(customer_FN, ' ', customer_LN) AS full_name,
+                customer_email AS email,
+                customer_contact AS contact,
+                status,
+                DATE_FORMAT(created_at, '%M %d, %Y %h:%i %p') AS created_at
+            FROM customer
+            WHERE customer_ID = ?
+            LIMIT 1
+        ");
+        $stmt->execute([$customer_id]);
+        $customer = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        if ($customer) {
+            echo json_encode([
+                'status' => 'success',
+                'data' => $customer
+            ]);
+        } else {
+            echo json_encode([
+                'status' => 'error',
+                'message' => 'Customer not found.'
+            ]);
+        }
+    } catch (Exception $e) {
+        echo json_encode([
+            'status' => 'error',
+            'message' => 'Database error: ' . $e->getMessage()
+        ]);
+    }
+
+    exit;
+}
 
 
 

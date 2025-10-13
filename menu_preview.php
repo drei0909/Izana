@@ -92,20 +92,34 @@ function card_html($p) {
   <meta charset="UTF-8">
   <title>Menu Preview | Izana Coffee</title>
   <meta name="viewport" content="width=device-width, initial-scale=1">
+
+  <!--Bootstrap CSS -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Quicksand:wght@400;600&display=swap" rel="stylesheet">
+
+  <!--Font Awesome (Latest Version for Icons) -->
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.6.0/css/all.min.css" rel="stylesheet">
+
+  <!-- Google Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+
+  <!-- Favicon -->
   <link rel="icon" type="image/svg+xml" href="uploads/icon.svg">
 
   <style>
+    * {
+      font-family: 'Montserrat', sans-serif !important;
+      box-sizing: border-box;
+    }
+
     body {
       background: url('uploads/bgg.jpg') no-repeat center center fixed;
       background-size: cover;
-      font-family: 'Quicksand', sans-serif;
       min-height: 100vh;
       display: flex;
       flex-direction: column;
       position: relative;
+      color: #333;
+      margin: 0;
     }
 
     body::before {
@@ -117,25 +131,24 @@ function card_html($p) {
       z-index: -1;
     }
 
-    /* HEADER */
     header {
       text-align: center;
       padding: 40px 20px 20px;
       color: #fff;
     }
+
     header h1 {
-      font-family: 'Playfair Display', serif;
       font-size: 2.8rem;
       font-weight: 700;
       text-shadow: 2px 2px 6px rgba(0,0,0,0.7);
     }
+
     header p {
       font-size: 1.2rem;
       color: #f2d9be;
       margin-top: 8px;
     }
 
-    /* MENU CONTAINER */
     .container-menu {
       max-width: 1200px;
       margin: 20px auto 40px;
@@ -152,17 +165,17 @@ function card_html($p) {
       text-shadow: 1px 1px 4px rgba(0,0,0,0.6);
     }
 
-    /* PRODUCT CARD */
-    .menu-card {
-      background: #fff;
-      border: none;
-      border-radius: 15px;
-      padding: 18px;
-      text-align: center;
-      box-shadow: 0 6px 20px rgba(0,0,0,0.15);
-      transition: transform 0.25s ease, box-shadow 0.25s ease;
-    }
-    
+   .menu-card {
+  background: rgba(255, 255, 255, 0.25); /* lighter for better text readability */
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  border-radius: 15px;
+  padding: 18px;
+  text-align: center;
+  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+  transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
+  backdrop-filter: blur(8px); /* stronger glass blur */
+}
+
     .menu-card img {
       width: 100%;
       max-height: 180px;
@@ -170,19 +183,20 @@ function card_html($p) {
       border-radius: 12px;
       margin-bottom: 15px;
     }
-    .menu-name {
-      font-size: 1.2rem;
-      font-weight: 700;
-      color: #333;
-      margin-bottom: 6px;
-    }
-    .menu-price {
-      font-size: 1.1rem;
-      font-weight: 600;
-      color: #b07542;
-    }
 
-    /* NOTE */
+    .menu-name {
+  font-size: 1.25rem;
+  font-weight: 700;
+  color: #fff; /* white for visibility */
+  text-shadow: 1px 1px 3px rgba(0,0,0,0.6);
+}
+
+.menu-price {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: #f2d9be; /* soft gold tone */
+  text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+}
     .note-text {
       text-align: center;
       color: #ddd;
@@ -190,7 +204,6 @@ function card_html($p) {
       font-style: italic;
     }
 
-    /* BACK BUTTON */
     .back-btn {
       position: fixed;
       top: 20px;
@@ -203,11 +216,11 @@ function card_html($p) {
       text-decoration: none;
       transition: all 0.3s ease;
     }
+
     .back-btn:hover {
       background: #8c5a33;
     }
 
-    /* FOOTER */
     footer {
       background: rgba(0, 0, 0, 0.85);
       text-align: center;
@@ -216,22 +229,25 @@ function card_html($p) {
       font-size: 1rem;
       border-top: 3px solid #b07542;
     }
+
     footer a {
       color: #fff;
       font-weight: 600;
       text-decoration: none;
     }
+
     footer a:hover {
       color: #f2d9be;
     }
   </style>
 </head>
+
 <body>
 
-<a href="home.php" class="back-btn"><i class="fas fa-arrow-left me-2"></i>Back</a>
+<a href="home.php" class="back-btn"><i class=""></i>Back</a>
 
 <header>
-  <h1>☕ Explore Our Products</h1>
+  <h1>Explore Our Products</h1>
   <p>Discover the best of Izana Coffee</p>
 </header>
 
@@ -253,6 +269,43 @@ function card_html($p) {
      <?php endforeach; ?>
   </div>
 </div>
+
+<footer>
+  <div class="footer-content container py-4 text-center">
+    <!-- ABOUT -->
+    <a class="navbar-brand" href="#">
+        <img src="uploads/izana_logo.png" alt="IZANA Logo" style="height: 80px;">
+      </a>
+    <p class="mb-3" style="color:#e0c6a3; max-width:600px; margin:0 auto;">
+      Brewed with passion in Rosario, Batangas — serving handcrafted coffee and frappes to fuel your day.
+    </p>
+    <p class="small mb-1" style="color:#d8b68a;">
+      <i class="fa-solid fa-location-dot me-2"></i>Rosario, Batangas, Philippines
+    </p>
+    <p class="small mb-4" style="color:#d8b68a;">
+      <i class="fa-solid fa-phone me-2"></i>+63 912 345 6789
+    </p>
+
+    <!-- ACCOUNT LINKS -->
+    <div class="account-links mb-3">
+      <p style="color:#e0c6a3;">Don’t have an account? 
+        <a href="registration_C.php" style="color:#fff; text-decoration:underline;">Register here</a>.
+      </p>
+      <p style="color:#e0c6a3;">Already have one? 
+        <a href="login.php" style="color:#fff; text-decoration:underline;">Login</a>.
+      </p>
+    </div>
+  </div>
+
+  <!-- COPYRIGHT -->
+  <div class="footer-bottom text-center py-3 mt-3" style="background:rgba(0,0,0,0.85); border-top:1px solid #b07542;">
+    <p class="mb-0" style="color:#f2d9be; font-size:0.95rem;">
+      © 2025 <strong>Izana Coffee</strong>.
+    </p>
+  </div>
+</footer>
+
+
 
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script>
