@@ -126,6 +126,8 @@ Swal.fire({
 $(document).ready(function(){
     $('#categoryTable').DataTable();
 });
+
+
 </script>
 <!-- end -->
 </body>

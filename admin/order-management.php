@@ -262,9 +262,69 @@ function viewOrder(orderId) {
                                 $(".receipt").html("<p class='text-muted'>No receipt uploaded.</p>");
                             }
 
-                            // Update buttons
-                            $("#viewOrderModal .btn-cancel-order, #viewOrderModal .btn-complete-order")
-                                .data("order-id", orderId);
+                           // Handle "Complete Order" button
+$(document).on('click', '.btn-complete-order', function() {
+    const orderId = $(this).data('order-id');
+    const row = $(".order-item[data-id='" + orderId + "']"); // Find order in queue
+
+    Swal.fire({
+        title: 'Mark as Completed?',
+        text: 'This order will be added to Sales Report as completed.',
+        icon: 'question',
+        showCancelButton: true,
+        confirmButtonText: 'Yes, Complete it!',
+        cancelButtonText: 'No'
+    }).then((result) => {
+        if (result.isConfirmed) {
+            $.ajax({
+                url: 'admin_functions.php',
+                method: 'POST',
+                data: {
+                    ref: 'complete_order',
+                    order_id: orderId
+                },
+                dataType: 'json',
+                success: function(response) {
+                    if (response.status === 'success') {
+                        Swal.fire({
+                            icon: 'success',
+                            title: 'Order Completed!',
+                            text: response.message,
+                            timer: 1500,
+                            showConfirmButton: false
+                        });
+
+                        // Remove order from queue visually
+                        row.fadeOut(500, function() { $(this).remove(); });
+
+                        // Optionally close modal
+                        $("#viewOrderModal").modal("hide");
+
+                        // Send a notification to customer
+                        $.ajax({
+                            url: 'admin_functions.php',
+                            type: 'POST',
+                            data: {
+                                ref: 'insert_notification',
+                                order_id: orderId,
+                                message: 'Your order #' + orderId + ' has been completed. Thank you for ordering with us!'
+                            },
+                            success: function(n) {
+                                console.log('Notification sent to customer.');
+                            }
+                        });
+                    } else {
+                        Swal.fire('Error', response.message, 'error');
+                    }
+                },
+                error: function() {
+                    Swal.fire('Error', 'Unable to complete order.', 'error');
+                }
+            });
+        }
+    });
+});
+
                         }
                     },
                     error: function() {
@@ -342,7 +402,7 @@ $(document).on("dblclick", ".order-item, .btn-view-order", function() {
                           dataType: "json",
                           success: function(response) {
                             if (response.status === "success") {
-                              // ✅ SweetAlert toast feedback for admin
+                              //SweetAlert toast feedback for admin
                               Swal.fire({
                                 toast: true,
                                 position: 'top-end',

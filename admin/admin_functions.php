@@ -348,18 +348,18 @@ if (isset($_POST['ref']) && $_POST['ref'] === 'cancel_order') {
 // Complete Order
 if (isset($_POST['ref']) && $_POST['ref'] === 'complete_order') {
     $order_id = intval($_POST['order_id']);
-
     try {
-        // --- Step 1: Mark order as completed ---
+        // Update order status to completed (5)
         $stmt = $db->conn->prepare("UPDATE order_online SET status = 5 WHERE order_id = ?");
         $stmt->execute([$order_id]);
 
-        // --- Step 2: Fetch order details for insertion ---
+        // Fetch order details and customer info
         $stmtFetch = $db->conn->prepare("
             SELECT 
-                o.order_id,
-                o.total_amount,
-                o.created_at,
+                o.order_id, 
+                o.total_amount, 
+                o.created_at, 
+                o.customer_id,
                 CONCAT(c.customer_FN, ' ', c.customer_LN) AS customer_name
             FROM order_online o
             JOIN customer c ON o.customer_id = c.customer_ID
@@ -369,28 +369,30 @@ if (isset($_POST['ref']) && $_POST['ref'] === 'complete_order') {
         $order = $stmtFetch->fetch(PDO::FETCH_ASSOC);
 
         if ($order) {
-            // --- Step 3: Insert into sales_report (avoid duplicates) ---
-            $stmtSales = $db->conn->prepare("
-                INSERT INTO sales_report (order_id, customer_name, total_amount, order_channel, created_at)
-                VALUES (?, ?, ?, 'Online', NOW())
-                ON DUPLICATE KEY UPDATE 
-                    total_amount = VALUES(total_amount),
-                    created_at = NOW()
+            // Insert notification for the customer
+            $notif_msg = "Your order #{$order['order_id']} has been completed. Thank you for ordering with us!";
+            $stmtNotif = $db->conn->prepare("
+                INSERT INTO notifications (customer_id, message, is_read, created_at)
+                VALUES (?, ?, 0, NOW())
             ");
-            $stmtSales->execute([
-                $order['order_id'],
-                $order['customer_name'],
-                $order['total_amount']
-            ]);
+            $stmtNotif->execute([$order['customer_id'], $notif_msg]);
         }
 
-        echo json_encode(['status' => 'success', 'message' => 'Order marked as completed and added to Sales Report.']);
+        // Return success response
+        echo json_encode([
+            'status' => 'success',
+            'message' => 'Order marked as completed and customer notified.'
+        ]);
     } catch (Exception $e) {
-        echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+        echo json_encode([
+            'status' => 'error',
+            'message' => $e->getMessage()
+        ]);
     }
-
     exit;
 }
+
+
 
 // get order info
 if ($_POST['ref'] == 'get_order_info') {
@@ -486,60 +488,6 @@ if (isset($_POST['ref']) && $_POST['ref'] === 'update_customer_status') {
     } catch (Exception $e) {
         echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
     }
-    exit;
-}
-
-// Fetch single customer details
-if (isset($_POST['ref']) && $_POST['ref'] === 'get_customer_details') {
-    require_once('../classes/database.php');
-    $db = new Database();
-
-    $id = intval($_POST['customer_id'] ?? 0);
-
-    
-    if ($id <= 0) {
-        echo json_encode(['status' => 'error', 'message' => 'Invalid customer ID.']);
-        exit;
-    }
-
-    
-    $stmt = $db->conn->prepare("
-        SELECT 
-            customer_FN, 
-            customer_LN, 
-            customer_email, 
-            customer_contact, 
-            status, 
-            created_at, 
-            is_verified, 
-            last_login
-        FROM customer 
-        WHERE customer_id = ?
-    ");
-    $stmt->execute([$id]);
-    $cust = $stmt->fetch(PDO::FETCH_ASSOC);
-
-    if ($cust) {
-        echo json_encode([
-            'status' => 'success',
-            'data' => [
-                'full_name'   => trim(($cust['customer_FN'] ?? '') . ' ' . ($cust['customer_LN'] ?? '')),
-                'email'       => $cust['customer_email'] ?? 'N/A',
-                'contact'     => $cust['customer_contact'] ?? 'N/A',
-                'status'      => strtolower($cust['status'] ?? '') === 'blocked' ? 'blocked' : 'active',
-                'is_verified' => ($cust['is_verified'] ?? 0) == 1 ? 'Yes' : 'No',
-                'last_login'  => !empty($cust['last_login']) 
-                                 ? date('M d, Y h:i A', strtotime($cust['last_login'])) 
-                                 : 'Never',
-                'created_at'  => !empty($cust['created_at']) 
-                                 ? date('M d, Y h:i A', strtotime($cust['created_at'])) 
-                                 : '-'
-            ]
-        ]);
-    } else {
-        echo json_encode(['status' => 'error', 'message' => 'Customer not found.']);
-    }
-
     exit;
 }
 
