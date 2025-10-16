@@ -13,7 +13,7 @@ $username = '';
   <!-- CSS & Fonts -->
   <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Quicksand:wght@400;600&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
 
   <!-- JS Libraries -->
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -24,7 +24,7 @@ $username = '';
 
   <style>
     body {
-      font-family: 'Quicksand', sans-serif;
+      font-family: 'Montserrat', sans-serif;
       background: url('uploads/bgg.jpg') no-repeat center center fixed;
       background-size: cover;
       min-height: 100vh;
@@ -45,17 +45,19 @@ $username = '';
 
     .back-home {
       position: fixed;
-      top: 20px; left: 20px;
-      background: rgba(255,255,255,0.15);
-      border: 2px solid #f5f5f5;
-      color: #f5f5f5;
-      padding: 8px 18px;
-      border-radius: 30px;
+      top: 20px;
+      left: 20px;
+      background: #b07542;
+      color: #fff;
+      border-radius: 25px;
+      padding: 10px 20px;
       font-weight: 600;
       text-decoration: none;
-      transition: all 0.3s ease-in-out;
+      transition: all 0.3s ease;
     }
-    .back-home:hover { background: #b07542; color: #fff; }
+     .back-home:hover {
+      background: #8c5a33;
+    }
 
     .login-container {
       width: 100%;
@@ -71,8 +73,9 @@ $username = '';
 
     .icon-box { font-size: 3rem; color: #b07542; margin-bottom: 10px; }
     .title {
-      font-family: 'Playfair Display', serif;
-      font-size: 2.4rem;
+      font-family: 'Montserrat', sans-serif;
+      font-weight: 700;
+      font-size: 2.2rem;
       color: #fff8f3;
       margin-bottom: 25px;
       text-shadow: 1px 1px 2px #4b3a2f;
@@ -82,14 +85,16 @@ $username = '';
       border-radius: 30px; padding: 12px;
       background-color: #f7f5f0;
       border: 1px solid #d2b79e; color: #4b3a2f;
+      font-family: 'Montserrat', sans-serif;
     }
 
     .btn-coffee {
       background-color: #b07542; color: #fff;
       font-weight: 600; border: none;
       padding: 12px; width: 100%;
-      border-radius: 30px; letter-spacing: 1px;
+      border-radius: 30px; letter-spacing: 0.5px;
       transition: all 0.3s ease-in-out;
+      font-family: 'Montserrat', sans-serif;
     }
     .btn-coffee:hover { background-color: #8a5c33; }
 
@@ -103,6 +108,7 @@ $username = '';
     }
     .modal {
       z-index: 1060 !important;
+      font-family: 'Montserrat', sans-serif;
     }
   </style>
 </head>
@@ -127,7 +133,7 @@ $username = '';
         <input type="password" name="password" class="form-control" required autocomplete="new-password">
         <div class="text-end mt-1">
           <a href="#" data-bs-toggle="modal" data-bs-target="#forgotModal"
-             style="color:#f2c9a0; text-decoration:none; font-size:0.9rem; font-weight:500;">
+             style="color:#f2c9a0;  font-size:0.9rem; font-weight:500;">
             Forgot Password?
           </a>
         </div>

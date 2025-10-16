@@ -701,9 +701,9 @@ if (isset($_POST['ref']) && $_POST['ref'] === "forgot_password_request") {
 
        $protocol = (!empty($_SERVER['HTTPS']) && $_SERVER['HTTPS'] !== 'off' || $_SERVER['SERVER_PORT'] == 443)
     ? "https://" : "http://";
-$host = $_SERVER['HTTP_HOST'];
-$path = rtrim(dirname($_SERVER['PHP_SELF']), '/\\'); // detects your folder name
-$resetLink = $protocol . $host . $path . "/reset_password.php?token=$token";
+        $host = $_SERVER['HTTP_HOST'];
+        $path = rtrim(dirname($_SERVER['PHP_SELF']), '/\\'); // detects your folder name
+        $resetLink = $protocol . $host . $path . "/reset_password.php?token=$token";
 
         $mail = new PHPMailer(true);
         $mail->isSMTP();

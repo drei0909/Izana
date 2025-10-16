@@ -13,16 +13,23 @@
   <!DOCTYPE html>
   <html lang="en">
   <head>
-    <meta charset="UTF-8">
-    <title>Register | Izana</title>
-    <meta name="viewport" content="width=device-width, initial-scale=1">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600&family=Quicksand:wght@400;600&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-    <style>
+  <meta charset="UTF-8">
+  <title>Register | Izana</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  
+  <!-- Bootstrap & Icons -->
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  
+  <!-- Montserrat Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700&display=swap" rel="stylesheet">
+  
+  <!-- SweetAlert -->
+  <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+
+  <style>
     body {
-      font-family: 'Quicksand', sans-serif;
+      font-family: 'Montserrat', sans-serif;
       margin: 0;
       padding: 0;
       background: url('uploads/bgg.jpg') no-repeat center center;
@@ -35,74 +42,89 @@
       align-items: center;
     }
 
-
     body::before {
-        content: "";
-        position: fixed;
-        top: 0; left: 0;
-        width: 100%; height: 100%;
-        background: rgba(0,0,0,0.55);
-        z-index: -1;
+      content: "";
+      position: fixed;
+      top: 0; left: 0;
+      width: 100%; height: 100%;
+      background: rgba(0,0,0,0.55);
+      z-index: -1;
     }
-      .back-home {
+
+    .back-home {
       position: fixed;
       top: 20px;
       left: 20px;
-      background: rgba(255, 255, 255, 0.15);
-      border: 2px solid #f5f5f5;
-      color: #f5f5f5;
-      padding: 8px 18px;
-      border-radius: 30px;
+      background: #b07542;
+      color: #fff;
+      border-radius: 25px;
+      padding: 10px 20px;
       font-weight: 600;
       text-decoration: none;
-      transition: all 0.3s ease-in-out;
-      font-size: 1rem;
+      transition: all 0.3s ease;
     }
-    .back-home:hover { background: #b07542; color: #fff; }
-    .register-container {
-        width: 100%;
-        max-width: 500px;
-        background: rgba(255, 248, 230, 0.15);
-        border: 1px solid rgba(255,255,255,0.25);
-        border-radius: 18px;
-        padding: 40px 35px;
-        box-shadow: 0 12px 30px rgba(0,0,0,0.35);
-        backdrop-filter: blur(10px);
-        text-align: center;
-    }
-    .icon-box { font-size: 3rem; color: #b07542; margin-bottom: 10px; }
-    .title {
-        font-family: 'Playfair Display', serif;
-        font-size: 2.4rem;
-        color: #fff8f3;
-        margin-bottom: 25px;
-        text-shadow: 1px 1px 2px #4b3a2f;
-    }
-    .form-label { font-weight: 600; color: #f5e9dc; font-size: 0.95rem; }
-    .form-control {
-        border-radius: 30px;
-        padding: 12px;
-        background-color: #f7f5f0;
-        border: 1px solid #d2b79e;
-        color: #4b3a2f;
-    }
-    .form-control:focus {
-        box-shadow: 0 0 0 0.2rem rgba(176,117,66,0.25);
-        border-color: #b07542;
-    }
-    .btn-coffee {
-        background-color: #b07542;
-        color: #fff;
-        font-weight: 600;
-        border: none;
-        padding: 12px;
-        width: 100%;
-        border-radius: 30px;
-        letter-spacing: 1px;
-        transition: all 0.3s ease-in-out;
+     .back-home:hover {
+      background: #8c5a33;
     }
 
-      .top-buttons {
+    .register-container {
+      width: 100%;
+      max-width: 500px;
+      background: rgba(255, 248, 230, 0.15);
+      border: 1px solid rgba(255,255,255,0.25);
+      border-radius: 18px;
+      padding: 40px 35px;
+      box-shadow: 0 12px 30px rgba(0,0,0,0.35);
+      backdrop-filter: blur(10px);
+      text-align: center;
+    }
+
+    .icon-box { font-size: 3rem; color: #b07542; margin-bottom: 10px; }
+    .title {
+      font-weight: 700;
+      font-size: 2.4rem;
+      color: #fff8f3;
+      margin-bottom: 25px;
+      text-shadow: 1px 1px 2px #4b3a2f;
+    }
+
+    .form-label { 
+      font-weight: 600; 
+      color: #f5e9dc; 
+      font-size: 0.95rem; 
+    }
+
+    .form-control {
+      border-radius: 30px;
+      padding: 12px;
+      background-color: #f7f5f0;
+      border: 1px solid #d2b79e;
+      color: #4b3a2f;
+      font-family: 'Montserrat', sans-serif;
+    }
+
+    .form-control:focus {
+      box-shadow: 0 0 0 0.2rem rgba(176,117,66,0.25);
+      border-color: #b07542;
+    }
+
+    .btn-coffee {
+      background-color: #b07542;
+      color: #fff;
+      font-weight: 600;
+      border: none;
+      padding: 12px;
+      width: 100%;
+      border-radius: 30px;
+      letter-spacing: 1px;
+      transition: all 0.3s ease-in-out;
+      font-family: 'Montserrat', sans-serif;
+    }
+    .back-btn:hover {
+      background: #8c5a33;
+    }
+
+    .top-buttons {
       position: fixed;       
       top: 15px;            
       right: 20px;          
@@ -111,23 +133,25 @@
       z-index: 1000;       
     }
 
-      .top-buttons a,
-      .top-buttons .info-icon {
-        color: #f5f5f5;        
-        font-weight: 600;
-        margin-left: 10px;
-        transition: color 0.3s ease;
-      }
+    .top-buttons a,
+    .top-buttons .info-icon {
+      color: #f5f5f5;        
+      font-weight: 600;
+      margin-left: 10px;
+      transition: color 0.3s ease;
+      font-family: 'Montserrat', sans-serif;
+    }
 
-      .top-buttons a:hover,
-      .top-buttons .info-icon:hover {
-        color: #f2c9a0;       
-      }
-        .btn-coffee:hover { background-color: #8a5c33; }
-        .text-center { color: #f0f0f0; margin-top: 15px; }
-        .text-center a { color: #f2c9a0; font-weight: 600; text-decoration: none; }
-        .text-center a:hover { text-decoration: underline; }
-        /* ✅ Extra Mobile Responsiveness */
+    .top-buttons a:hover,
+    .top-buttons .info-icon:hover {
+      color: #f2c9a0;       
+    }
+
+    .text-center { color: #f0f0f0; margin-top: 15px; font-family: 'Montserrat', sans-serif; }
+    .text-center a { color: #f2c9a0; font-weight: 600; text-decoration: none; }
+    .text-center a:hover { text-decoration: underline; }
+
+    /* ✅ Responsive Adjustments */
     @media (max-width: 768px) {
       body {
         padding: 20px 10px; 
@@ -159,7 +183,6 @@
         font-size: 1rem;
       }
 
-      /* Make top buttons stack nicer */
       .top-buttons {
         top: 10px;
         right: 10px;
@@ -177,56 +200,32 @@
         font-size: 0.8rem;
       }
 
-      .back-home {
-        padding: 6px 12px;
-        font-size: 0.8rem;
-      }
+       .back-btn:hover {
+      background: #8c5a33;
+    }
 
       .register-container {
         padding: 20px 15px;
       }
     }
 
-     
-    @media (max-width: 768px) {
-      .back-home {
-        padding: 6px 14px;
-        font-size: 0.9rem;
-        top: 15px;
-        left: 15px;
-      }
-    }
-
-    
-    @media (max-width: 480px) {
-      .back-home {
-        padding: 5px 12px;
-        font-size: 0.8rem;
-        top: 12px;
-        left: 12px;
-      }
-    }
-
-    /* 📱 Mobile & tablet fix */
+    /* 📱 Background fixes for mobile */
     @media (max-width: 768px) {
       body {
-        background-attachment: scroll; /* Prevents zoom/cutoff issue */
-        background-position: center top; 
+        background-attachment: scroll;
+        background-position: center top;
       }
     }
 
     @media (max-width: 480px) {
       body {
         background-size: cover;
-        background-position: center; 
+        background-position: center;
       }
     }
-
-
-    </style>
-  </head>
-  <body>
-
+  </style>
+</head>
+<body>
 
   <div class="top-buttons">
     <a href="home.php" class="back-home me-3 text-decoration-none">
@@ -284,23 +283,31 @@
   <!-- Info Script -->
   <script>
   function showInfo() {
-    Swal.fire({
-      title: 'Need Help Registering?',
-      html: `
-        <div style="text-align: left;">
-          <ul style="list-style: none; padding-left: 0;">
-            <li>✔️ All fields are required</li>
-            <li>✔️ Use a <strong>valid email address</strong></li>
-            <li>✔️ Username must be unique</li>
-            <li>✔️ Minimum 4 characters, 1 uppercase, 1 special character, 1 number</li>
+  Swal.fire({
+    title: 'Need Help Registering?',
+    html: `
+      <div style="text-align: left;">
+        <ul style="list-style: none; padding-left: 0;">
+          <li>✔️ All fields are required</li>
+          <li>✔️ Use a <strong>valid email address</strong></li>
+          <li>✔️ Username must be unique</li>
+          <li>✔️ Contact number format: 09xxxxxxxxx</li>
+          <li>✔️ Password must have:</li>
+          <ul style="list-style: disc; padding-left: 20px;">
+            <li>Minimum 4 characters</li>
+            <li>At least 1 uppercase letter</li>
+            <li>At least 1 number</li>
+            <li>At least 1 special character (e.g., !@#$%^&*)</li>
           </ul>
-        </div>`,
-      icon: 'info',
-      confirmButtonColor: '#b07542',
-      background: '#fff8f3',
-      color: '#4b3a2f'
-    });
-  }
+        </ul>
+      </div>`,
+    icon: 'info',
+    confirmButtonColor: '#b07542',
+    background: '#fff8f3',
+    color: '#4b3a2f'
+  });
+}
+
   </script>
 
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>

@@ -165,38 +165,38 @@ function card_html($p) {
       text-shadow: 1px 1px 4px rgba(0,0,0,0.6);
     }
 
-   .menu-card {
-  background: rgba(255, 255, 255, 0.25); /* lighter for better text readability */
-  border: 1px solid rgba(255, 255, 255, 0.25);
-  border-radius: 15px;
-  padding: 18px;
-  text-align: center;
-  box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
-  transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
-  backdrop-filter: blur(8px); /* stronger glass blur */
-}
+    .menu-card {
+    background: rgba(255, 255, 255, 0.25); /* lighter for better text readability */
+    border: 1px solid rgba(255, 255, 255, 0.25);
+    border-radius: 15px;
+    padding: 18px;
+    text-align: center;
+    box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+    transition: transform 0.25s ease, box-shadow 0.25s ease, background 0.25s ease;
+    backdrop-filter: blur(8px); /* stronger glass blur */
+  }
 
-    .menu-card img {
-      width: 100%;
-      max-height: 180px;
-      object-fit: cover;
-      border-radius: 12px;
-      margin-bottom: 15px;
-    }
+  .menu-card img {
+  width: 100%;
+  max-height: 180px;
+  object-fit: cover;
+  border-radius: 12px;
+  margin-bottom: 15px;
+  }
 
-    .menu-name {
+  .menu-name {
   font-size: 1.25rem;
   font-weight: 700;
   color: #fff; /* white for visibility */
   text-shadow: 1px 1px 3px rgba(0,0,0,0.6);
-}
+  }
 
-.menu-price {
+  .menu-price {
   font-size: 1.1rem;
   font-weight: 600;
   color: #f2d9be; /* soft gold tone */
   text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
-}
+  }
     .note-text {
       text-align: center;
       color: #ddd;
@@ -289,7 +289,7 @@ function card_html($p) {
     <!-- ACCOUNT LINKS -->
     <div class="account-links mb-3">
       <p style="color:#e0c6a3;">Don’t have an account? 
-        <a href="registration_C.php" style="color:#fff; text-decoration:underline;">Register here</a>.
+        <a href="registration.php" style="color:#fff; text-decoration:underline;">Register here</a>.
       </p>
       <p style="color:#e0c6a3;">Already have one? 
         <a href="login.php" style="color:#fff; text-decoration:underline;">Login</a>.
