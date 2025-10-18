@@ -86,7 +86,6 @@ if ($_POST['ref'] == 'get_order_item') {
 
 // Get orders que
 if ($_POST['ref'] == 'get_orders_que') {
-
     $html = '<div class="row">';
 
     $statuses = [
@@ -99,33 +98,60 @@ if ($_POST['ref'] == 'get_orders_que') {
         $html .= '
         <div class="col-md-4">
             <div class="mr-1">
-                <ul class="list-group" id="'. strtolower(str_replace(' ', '_', $statusName)) .'">
-                    <li class="list-group-item bg-success fw-bold text-white">'. $statusName .'</li>';
+                <ul class="list-group" id="' . strtolower(str_replace(' ', '_', $statusName)) . '">
+                    <li class="list-group-item bg-success fw-bold text-white">' . $statusName . '</li>';
 
         $orders = $db->getOrders($statusId);
         if (!empty($orders)) {
             foreach ($orders as $row) {
 
-               // Determine data-status for JS
-               $dataStatus = ($statusName === 'Review') ? 'pending' : strtolower($statusName);
+                $dataStatus = ($statusName === 'Review') ? 'pending' : strtolower($statusName);
+                $html .= '<li class="list-group-item order-item" data-id="' . htmlspecialchars($row['order_id']) . '" data-order-type="' . $row['order_type'] . '" data-status="' . $dataStatus . '">';
+                $html .= '<div class="d-flex justify-content-between align-items-center">';
+                $html .= '<strong>' . htmlspecialchars($row['customer_FN']) . '</strong> <span class="text-muted small">#00' . $row['order_id'] . '</span>';
+                $html .= '</div>';
 
-               $html .= '<li class="list-group-item order-item" data-id="'. htmlspecialchars($row['order_id']) .'" data-order-type="'.$row['order_type'].'" data-status="'.$dataStatus.'">';
-               $html .= '<div class="d-flex justify-content-between align-items-center">';
-               $html .= '<strong>'. htmlspecialchars($row['customer_FN']) .'</strong> <span class="text-muted small">#00'.$row['order_id'].'</span>';
-               $html .= '</div>';
+                // ✅ Receipt Display
+                $hasOriginal = !empty($row['receipt']);
+                $hasRepay = !empty($row['repay_receipt']);
+                $uploadPath = '../uploads/'; // Adjust if your folder is outside admin (e.g., '../uploads/')
 
-               if ($statusName === 'Review') {
-                   $html .= '<div class="mt-2 d-flex gap-1">
-                                <button class="btn btn-sm btn-success btn-accept w-50" data-id="'.$row['order_id'].'" data-type="'.$row['order_type'].'">
+                if ($hasOriginal || $hasRepay) {
+                    $html .= '<div class="mt-2">';
+                    if ($hasOriginal && file_exists($uploadPath . $row['receipt'])) {
+                        $html .= '
+                            <div class="mb-1">
+                                <small class="text-muted">Original Receipt:</small><br>
+                                <a href="' . $uploadPath . htmlspecialchars($row['receipt']) . '" target="_blank">
+                                    <img src="' . $uploadPath . htmlspecialchars($row['receipt']) . '" class="img-thumbnail shadow-sm" style="width:75px; height:75px; object-fit:cover;">
+                                </a>
+                            </div>';
+                    }
+                    if ($hasRepay && file_exists($uploadPath . $row['repay_receipt'])) {
+                        $html .= '
+                            <div>
+                                <small class="text-danger fw-bold">Repay Receipt:</small><br>
+                                <a href="' . $uploadPath . htmlspecialchars($row['repay_receipt']) . '" target="_blank">
+                                    <img src="' . $uploadPath . htmlspecialchars($row['repay_receipt']) . '" class="img-thumbnail border-danger shadow-sm" style="width:75px; height:75px; object-fit:cover;">
+                                </a>
+                            </div>';
+                    }
+                    $html .= '</div>';
+                }
+
+                // ✅ Action buttons
+                if ($statusName === 'Review') {
+                    $html .= '<div class="mt-2 d-flex gap-1">
+                                <button class="btn btn-sm btn-success btn-accept w-50" data-id="' . $row['order_id'] . '" data-type="' . $row['order_type'] . '">
                                     <i class="fas fa-check"></i> Accept
                                 </button>
-                                <button class="btn btn-sm btn-danger btn-reject w-50" data-id="'.$row['order_id'].'" data-type="'.$row['order_type'].'">
+                                <button class="btn btn-sm btn-danger btn-reject w-50" data-id="' . $row['order_id'] . '" data-type="' . $row['order_type'] . '">
                                     <i class="fas fa-times"></i> Reject
                                 </button>
                             </div>';
-               }
+                }
 
-               $html .= '</li>';
+                $html .= '</li>';
             }
         }
 
@@ -142,6 +168,7 @@ if ($_POST['ref'] == 'get_orders_que') {
         'html' => $html
     ]);
 }
+
 
 
 
@@ -642,55 +669,57 @@ if (isset($_POST['ref']) && $_POST['ref'] === 'get_customer_details') {
 if (isset($_POST['ref']) && $_POST['ref'] === 'review_action') {
    
 
-    $order_id   = intval($_POST['order_id'] ?? 0);
-    $action     = $_POST['action'] ?? '';
-    $orderType  = $_POST['orderType'] ?? 'online';
-    $reason     = trim($_POST['reason'] ?? ''); // reason for rejection
+        $order_id   = intval($_POST['order_id'] ?? 0);
+        $action     = $_POST['action'] ?? '';
+        $orderType  = $_POST['orderType'] ?? 'online';
+        $reason     = trim($_POST['reason'] ?? ''); // reason for rejection
 
-    if (!$order_id || !$action) {
-        echo json_encode(['status' => 'error', 'message' => 'Invalid request.']);
-        exit;
-    }
-
-    try {
-        if ($orderType === 'online') {
-            // Fetch customer ID
-            $getCust = $db->conn->prepare("SELECT customer_id FROM order_online WHERE order_id = ?");
-            $getCust->execute([$order_id]);
-            $cust = $getCust->fetch(PDO::FETCH_ASSOC);
-            $customer_id = $cust['customer_id'] ?? null;
-
-            if ($action === 'accept') {
-                $stmt = $db->conn->prepare("UPDATE order_online SET status = 2 WHERE order_id = ?");
-                $stmt->execute([$order_id]);
-                $message = "Your order #$order_id has been accepted and is now being prepared.";
-            } elseif ($action === 'reject') {
-                $stmt = $db->conn->prepare("UPDATE order_online SET status = 0, reject_reason = ? WHERE order_id = ?");
-                $stmt->execute([$reason, $order_id]);
-                $message = "Your order #$order_id has been rejected." . ($reason ? " Reason: $reason" : "");
-            }
-
-            // Insert notification with reject_reason
-            if ($customer_id && !empty($message)) {
-                $insert = $db->conn->prepare("
-                    INSERT INTO notifications (customer_id, order_id, message, reject_reason, is_read, created_at)
-                    VALUES (?, ?, ?, ?, 0, NOW())
-                ");
-                $insert->execute([$customer_id, $order_id, $message, $reason]);
-            }
+        if (!$order_id || !$action) {
+            echo json_encode(['status' => 'error', 'message' => 'Invalid request.']);
+            exit;
         }
 
-        echo json_encode([
-            'status'  => 'success',
-            'message' => ($action === 'reject' && $reason) ? $reason : ucfirst($action) . 'ed order successfully.'
-        ]);
-    } catch (Throwable $e) {
-        echo json_encode([
-            'status'  => 'error',
-            'message' => 'Server error: ' . $e->getMessage()
-        ]);
+        try {
+            if ($orderType === 'online') {
+                // Fetch customer ID
+                $getCust = $db->conn->prepare("SELECT customer_id FROM order_online WHERE order_id = ?");
+                $getCust->execute([$order_id]);
+                $cust = $getCust->fetch(PDO::FETCH_ASSOC);
+                $customer_id = $cust['customer_id'] ?? null;
+
+                if ($action === 'accept') {
+                    $stmt = $db->conn->prepare("UPDATE order_online SET status = 2 WHERE order_id = ?");
+                    $stmt->execute([$order_id]);
+                    $message = "Your order #$order_id has been accepted and is now being prepared.";
+                } elseif ($action === 'reject') {
+        // Keep in 'Review' (status = 1) but mark with reason
+        $stmt = $db->conn->prepare("UPDATE order_online SET status = 1, reject_reason = ? WHERE order_id = ?");
+        $stmt->execute([$reason, $order_id]);
+        $message = "Your order #$order_id has been rejected." . ($reason ? " Reason: $reason" : "");
     }
-    exit;
+
+
+                // Insert notification with reject_reason
+                if ($customer_id && !empty($message)) {
+                    $insert = $db->conn->prepare("
+                        INSERT INTO notifications (customer_id, order_id, message, reject_reason, is_read, created_at)
+                        VALUES (?, ?, ?, ?, 0, NOW())
+                    ");
+                    $insert->execute([$customer_id, $order_id, $message, $reason]);
+                }
+            }
+
+            echo json_encode([
+                'status'  => 'success',
+                'message' => ($action === 'reject' && $reason) ? $reason : ucfirst($action) . 'ed order successfully.'
+            ]);
+        } catch (Throwable $e) {
+            echo json_encode([
+                'status'  => 'error',
+                'message' => 'Server error: ' . $e->getMessage()
+            ]);
+        }
+        exit;
 }
 
 

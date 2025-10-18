@@ -500,6 +500,7 @@ public function getOrders($status = null) {
             o.status, 
             o.total_amount, 
             o.receipt, 
+            o.repay_receipt,
             c.customer_FN, 
             c.customer_LN, 
             c.customer_email,
@@ -513,36 +514,42 @@ public function getOrders($status = null) {
             ON o.order_id = p.order_id
     ";
 
-    if ($status != '') {
-        $sql .= " WHERE o.status = $status";
+    if (!empty($status) || $status === 0) {
+        $sql .= " WHERE o.status = :status";
     }
 
     $sql .= "
         UNION ALL
         SELECT 
-            op.pos_id as order_id, 
+            op.pos_id AS order_id, 
             NULL AS customer_id, 
             op.created_at, 
             op.status, 
             op.total_amount, 
             NULL AS receipt, 
+            NULL AS repay_receipt,
             'WALK-IN' AS customer_FN, 
             '' AS customer_LN, 
             '' AS customer_email,
-            '' AS payment_method, 
+            op.payment_method, 
             '' AS payment_status,
             'pos' AS order_type
         FROM order_pos op
     ";
-    if ($status != '') {
-        $sql .= " WHERE op.status = $status";
+
+    if (!empty($status) || $status === 0) {
+        $sql .= " WHERE op.status = :status";
     }
 
-    $sql .= " ORDER BY created_at DESC"; 
+    $sql .= " ORDER BY created_at DESC";
 
     $stmt = $this->conn->prepare($sql);
-    $stmt->execute();
 
+    if (!empty($status) || $status === 0) {
+        $stmt->bindParam(':status', $status, PDO::PARAM_INT);
+    }
+
+    $stmt->execute();
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 

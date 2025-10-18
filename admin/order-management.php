@@ -21,6 +21,11 @@ $adminName = htmlspecialchars($_SESSION['admin_FN'] ?? 'Admin');
   .list-group { min-height: 200px; }
   .list-group-item { cursor: move; }
   .placeholder-highlight { border: 2px dashed #6c757d; background: #e9ecef; }
+  .btn-rejected {
+  opacity: 0.9;
+  cursor: not-allowed;
+}
+
 </style>
 
 <!-- modal -->
@@ -140,19 +145,19 @@ $adminName = htmlspecialchars($_SESSION['admin_FN'] ?? 'Admin');
 
 <script>
 
-//reject newly added
-  $(document).on('click', '.btn-reject', function() {
-    const orderId = $(this).data('id');
-    const orderType = $(this).data('type');
+// //reject newly added
+//   $(document).on('click', '.btn-reject', function() {
+//     const orderId = $(this).data('id');
+//     const orderType = $(this).data('type');
 
-    // Store IDs in modal
-    $('#rejectOrderId').val(orderId);
-    $('#rejectOrderType').val(orderType);
-    $('#rejectReasonDropdown').val(''); // reset dropdown
-    $('#rejectReasonText').val(''); // reset text area
+//     // Store IDs in modal
+//     $('#rejectOrderId').val(orderId);
+//     $('#rejectOrderType').val(orderType);
+//     $('#rejectReasonDropdown').val(''); // reset dropdown
+//     $('#rejectReasonText').val(''); // reset text area
 
-    $('#rejectOrderModal').modal('show');
-});
+//     $('#rejectOrderModal').modal('show');
+// });
 
 
     let rejectOrderId = null;
@@ -171,7 +176,7 @@ $(document).on('click', '.btn-reject', function() {
     $('#rejectReasonModal').modal('show');
 });
 
-// Submit reason and show confirmation
+// Submit reason and show confirmation okay na rin to
 $('#submitRejectReason').on('click', function() {
     let reason = $('#rejectReasonText').val().trim() || $('#rejectReasonSelect').val().trim();
 
@@ -184,10 +189,9 @@ $('#submitRejectReason').on('click', function() {
         return;
     }
 
-    // Show confirmation SweetAlert
     Swal.fire({
         title: 'Are you sure you want to reject this order?',
-        text: "This action cannot be undone.",
+        text: "The customer will be notified and can repay.",
         icon: 'warning',
         showCancelButton: true,
         confirmButtonText: 'Yes, reject it!',
@@ -195,7 +199,6 @@ $('#submitRejectReason').on('click', function() {
         confirmButtonColor: '#dc3545'
     }).then((result) => {
         if (result.isConfirmed) {
-            // Send AJAX request to reject
             $.ajax({
                 url: 'admin_functions.php',
                 type: 'POST',
@@ -212,14 +215,16 @@ $('#submitRejectReason').on('click', function() {
                         Swal.fire({
                             icon: 'success',
                             title: 'Order Rejected',
-                            text: 'Order has been rejected successfully.',
+                            text: 'The customer has been notified. They can repay this order.',
                             timer: 1500,
                             showConfirmButton: false
                         });
 
-                        // Remove order from Review queue
+                        // Mark the order as rejected visually
                         let row = $(".order-item[data-id='" + rejectOrderId + "']");
-                        row.fadeOut(400, function() { $(this).remove(); });
+                        row.addClass('bg-danger text-white');       // red highlight
+                        row.find('.status-label').text('Rejected'); // optional
+                        row.find('.btn-accept, .btn-reject').remove(); // remove buttons
 
                         $('#rejectReasonModal').modal('hide');
                     } else {
@@ -238,92 +243,92 @@ $('#submitRejectReason').on('click', function() {
 
 
   
-    $(document).ready(function(){
-        $('#productTable').DataTable();
+$(document).ready(function(){
+    $('#productTable').DataTable();
 
-        $(document).on("click", ".btn-view-order", function(){
-          let order_id = $(this).data('order-id');
-          $("#viewOrderModal").modal('show'); 
-
-
-           $.ajax({
-            url: "admin_functions.php",
-            method: "POST",
-            data: { 
-              ref: "get_order_item",
-              order_id: order_id 
-            
-            },
-
-            dataType: "json",
-            success: function(response) {
-              console.log(response);
-              if (response.status === "success") {
-                $(".order-items").html(response.html); 
-
-              } else {
-
-              }
-            },
-            error: function() {
-              // Swal.fire({ icon:'error', title:'Unable to verify cart', text:'Please try again.' });
-            }
-          });
-
-        });
+    $(document).on("click", ".btn-view-order", function(){
+      let order_id = $(this).data('order-id');
+      $("#viewOrderModal").modal('show'); 
 
 
-// Handle Cancel and Completed button actions
-$(document).ready(function() {
+        $.ajax({
+        url: "admin_functions.php",
+        method: "POST",
+        data: { 
+          ref: "get_order_item",
+          order_id: order_id 
+        
+        },
 
-    $(document).on('click', '.btn-cancel-order', function() {
-    const orderId = $(this).data('order-id');
-    const orderType = $(this).data('order-type');
-    const row = $(this).closest('li'); // assuming your queue uses <li> items
+        dataType: "json",
+        success: function(response) {
+          console.log(response);
+          if (response.status === "success") {
+            $(".order-items").html(response.html); 
 
-    Swal.fire({
-        title: 'Cancel this order?',
-        text: 'This order will be moved to Cancelled Orders in Sales Report.',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Yes, Cancel it!',
-        cancelButtonText: 'No',
-    }).then((result) => {
-        if (result.isConfirmed) {
-            $.ajax({
-                url: 'admin_functions.php',
-                method: 'POST',
-                data: { ref: 'cancel_order', order_id: orderId, order_type: orderType },
-                dataType: 'json',
-                success: function(response) {
-                    if (response.status === 'success')
-                               {
-                        Swal.fire('Cancelled!', response.message, 'success');
+          } else {
 
-                        // Remove from order queue visually
-                        row.fadeOut(500, function() { $(this).remove(); });
-
-                        // Update Sales Report dynamically (optional)
-                        let cancelled = parseFloat($('#cancelledSales').text()) || 0;
-                        cancelled += parseFloat(response.total_amount);
-                        $('#cancelledSales').text(cancelled.toFixed(2));
-
-                        // Also update total sales if needed
-                        let total = parseFloat($('#totalSales').text()) || 0;
-                        total -= parseFloat(response.total_amount);
-                        $('#totalSales').text(total.toFixed(2));
-                    } else {
-                        Swal.fire('Error!', response.message, 'error');
-                    }
-                },
-                error: function() {
-                    Swal.fire('Error!', 'Something went wrong.', 'error');
-                }
-            });
+          }
+        },
+        error: function() {
+          // Swal.fire({ icon:'error', title:'Unable to verify cart', text:'Please try again.' });
         }
+      });
+
     });
-});
-});
+
+
+// // Handle Cancel and Completed button actions
+// $(document).ready(function() {
+
+//     $(document).on('click', '.btn-cancel-order', function() {
+//     const orderId = $(this).data('order-id');
+//     const orderType = $(this).data('order-type');
+//     const row = $(this).closest('li'); // assuming your queue uses <li> items
+
+//     Swal.fire({
+//         title: 'Cancel this order?',
+//         text: 'This order will be moved to Cancelled Orders in Sales Report.',
+//         icon: 'warning',
+//         showCancelButton: true,
+//         confirmButtonText: 'Yes, Cancel it!',
+//         cancelButtonText: 'No',
+//     }).then((result) => {
+//         if (result.isConfirmed) {
+//             $.ajax({
+//                 url: 'admin_functions.php',
+//                 method: 'POST',
+//                 data: { ref: 'cancel_order', order_id: orderId, order_type: orderType },
+//                 dataType: 'json',
+//                 success: function(response) {
+//                     if (response.status === 'success')
+//                                {
+//                         Swal.fire('Cancelled!', response.message, 'success');
+
+//                         // Remove from order queue visually
+//                         row.fadeOut(500, function() { $(this).remove(); });
+
+//                         // Update Sales Report dynamically (optional)
+//                         let cancelled = parseFloat($('#cancelledSales').text()) || 0;
+//                         cancelled += parseFloat(response.total_amount);
+//                         $('#cancelledSales').text(cancelled.toFixed(2));
+
+//                         // Also update total sales if needed
+//                         let total = parseFloat($('#totalSales').text()) || 0;
+//                         total -= parseFloat(response.total_amount);
+//                         $('#totalSales').text(total.toFixed(2));
+//                     } else {
+//                         Swal.fire('Error!', response.message, 'error');
+//                     }
+//                 },
+//                 error: function() {
+//                     Swal.fire('Error!', 'Something went wrong.', 'error');
+//                 }
+//             });
+//         }
+//     });
+// });
+// });
 
 // Enable double-click to view order details
 $(document).off("dblclick", ".order-item").on("dblclick", ".order-item", function() {
@@ -492,134 +497,196 @@ $(document).on("dblclick", ".order-item, .btn-view-order", function() {
     viewOrder(orderId , orderType);
 });
 
+function refreshOrderQue() {
 
-        function refreshOrderQue(){
-          $.ajax({
-            url: "admin_functions.php",
-            method: "POST",
-            data: { 
-              ref: "get_orders_que"
-            
-            },
+  $.ajax({
+    url: "admin_functions.php",
+    method: "POST",
+    data: { ref: "get_orders_que" },
+    dataType: "json",
+    success: function(response) {
+      console.log(response);
 
-            dataType: "json",
-            success: function(response) {
-              console.log(response);
-              if (response.status === "success") {
+      if (response.status === "success") {
+        $(".load-order-que").html(response.html);
 
-                $(".load-order-que").html(response.html); 
-                // Make all list-groups sortable and connected
-                    $(".list-group").sortable({
-                        connectWith: ".list-group",
-                        items: "> li:not(:first-child)", // header row excluded
-                        placeholder: "placeholder-highlight",
-                        helper: "clone", // prevents original from collapsing
+        // === Style rejected orders visually ===
+       $(".order-item").each(function() {
+  const $row = $(this);
+  const status = String($row.data("status")).toLowerCase();
 
-                        start: function(e, ui) {
-                            const orderStatus = ui.item.data("status"); 
-                            const currentListId = ui.item.closest(".list-group").attr("id");
+  // --- CASE 1: REJECTED ---
+  if (status === "rejected" || status === "0") {
+    // Stay red until customer repays
+    $row.addClass("bg-danger text-white");
+    $row.find(".status-label").text("Rejected");
 
-                            // Match placeholder height & width to dragged item
-                            ui.placeholder.height(ui.item.outerHeight());
-                            ui.placeholder.width(ui.item.outerWidth());
+    // Safely remove any existing tooltips to avoid outerWidth error
+    $row.find(".btn-accept, .btn-reject").each(function() {
+      const tooltip = bootstrap.Tooltip.getInstance(this);
+      if (tooltip) tooltip.dispose();
+    });
 
-                            // Block dragging if the order is still under review
-                            if (currentListId === "review" && orderStatus === "pending") {
-                                $(this).sortable("cancel"); 
-                                Swal.fire({
-                                    icon: "warning",
-                                    title: "Action Not Allowed!",
-                                    text: "You can't drag this order. Accept or reject it first.",
-                                    timer: 2000,
-                                    showConfirmButton: false
-                                });
-                            }
-                        },
+    // Remove action buttons
+    $row.find(".btn-accept, .btn-reject").remove();
 
-                        receive: function(event, ui) {
-                            const targetListId = $(this).attr("id");
-                            const orderStatus = ui.item.data("status");
+    // Add a visible "Rejected" indicator button if missing
+    if ($row.find(".btn-rejected").length === 0) {
+      $row.append(`
+        <div class="mt-2">
+          <button class="btn btn-outline-light btn-sm btn-rejected" disabled>
+            <i class="fas fa-ban"></i> Rejected
+          </button>
+        </div>
+      `);
+    }
+  }
 
-                            // Prevent moving pending/review orders into any other column
-                            if (orderStatus === "pending" || orderStatus === "review") {
-                                $(ui.sender).sortable("cancel");
-                                Swal.fire({
-                                    icon: "warning",
-                                    title: "Action blocked!",
-                                    text: "You can't move this order. Accept or reject it first.",
-                                    timer: 2000,
-                                    showConfirmButton: false
-                                });
-                                return;
-                            }
+  // --- CASE 2: REVIEW / REPAY (NORMAL STATE) ---
+  else if (status === "review" || status === "repay_pending" || status === "accepted" || status === "1") {
+    // Restore normal appearance
+    $row.removeClass("bg-danger text-white");
+    $row.find(".status-label").text("Review");
+    $row.find(".btn-rejected").remove();
 
-                            // Prevent moving orders back to Review
-                            if (targetListId === "review") {
-                                $(ui.sender).sortable("cancel");
-                                Swal.fire({
-                                    icon: "warning",
-                                    title: "Not allowed!",
-                                    text: "Orders cannot be moved back to Review.",
-                                    timer: 1000,
-                                    showConfirmButton: false
-                                });
-                                return;
-                            }
+    // Re-add action buttons if missing
+    if ($row.find(".btn-accept").length === 0 && $row.find(".btn-reject").length === 0) {
+      $row.append(`
+        <div class="mt-2 d-flex gap-1">
+          <button class="btn btn-success btn-sm btn-accept" data-id="${$row.data("id")}" data-type="${$row.data("order-type")}">
+            <i class="fas fa-check"></i> Accept
+          </button>
+          <button class="btn btn-danger btn-sm btn-reject" data-id="${$row.data("id")}" data-type="${$row.data("order-type")}">
+            <i class="fas fa-times"></i> Reject
+          </button>
+        </div>
+      `);
+    }
+  }
+});
 
-                            // Update status for other columns
-                            const orderId = ui.item.data("id");
-                            const orderType = ui.item.data("order-type");
-                            const newStatusText = $(this).find("li:first").text();
 
-                            let newStatus = 0;
-                            switch (newStatusText) {
-                                case "Review": newStatus = 1; break;
-                                case "Preparing": newStatus = 2; break;
-                                case "Ready for Pickup": newStatus = 3; break;
-                            }
+        // === Initialize sortable lists ===
+        $(".list-group")
+          .sortable({
+            connectWith: ".list-group",
+            items: "> li:not(:first-child)", // skip headers
+            placeholder: "placeholder-highlight",
+            helper: "clone",
 
-                            $.ajax({
-                                url: "admin_functions.php",
-                                type: "POST",
-                                data: {
-                                    ref: "update_order_stats",
-                                    id: orderId,
-                                    status: newStatus,
-                                    orderType: orderType
-                                },
-                                dataType: "json",
-                                success: function(response) {
-                                    if (response.status === "success") {
-                                        ui.item.attr("data-status", newStatusText.toLowerCase());
-                                        Swal.fire({
-                                            toast: true,
-                                            position: "top-end",
-                                            icon: "success",
-                                            title: `Order #${orderId} updated to ${newStatusText}`,
-                                            showConfirmButton: false,
-                                            timer: 1500
-                                        });
-                                    } else {
-                                        $(ui.sender).sortable("cancel");
-                                        Swal.fire("Error", response.message || "Failed to update order.", "error");
-                                    }
-                                },
-                                error: function() {
-                                    $(ui.sender).sortable("cancel");
-                                    Swal.fire("Error", "Unable to update order status.", "error");
-                                }
-                            });
-                        }
-                    }).disableSelection();
-              } else {
+            start: function(e, ui) {
+              const orderStatus = ui.item.data("status");
+              const currentListId = ui.item.closest(".list-group").attr("id");
 
+              ui.placeholder.height(ui.item.outerHeight());
+              ui.placeholder.width(ui.item.outerWidth());
+
+              // Prevent dragging under review orders
+              if (currentListId === "review" && (orderStatus === "pending" || orderStatus === 1)) {
+                $(this).sortable("cancel");
+                Swal.fire({
+                  icon: "warning",
+                  title: "Action Not Allowed!",
+                  text: "You can't drag this order. Accept or reject it first.",
+                  timer: 2000,
+                  showConfirmButton: false,
+                });
               }
             },
-            error: function() {
-              // Swal.fire({ icon:'error', title:'Unable to verify cart', text:'Please try again.' });
-            }
-          });
-        }
+
+            receive: function(event, ui) {
+              const targetListId = $(this).attr("id");
+              const orderStatus = ui.item.data("status");
+
+              // Prevent moving pending/review orders
+              if (orderStatus === "pending" || orderStatus === "review") {
+                $(ui.sender).sortable("cancel");
+                Swal.fire({
+                  icon: "warning",
+                  title: "Action blocked!",
+                  text: "You can't move this order. Accept or reject it first.",
+                  timer: 2000,
+                  showConfirmButton: false,
+                });
+                return;
+              }
+
+              // Prevent moving back to Review
+              if (targetListId === "review") {
+                $(ui.sender).sortable("cancel");
+                Swal.fire({
+                  icon: "warning",
+                  title: "Not allowed!",
+                  text: "Orders cannot be moved back to Review.",
+                  timer: 1000,
+                  showConfirmButton: false,
+                });
+                return;
+              }
+
+              // Update status for valid moves
+              const orderId = ui.item.data("id");
+              const orderType = ui.item.data("order-type");
+              const newStatusText = $(this).find("li:first").text();
+
+              let newStatus = 0;
+              switch (newStatusText) {
+                case "Review":
+                  newStatus = 1;
+                  break;
+                case "Preparing":
+                  newStatus = 2;
+                  break;
+                case "Ready for Pickup":
+                  newStatus = 3;
+                  break;
+                case "Completed":
+                  newStatus = 4;
+                  break;
+              }
+
+              $.ajax({
+                url: "admin_functions.php",
+                type: "POST",
+                data: {
+                  ref: "update_order_stats",
+                  id: orderId,
+                  status: newStatus,
+                  orderType: orderType,
+                },
+                dataType: "json",
+                success: function(res) {
+                  if (res.status === "success") {
+                    ui.item.attr("data-status", newStatus);
+                    Swal.fire({
+                      toast: true,
+                      position: "top-end",
+                      icon: "success",
+                      title: `Order #${orderId} updated to ${newStatusText}`,
+                      showConfirmButton: false,
+                      timer: 1500,
+                    });
+                  } else {
+                    $(ui.sender).sortable("cancel");
+                    Swal.fire("Error", res.message || "Failed to update order.", "error");
+                  }
+                },
+                error: function() {
+                  $(ui.sender).sortable("cancel");
+                  Swal.fire("Error", "Unable to update order status.", "error");
+                },
+              });
+            },
+          })
+          .disableSelection();
+      }
+    },
+    error: function() {
+      console.error("Failed to refresh order queue.");
+    },
+  });
+}
+
 
         setInterval(refreshOrderQue, 5000);
 
@@ -628,7 +695,7 @@ $(document).on("dblclick", ".order-item, .btn-view-order", function() {
         }
 
 
-// Accept button only
+// Accept button only okaay na to
 $(document).on('click', '.btn-accept', function() {
     const orderId = $(this).data('id');
     const orderType = $(this).data('type');

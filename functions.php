@@ -322,24 +322,41 @@ if (isset($_POST['ref']) && $_POST['ref'] === "menu_preview") {
 // Fetch notifications
 if ($_POST['ref'] === 'fetch_notifications') {
 
-    if (session_status() === PHP_SESSION_NONE) {
-        session_start();
-    }
-
     $customer_id = $_SESSION['customer_ID'] ?? null;
-
     if (!$customer_id) {
         echo json_encode(["status" => "error", "message" => "No customer logged in."]);
         exit;
     }
 
-    // Fetch all notifications
-    $stmt = $db->conn->prepare("SELECT * FROM notifications WHERE customer_id = ? ORDER BY created_at DESC");
+    // Fetch notifications with related order info
+    $stmt = $db->conn->prepare("
+        SELECT 
+            n.notification_id, 
+            n.message, 
+            n.order_id, 
+            n.is_read, 
+            n.created_at, 
+            o.status AS order_status, 
+            o.reject_reason
+        FROM notifications n
+        LEFT JOIN order_online o ON n.order_id = o.order_id
+        WHERE n.customer_id = ?
+        ORDER BY n.created_at DESC
+    ");
     $stmt->execute([$customer_id]);
     $notifications = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
+    // Add flag to show repay button for rejected orders
+    foreach ($notifications as &$n) {
+        $n['show_repay'] = ($n['order_status'] == 1); // status = 0 = rejected
+    }
+
     // Count unread notifications
-    $unread_stmt = $db->conn->prepare("SELECT COUNT(*) AS unread_count FROM notifications WHERE customer_id = ? AND is_read = 0");
+    $unread_stmt = $db->conn->prepare("
+        SELECT COUNT(*) AS unread_count 
+        FROM notifications 
+        WHERE customer_id = ? AND is_read = 0
+    ");
     $unread_stmt->execute([$customer_id]);
     $unread_count = (int)($unread_stmt->fetch(PDO::FETCH_ASSOC)['unread_count'] ?? 0);
 
@@ -351,6 +368,9 @@ if ($_POST['ref'] === 'fetch_notifications') {
     exit;
 }
 
+
+
+// Check Account Status
 if ($_POST['ref'] === 'check_acc_status') {
 
     if (session_status() === PHP_SESSION_NONE) {
@@ -882,28 +902,57 @@ if (isset($_POST['ref']) && $_POST['ref'] === 'delete_account') {
 }
 
 // repay order
-if ($_POST['ref'] === 'repay_order') {
-    $order_id = $_POST['order_id'] ?? 0;
-    $payment_receipt = $_FILES['receipt'] ?? null;
+if ($_POST['ref'] == 'repay_order') {
+    try {
+        $orderId = $_POST['order_id'] ?? null;
 
-    if ($order_id && $payment_receipt) {
-        $targetDir = 'uploads/';
-        $filename = time() . '_' . basename($payment_receipt['name']);
-        $targetFile = $targetDir . $filename;
-
-        if (move_uploaded_file($payment_receipt['tmp_name'], $targetFile)) {
-            $stmt = $db->conn->prepare("UPDATE orders SET receipt = ?, status = 'pending', rejected_reason = NULL WHERE order_id = ?");
-            $stmt->execute([$targetFile, $order_id]);
-            
-            echo json_encode(['status' => 'success', 'msg' => 'Payment updated, awaiting admin review.']);
-        } else {
-            echo json_encode(['status' => 'error', 'msg' => 'Failed to upload receipt.']);
+        if (!$orderId) {
+            echo json_encode(['status' => 'error', 'msg' => 'Missing order ID']);
+            exit;
         }
-    } else {
-        echo json_encode(['status' => 'error', 'msg' => 'Invalid request.']);
+
+        // Check file upload
+        if (!isset($_FILES['receipt']) || $_FILES['receipt']['error'] !== UPLOAD_ERR_OK) {
+            echo json_encode(['status' => 'error', 'msg' => 'Receipt file upload failed']);
+            exit;
+        }
+
+        $file = $_FILES['receipt'];
+        $fileName = time() . '_' . basename($file['name']);
+        $targetDir = 'uploads/';
+        $targetPath = $targetDir . $fileName;
+
+        // Create folder if missing
+        if (!is_dir($targetDir)) {
+            mkdir($targetDir, 0777, true);
+        }
+
+        // Validate image
+        $allowed = ['jpg', 'jpeg', 'png', 'gif', 'webp'];
+        $ext = strtolower(pathinfo($fileName, PATHINFO_EXTENSION));
+        if (!in_array($ext, $allowed)) {
+            echo json_encode(['status' => 'error', 'msg' => 'Invalid file type']);
+            exit;
+        }
+
+        if (!move_uploaded_file($file['tmp_name'], $targetPath)) {
+            echo json_encode(['status' => 'error', 'msg' => 'Failed to move uploaded file']);
+            exit;
+        }
+
+        // Update DB (use repay_receipt field)
+        $stmt = $db->conn->prepare("UPDATE order_online SET repay_receipt = :receipt, status = 1 WHERE order_id = :order_id");
+        $stmt->execute([
+            ':receipt' => $fileName,
+            ':order_id' => $orderId
+        ]);
+
+        echo json_encode(['status' => 'success', 'msg' => 'Receipt uploaded successfully. Please wait for admin review.']);
+    } catch (Exception $e) {
+        echo json_encode(['status' => 'error', 'msg' => 'Server error: ' . $e->getMessage()]);
     }
-    exit;
 }
+
 
 
 ?>
