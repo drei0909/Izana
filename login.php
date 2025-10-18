@@ -148,26 +148,32 @@ $username = '';
     </form>
   </div>
 
-  <!-- FORGOT PASSWORD MODAL (MOVED OUTSIDE CONTAINER) -->
-  <div class="modal fade" id="forgotModal" tabindex="-1" aria-labelledby="forgotModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-dialog-centered">
-      <div class="modal-content" style="background: rgba(255,255,255,0.95); border-radius: 15px;">
-        <div class="modal-header" style="border-bottom: none;">
-          <h5 class="modal-title" id="forgotModalLabel" style="color:#4b3a2f; font-weight:600;">Forgot Password</h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
-        </div>
-        <div class="modal-body text-center">
-          <p style="color:#4b3a2f;">Enter your registered email address to receive a password reset link.</p>
-          <input type="email" id="forgotEmail" class="form-control mt-3" placeholder="Enter your email"
-                 style="border-radius: 10px; background: #fff8f3;">
-        </div>
-        <div class="modal-footer" style="border-top: none;">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal" style="border-radius: 30px;">Cancel</button>
-          <button type="button" id="sendResetLink" class="btn btn-coffee" style="border-radius: 30px;">Send Link</button>
-        </div>
+<!-- Forgot Password Modal -->
+<div class="modal fade" id="forgotModal" tabindex="-1" aria-labelledby="forgotModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content" style="background: rgba(255,255,255,0.95); border-radius: 15px; font-family: 'Montserrat', sans-serif;">
+      <div class="modal-header" style="border-bottom: none;">
+        <h5 class="modal-title" id="forgotModalLabel" style="color:#4b3a2f; font-weight:700;">Forgot Password</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <div class="modal-body text-center">
+        <p style="color:#4b3a2f; font-weight:500;">Enter your registered email address to receive a password reset link.</p>
+        <input type="email" id="forgotEmail" class="form-control mt-3"
+               placeholder="Enter your email"
+               style="border-radius: 10px; background: #fff8f3; font-family:'Montserrat',sans-serif;">
+      </div>
+
+      <div class="modal-footer" style="border-top: none;">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal"
+                style="border-radius: 30px; font-family:'Montserrat',sans-serif;">Cancel</button>
+        <button type="button" id="sendResetLink" class="btn btn-coffee"
+                style="border-radius: 30px; font-family:'Montserrat',sans-serif;">Send Link</button>
       </div>
     </div>
   </div>
+</div>
+
 
   <!-- SCRIPTS -->
   <script>

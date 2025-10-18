@@ -89,7 +89,7 @@ function card_html($p) {
     $html .= '<div class="menu-bottom">';
     $html .= '<div class="menu-price">₱' . $priceFmt . '</div>';
     $html .= '<div class="controls">';
-    $html .= '<input type="number" min="1" max="99" value="1" class="quantity-input" ' . $disabledAttr . '>';
+  $html .= '<input type="number" min="1" max="99" value="1" class="quantity-input" ' . $disabledAttr . ' onkeydown="return false;">';
     $html .= $btnHtml;
     $html .= '</div>'; // controls
     $html .= '</div>'; // menu-bottom
@@ -102,231 +102,379 @@ function card_html($p) {
 ?>
 
 <!DOCTYPE html>
-		<html lang="en">
-		<head>
-		<meta charset="utf-8">
-		<title>Menu | Izana Coffee</title>
-		<meta name="viewport" content="width=device-width, initial-scale=1">
-		<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-		<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+  <html lang="en">
+  <head>
+  <meta charset="utf-8">
+  <title>Menu | Izana Coffee</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
 
-		<style>
-		:root {
-		--accent: #b07542;
-		--accent-dark: #8a5c33;
-		--gray-dark: #1e1e1e;
-		--gray-mid: #2b2b2b;
-		--gray-light: #444;
-		--text-light: #f5f5f5;
-		--text-muted: #ccc;
-		}
-    
-    body {
+  <style>
+  @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap');
+
+  :root {
+    --accent: #b07542;
+    --accent-dark: #8a5c33;
+    --bg-dark: #1a1a1a;
+    --bg-mid: #232323;
+    --bg-light: #2f2f2f;
+    --text-light: #f5f5f5;
+    --text-muted: #cfcfcf;
+    --shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+    --glass: rgba(255, 255, 255, 0.06);
+  }
+
+  /* Body */
+  body {
     margin: 0;
     font-family: 'Montserrat', sans-serif;
     color: var(--text-light);
-    background: url('uploads/bgg.jpg') no-repeat center center fixed;
-    background-size: cover;
+    background: url('uploads/bgg.jpg') center/cover fixed no-repeat;
+    position: relative;
+  }
+
+  body::before {
+    content: '';
+    position: fixed;
+    inset: 0;
+    background: rgba(0, 0, 0, 0.55);
+    z-index: -1;
+  }
+
+
+  .navbar-custom {
+    background: var(--bg-mid);
+    backdrop-filter: blur(8px);
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+    box-shadow: var(--shadow);
+    transition: background 0.3s ease;
+  }
+
+  .navbar-brand {
+    color: var(--accent) !important;
+    font-weight: 800;
+    font-size: 2rem;
+    letter-spacing: 1px;
+    text-transform: uppercase;
+  }
+
+  .navbar-brand:hover {
+    color: var(--accent-dark) !important;
+  }
+
+  .navbar-custom .btn {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    font-size: 1.2rem;
+    background: var(--accent);
+    color: #fff;
+    transition: all 0.3s ease;
+  }
+  /* .navbar-custom .btn:hover {
+    background: var(--accent-dark);
+    transform: scale(1.05);
+  } */
+
+  .navbar-custom .dropdown-menu {
+    background: var(--bg-light);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 10px;
+    box-shadow: var(--shadow);
+  }
+  .navbar-custom .dropdown-item {
+    color: var(--text-light);
+    transition: 0.3s;
+  }
+  .navbar-custom .dropdown-item:hover {
+    background: var(--accent);
+    color: #fff;
+  }
+
+
+  .container-menu {
+    max-width: 1400px;
+    margin: 120px auto 60px;
+  }
+
+  .layout {
+    display: flex;
+    gap: 30px;
+    flex-wrap: wrap;
+  }
+
+
+  .sidebar {
+    flex: 0 0 270px;
+    padding: 25px;
+    background: var(--glass);
+    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 16px;
+    height: calc(85vh);
+    position: sticky;
+    top: 120px;
+    overflow-y: auto;
+    backdrop-filter: blur(12px);
+    box-shadow: var(--shadow);
+    transition: all 0.3s ease;
+  }
+
+  .sidebar::-webkit-scrollbar {
+    width: 6px;
+  }
+  .sidebar::-webkit-scrollbar-thumb {
+    background: var(--accent);
+    border-radius: 6px;
+  }
+
+  .sidebar h5 {
+    color: var(--accent);
+    font-weight: 900;
+    font-size: 1.8rem;  /* 🔥 make it larger */
+    text-transform: uppercase;
+    letter-spacing: 1px;
+    margin-bottom: 25px;
+    text-align: center; /* optional: center title */
+    text-shadow: 0 2px 6px rgba(0,0,0,0.3); /* adds a subtle glow */
+  }
+
+
+
+
+    .sidebar a {
+      display: block;
+      color: var(--text-muted);
+      padding: 12px 14px;
+      border-radius: 10px;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 1rem;
+      margin-bottom: 6px;
+      transition: all 0.3s ease;
+    }
+    .sidebar a:hover, .sidebar a.active {
+      background: var(--accent);
+      color: #fff;
+      transform: translateX(5px);
     }
 
-		body::before {
-		content:'';
-		position: fixed;
-		inset:0;
-		background: rgba(0,0,0,.6);
-		z-index: -1;
-		}
+    /* ☕ Main Content */
+    main.content {
+      flex: 1;
+    }
 
-		/* Navbar */
-		.navbar-custom {
-		background: var(--gray-dark);
-		border-bottom: 1px solid var(--gray-light);
-		}
-		.navbar-brand {
-		color: var(--accent) !important;
-		font-family: 'Playfair Display', serif;
-		font-weight: 800;
-		font-size: 2rem;
-		}
-		.navbar-custom .btn { width:50px; height:50px; font-size:1.2rem; }
-		.navbar-custom .dropdown-menu { background: var(--gray-mid); border:1px solid var(--gray-light); min-width:150px; }
-		.navbar-custom .dropdown-item { color: var(--text-light); }
-		.navbar-custom .dropdown-item:hover { background: var(--accent); color:#fff; }
+    .page-title {
+      text-align: center;
+      font-weight: 800;
+      font-size: 2.5rem;
+      margin-bottom: 40px;
+      color: var(--text-light);
+      text-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+      letter-spacing: 1px;
+    }
 
-		/* Layout */
-		.container-menu { max-width:1400px; margin:120px auto 40px; }
-		.layout { display:flex; gap:30px; flex-wrap:wrap; }
-		.sidebar { flex:0 0 280px; padding:25px; background: var(--gray-mid); border-radius:12px; height:calc(85vh); position:sticky; top:120px; overflow-y:auto; scrollbar-width:thin; }
-		.sidebar::-webkit-scrollbar { width:6px; }
-		.sidebar::-webkit-scrollbar-thumb { background: var(--accent); border-radius:6px; }
-		.sidebar h5 { color: var(--accent); font-weight:800; font-size:1.4rem; margin-bottom:20px; }
-		.sidebar a { color: var(--text-light); display:block; padding:12px 10px; border-radius:6px; text-decoration:none; font-weight:600; font-size:1.1rem; }
-		.sidebar a:hover { background: var(--accent); color:#fff; }
-		.sidebar a { scroll-margin-top:130px; }
-
-		/* Main content */
-		main.content { flex:1; }
-		.page-title { text-align:center; font-family:'Playfair Display', serif; font-weight:800; font-size:2.4rem; margin-bottom:40px; color: var(--text-light); }
-
-		/* Menu Cards */
-  .menu-card {
-    background: var(--gray-mid);
-    color: var(--text-light);
-    border: 1px solid var(--gray-light);
-    border-radius: 12px;
-    overflow: hidden;
-    margin-bottom: 25px;
-    transition: .2s;
+    .controls {
     display: flex;
-    flex-direction: column;
-    height: 360px; /* 🔥 fixed uniform height */
+    align-items: center;
+    gap: 10px; /* space between quantity input and Add button */
   }
 
-  .card-media {
-    position: relative;
-    height: 200px; /* 🔥 fixed image height */
-    flex-shrink: 0;
-  }
-  .card-media img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-
-  .menu-body {
-    flex: 1;
-    padding: 15px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-  }
-
-  .menu-name {
-    font-weight: 800;
-    font-size: 1.1rem;
+  .quantity-input {
+    width: 60px;
+    text-align: center;
+    border: 1px solid rgba(255,255,255,0.2);
+    border-radius: 8px;
+    background: rgba(255,255,255,0.05);
     color: #fff;
-    margin-bottom: 8px;
-    line-height: 1.2;
-    height: 40px;         /* 🔥 reserve space for names */
-    overflow: hidden;     /* 🔥 cut overflow */
-    text-overflow: ellipsis;
-    display: -webkit-box;
-    -webkit-line-clamp: 2; /* 🔥 max 2 lines */
-    -webkit-box-orient: vertical;
+    font-weight: 600;
+    padding: 6px 4px;
   }
 
+  .quantity-input:disabled {
+    opacity: 0.5;
+  }
+
+
+ 
+    .menu-card {
+      background: var(--glass);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px;
+      overflow: hidden;
+      box-shadow: var(--shadow);
+      transition: all 0.35s ease;
+      display: flex;
+      flex-direction: column;
+      backdrop-filter: blur(10px);
+    }
+    /* .menu-card:hover {
+      transform: translateY(-6px);
+      box-shadow: 0 12px 30px rgba(0,0,0,0.6);
+    } */
+
+    .card-media {
+      position: relative;
+      height: 200px;
+    }
+    .card-media img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
+    .badge-best {
+      position: absolute;
+      top: 12px;
+      left: 12px;
+      background: linear-gradient(135deg, #b07542, #d89b5c);
+      color: #fff;
+      padding: 5px 12px;
+      border-radius: 20px;
+      font-weight: 700;
+      box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+    }
+
+    .menu-body {
+      flex: 1;
+      padding: 16px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+    }
+
+    .menu-name {
+      font-weight: 800;
+      font-size: 1.1rem;
+      color: #fff;
+      line-height: 1.3;
+      margin-bottom: 8px;
+      height: 42px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      -webkit-line-clamp: 2;
+      display: -webkit-box;
+      -webkit-box-orient: vertical;
+    }
+
+
+    
+
+    /* MENU BOTTOM AREA */
   .menu-bottom {
     display: flex;
     justify-content: space-between;
     align-items: center;
     margin-top: auto;
+    gap: 12px; /* Adds spacing between elements */
+    flex-wrap: wrap;
   }
 
+  /* PRICE STYLING */
   .menu-price {
     color: var(--accent);
     font-weight: 800;
-    font-size: 1.05rem;
-    white-space: nowrap;  /* 🔥 prevent breaking */
+    font-size: 1.15rem;
+    white-space: nowrap;
   }
 
+  /* QUANTITY INPUT */
   .quantity-input {
     width: 60px;
-    padding: 6px;
+    height: 38px;
     text-align: center;
-    border-radius: 6px;
-    border: 1px solid var(--gray-light);
-    background: var(--gray-dark);
+    border-radius: 8px;
+    border: 1px solid rgba(255,255,255,0.2);
+    background: var(--bg-light);
     color: var(--text-light);
-    font-size: 0.9rem;
+    font-weight: 600;
+    font-size: 0.95rem;
+    outline: none;
+    transition: border-color 0.3s ease, background 0.3s ease;
+  }
+  .quantity-input:focus {
+    border-color: var(--accent);
+    background: var(--bg-mid);
   }
 
+  /* ADD BUTTON */
   .btn-coffee {
     background: var(--accent);
     color: #fff;
     border: none;
-    padding: 6px 14px;
-    border-radius: 20px;
+    padding: 8px 20px;
+    border-radius: 25px;
     font-weight: 700;
-    font-size: 0.9rem;
-    flex-shrink: 0;
+    font-size: 0.95rem;
+    transition: all 0.3s ease;
+    box-shadow: 0 3px 8px rgba(0,0,0,0.3);
+  }
+  .btn-coffee:hover {
+    background: var(--accent-dark);
+    transform: translateY(-2px);
   }
 
-  .sidebar a.active {
-    background: var(--accent);
-    color: #fff;
-    font-weight: 700;
-  }
-
-  .sidebar a {
-    transition: background 0.2s ease, color 0.2s ease;
+  /* FIXED LAYOUT FOR BUTTON + QUANTITY */
+  .menu-actions {
+    display: flex;
+    align-items: center;
+    gap: 10px; /* spacing between input and button */
   }
 
 
-    
-      .card-media { position:relative; height:220px; }
-      .card-media img { width:100%; height:100%; object-fit:cover; }
-      .badge-best { position:absolute; top:12px; left:12px; background: var(--accent); color:#fff; padding:5px 12px; border-radius:14px; font-size:.95rem; }
-      .menu-body { padding:18px; display:flex; flex-direction:column; gap:12px; }
-      .menu-name { font-weight:800; font-size:1.2rem; color:#fff; }
-      .menu-bottom { display:flex; justify-content:space-between; align-items:center; }
-      .menu-price { color: var(--accent); font-weight:800; font-size:1.1rem; }
-      .quantity-input { width:70px; padding:6px; text-align:center; border-radius:6px; border:1px solid var(--gray-light); background: var(--gray-dark); color: var(--text-light);}
-      .btn-coffee { background: var(--accent); color:#fff; border:none; padding:6px 14px; border-radius:20px; font-weight:700;}
-      
-      .faded { opacity:.6; pointer-events:none; }
-
-      /* Modal */
-      .modal-content { border-radius:12px; background: var(--gray-dark); color:#fff; border:1px solid var(--gray-light); }
-      .modal-header { background: var(--accent-dark); color:#fff; border-bottom:1px solid var(--gray-light); font-size:1.4rem; font-weight:700;}
-      .modal-footer { background: var(--gray-mid); border-top:1px solid var(--gray-light);}
-      #cart-total { font-weight:800; color:#fff; font-size:1.6rem; text-align:right; }
-      #checkoutBtn { background: var(--accent); color:#fff; border:none; border-radius:20px; padding:8px 18px; font-weight:700;}
-      
-
-      /* Responsive */
-  @media (max-width: 1199px) {
-    .layout { flex-direction: column; }
-    .sidebar { width: 100%; height: auto; position: relative; top: auto; margin-bottom: 20px; }
-    .navbar-brand { font-size: 1.7rem; }
-    .navbar-custom .btn { width: 45px; height: 45px; }
-  }
-
-  @media (max-width: 991px) {
-    .navbar-brand img { height: 60px; }
-    .sidebar h5 { font-size: 1.2rem; }
-    .sidebar a { font-size: 1rem; }
-    .menu-card .menu-name { font-size: 1.1rem; }
-  }
-
-  @media (max-width: 767px) {
-    .navbar-brand img { height: 50px; }
-    .menu-card .menu-name { font-size: 1rem; }
-    .menu-card .menu-price { font-size: 0.95rem; }
-    .quantity-input { width: 60px; font-size: 0.9rem; }
-    .btn-coffee { font-size: 0.9rem; padding: 5px 12px; }
-  }
-
-  @media (max-width: 575px) {
-    .menu-card { margin-bottom: 18px; }
-    .menu-name { font-size: 1rem; }
-    .menu-price { font-size: 0.9rem; }
-    .sidebar a { font-size: 0.9rem; padding: 8px 6px; }
-    .navbar-brand img { height: 45px; }
-    .btn-coffee { font-size: 0.85rem; }
-  }
-
-  /* Grid adjustment for extra large screens */
-  @media (min-width: 1400px) {
-    .row.gy-3 > [class*="col-"] {
-      flex: 0 0 25%; /* 4 per row */
-      max-width: 25%;
+    /* 🧾 Modal */
+    .modal-content {
+      background: var(--bg-mid);
+      border-radius: 16px;
+      border: 1px solid rgba(255,255,255,0.1);
+      color: #fff;
     }
-  }
+    .modal-header {
+      background: var(--accent);
+      color: #fff;
+      font-weight: 700;
+    }
+    .modal-footer {
+      background: var(--bg-mid);
+      border-top: 1px solid rgba(255,255,255,0.1);
+    }
+    #cart-total {
+      font-weight: 800;
+      font-size: 1.6rem;
+      text-align: right;
+    }
+
+    /* 📱 Responsive */
+    @media (max-width: 1199px) {
+      .layout {
+        flex-direction: column;
+      }
+      .sidebar {
+        width: 100%;
+        height: auto;
+        position: relative;
+      }
+      .navbar-brand {
+        font-size: 1.8rem;
+      }
+    }
+
+    @media (max-width: 767px) {
+      .page-title {
+        font-size: 2rem;
+      }
+      .menu-card {
+        height: auto;
+      }
+      .btn-coffee {
+        padding: 6px 14px;
+      }
+    }
 
 </style>
 </head>
 <body>
+
 
 <!-- Navbar -->
 <nav class="navbar navbar-expand-lg navbar-dark navbar-custom fixed-top">
@@ -343,35 +491,80 @@ function card_html($p) {
       <ul class="navbar-nav align-items-center">
         <!-- Notification Bell -->
         <li class="nav-item me-3 position-relative">
-          <button class="btn btn-light rounded-circle position-relative" id="btnNotification">
+          <button class="btn  " id="btnNotification">
             <i class="fas fa-bell text-dark"></i>
             <span class="badge bg-danger rounded-pill position-absolute top-0 start-100 translate-middle" id="notificationCount" style="font-size: 0.7rem; display:none;">0</span>
           </button>
 
-          <!-- Dropdown Notifications -->
-          <div class="dropdown-menu dropdown-menu-end shadow p-2" id="notificationDropdown" style="min-width: 250px; max-height: 300px; overflow-y: auto;">
-            <div id="notificationList">
-              <p class="text-center text-muted small m-2">No notifications</p>
-            </div>
-          </div>
-        </li>
+       <!-- 🔔 Dropdown Notifications -->
+<!-- 🔔 Dropdown Notifications -->
+<div class="dropdown-menu shadow border-0"
+     id="notificationDropdown"
+     style="
+       position: absolute;
+       top: 115%;
+       left: 50%;
+       transform: translateX(-50%);
+       min-width: 320px;
+       max-width: 340px;
+       max-height: 320px;
+       overflow-y: auto;
+       border-radius: 20px;
+       backdrop-filter: blur(10px);
+       background-color: rgba(255, 255, 255, 0.8);
+       z-index: 1050;
+       box-shadow: 0 4px 16px rgba(0,0,0,0.1);
+       padding: 0.8rem 1rem;
+     ">
+  
+  <!-- Header -->
+  <div class="fw-semibold text-center text-white py-2 mb-2"
+       style="background-color: #b46c38; border-radius: 12px;">
+    Notifications
+  </div>
+
+  <!-- Notification List -->
+  <div id="notificationList">
+    <div class="notif-item">
+      <i class="fas fa-coffee notif-icon"></i>
+      <div class="notif-text">
+        <strong>Your order #27 has been placed</strong><br>
+        <small>and is now pending confirmation.</small>
+        <div class="notif-time">2025-10-16 17:34:08</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+
 
         <!-- Cart -->
         <li class="nav-item me-3 position-relative">
-          <button class="btn btn-warning rounded-circle position-relative" id="btnShowCartModal" data-bs-toggle="modal" data-bs-target="#cartModal">
+          <button class="btn  position-relative" id="btnShowCartModal" data-bs-toggle="modal" data-bs-target="#cartModal">
             <i class="fas fa-shopping-cart"></i>
             <span class="badge bg-danger rounded-pill position-absolute top-0 start-100 translate-middle" id="cartCount" style="font-size: 0.7rem; display:none;">0</span>
           </button>
         </li>
 
         <!-- Dropdown Menu -->
-        <li class="nav-item dropdown">
-          <a class="nav-link dropdown-toggle" href="#" data-bs-toggle="dropdown">Menu</a>
-          <ul class="dropdown-menu dropdown-menu-end">
-            <li><a class="dropdown-item" href="profile.php">Profile</a></li>
-            <li><a class="dropdown-item text-danger" href="Logout.php">Logout</a></li>
-          </ul>
+    <li class="nav-item dropdown me-3 position-relative">
+      <button class="btn position-relative" data-bs-toggle="dropdown" aria-expanded="false">
+        <i class="fas fa-user-circle"></i>
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end shadow">
+        <li>
+          <a class="dropdown-item" href="profile.php">
+            <i class="fas fa-user me-2"></i>Profile
+          </a>
         </li>
+        <li>
+          <a class="dropdown-item text-danger" href="Logout.php">
+            <i class="fas fa-sign-out-alt me-2"></i>Logout
+          </a>
+        </li>
+      </ul>
+    </li>
+
       </ul>
     </div>
   </div>
@@ -426,6 +619,24 @@ function card_html($p) {
           </div>
 
 
+    // repay
+        <div id="notificationList">
+        <?php foreach($notifications as $n): ?>
+            <div class="notif-item" data-order-id="<?= $n['order_id'] ?>">
+                <i class="fas fa-coffee notif-icon"></i>
+                <div class="notif-text">
+                    <strong><?= $n['message'] ?></strong><br>
+                    <?php if($n['status'] === 'rejected'): ?>
+                        <small>Reason: <?= htmlspecialchars($n['rejected_reason']) ?></small><br>
+                        <button class="btn btn-warning btn-sm repay-btn" data-order-id="<?= $n['order_id'] ?>">Repay</button>
+                    <?php endif; ?>
+                    <div class="notif-time"><?= $n['created_at'] ?></div>
+                </div>
+            </div>
+        <?php endforeach; ?>
+        </div>
+
+
 
     </main>
   </div>
@@ -436,7 +647,7 @@ function card_html($p) {
       <div class="modal-dialog modal-sm modal-dialog-scrollable">
       <div class="modal-content">
       
-      <div class="modal-header"><h5 class="modal-title">🛒 Cart</h5><button 
+      <div class="modal-header"><h5 class="modal-title">Cart</h5><button 
       class="btn-close" data-bs-dismiss="modal"></button>
       </div>
 
@@ -464,6 +675,51 @@ function card_html($p) {
 <script>
 $(document).ready(function() {
   
+// Repay button click
+$(document).on('click', '.repay-btn', function() {
+    let orderId = $(this).data('order-id');
+    
+    Swal.fire({
+        title: 'Upload new payment receipt',
+        html: `<input type="file" id="receiptUpload" class="swal2-input" accept="image/*">`,
+        confirmButtonText: 'Submit',
+        preConfirm: () => {
+            const file = Swal.getPopup().querySelector('#receiptUpload').files[0];
+            if (!file) Swal.showValidationMessage('Please select a receipt file');
+            return file;
+        }
+    }).then((result) => {
+        if(result.isConfirmed){
+            const formData = new FormData();
+            formData.append('ref', 'repay_order');
+            formData.append('order_id', orderId);
+            formData.append('receipt', result.value);
+
+            $.ajax({
+                url: 'functions.php',
+                type: 'POST',
+                data: formData,
+                processData: false,
+                contentType: false,
+                dataType: 'json',
+                success: function(res) {
+                    if(res.status === 'success'){
+                        Swal.fire('Success', res.msg, 'success');
+                        loadNotifications(); // refresh notifications
+                    } else {
+                        Swal.fire('Error', res.msg, 'error');
+                    }
+                },
+                error: function() {
+                    Swal.fire('Error', 'Something went wrong', 'error');
+                }
+            });
+        }
+    });
+});
+
+
+
     function updateCartCount() {
       $.ajax({
         url: "functions.php",
@@ -736,30 +992,69 @@ document.addEventListener('DOMContentLoaded', () => {
       attachAddToCartListeners();
  
 
-  const checkoutBtn = document.getElementById('checkoutBtn');
-  if (checkoutBtn) {
-      checkoutBtn.addEventListener('click', () => {
+ const checkoutBtn = document.getElementById('checkoutBtn');
 
-      // Ask server for current cart before proceedi
-      $.ajax({
-        url: "functions.php",
-        method: "POST",
-        data: { ref: "show_cart" },
-        dataType: "json",
-        success: function(response) {
-          if (response.status === "success" && response.cart_grand_total && parseFloat(response.cart_grand_total.replace(/,/g,'')) > 0) {
-            // proceed to checkout (server-side cart has items)
-            window.location.href = 'checkout.php';
-          } else {
-            Swal.fire({ icon:'warning', title:'Cart is Empty!', text:'Add something to checkout.', confirmButtonColor: '#b07542' });
-          }
-        },
-        error: function() {
-          Swal.fire({ icon:'error', title:'Unable to verify cart', text:'Please try again.' });
+if (checkoutBtn) {
+  checkoutBtn.addEventListener('click', () => {
+
+    // Ask server for current cart before proceeding
+    $.ajax({
+      url: "functions.php",
+      method: "POST",
+      data: { ref: "show_cart" },
+      dataType: "json",
+      success: function(response) {
+        if (response.status === "success" && response.cart_grand_total && parseFloat(response.cart_grand_total.replace(/,/g,'')) > 0) {
+          
+          // ✅ SweetAlert confirmation
+          Swal.fire({
+            title: 'Proceed to Checkout?',
+            text: 'Please confirm if you’re ready to complete your order.',
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Yes, proceed',
+            cancelButtonText: 'No, stay here',
+            confirmButtonColor: '#b07542',
+            cancelButtonColor: '#6c757d',
+            reverseButtons: true,
+            background: '#fff8f0',
+            backdrop: `rgba(0,0,0,0.3)`
+          }).then((result) => {
+            if (result.isConfirmed) {
+              // Proceed to checkout (server-side cart has items)
+              window.location.href = 'checkout.php';
+            } else {
+              Swal.fire({
+                icon: 'info',
+                title: 'Checkout cancelled',
+                text: 'You can continue adding more items.',
+                confirmButtonColor: '#b07542',
+                timer: 1800,
+                showConfirmButton: false
+              });
+            }
+          });
+
+        } else {
+          Swal.fire({
+            icon: 'warning',
+            title: 'Cart is Empty!',
+            text: 'Add something to checkout.',
+            confirmButtonColor: '#b07542'
+          });
         }
-      });
+      },
+      error: function() {
+        Swal.fire({
+          icon: 'error',
+          title: 'Unable to verify cart',
+          text: 'Please try again.',
+          confirmButtonColor: '#b07542'
+        });
+      }
     });
-  }
+  });
+}
 
     // Smooth scroll for category links
     document.querySelectorAll('aside.sidebar a[href^="#"]').forEach(a => {

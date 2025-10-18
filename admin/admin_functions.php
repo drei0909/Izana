@@ -90,7 +90,7 @@ if ($_POST['ref'] == 'get_orders_que') {
     $html = '<div class="row">';
 
     $statuses = [
-        1 => 'Pending',
+        1 => 'Review',
         2 => 'Preparing',
         3 => 'Ready for Pickup',
     ];
@@ -106,12 +106,27 @@ if ($_POST['ref'] == 'get_orders_que') {
         if (!empty($orders)) {
             foreach ($orders as $row) {
 
-                $html .= '<li class="list-group-item order-item" data-id="'. htmlspecialchars($row['order_id']) .'" data-order-type="'.$row['order_type'].'">';
-                $html .= '<div><strong>'. htmlspecialchars($row['customer_FN']) .' </strong> <span class="float-end"> #00'.$row['order_id'].'</span> </div>';
-                $html .= '</li>';
+               // Determine data-status for JS
+               $dataStatus = ($statusName === 'Review') ? 'pending' : strtolower($statusName);
+
+               $html .= '<li class="list-group-item order-item" data-id="'. htmlspecialchars($row['order_id']) .'" data-order-type="'.$row['order_type'].'" data-status="'.$dataStatus.'">';
+               $html .= '<div class="d-flex justify-content-between align-items-center">';
+               $html .= '<strong>'. htmlspecialchars($row['customer_FN']) .'</strong> <span class="text-muted small">#00'.$row['order_id'].'</span>';
+               $html .= '</div>';
+
+               if ($statusName === 'Review') {
+                   $html .= '<div class="mt-2 d-flex gap-1">
+                                <button class="btn btn-sm btn-success btn-accept w-50" data-id="'.$row['order_id'].'" data-type="'.$row['order_type'].'">
+                                    <i class="fas fa-check"></i> Accept
+                                </button>
+                                <button class="btn btn-sm btn-danger btn-reject w-50" data-id="'.$row['order_id'].'" data-type="'.$row['order_type'].'">
+                                    <i class="fas fa-times"></i> Reject
+                                </button>
+                            </div>';
+               }
+
+               $html .= '</li>';
             }
-        } else {
-          
         }
 
         $html .= '
@@ -127,6 +142,7 @@ if ($_POST['ref'] == 'get_orders_que') {
         'html' => $html
     ]);
 }
+
 
 
 // --- Update Order Status + Notify Customer ---
@@ -166,6 +182,9 @@ if (isset($_POST['ref']) && $_POST['ref'] === 'update_order_stats') {
             // };
 
             switch ($status) {
+                  case 1:
+                    $message = "Your order #$order_id is for review.";
+                    break;
                 case 2:
                     $message = "Your order #$order_id is now being prepared.";
                     break;
@@ -173,7 +192,7 @@ if (isset($_POST['ref']) && $_POST['ref'] === 'update_order_stats') {
                     $message = "Your order #$order_id is ready for pickup!";
                     break;
                 default:
-                    $message = "Your order #$order_id status has been updated.";
+                    $message = "Your order #$order_id is for review.";
                     break;
             }
 
@@ -472,7 +491,13 @@ if ($_POST['ref'] == 'get_order_info') {
     $order_id = $_POST['order_id'];
 
     $query = $db->conn->prepare("
-        SELECT o.ref_no, o.receipt, c.customer_FN, c.customer_LN, c.customer_contact
+        SELECT 
+            o.ref_no, 
+            o.receipt, 
+            o.pickup_time, 
+            c.customer_FN, 
+            c.customer_LN, 
+            c.customer_contact
         FROM order_online o
         INNER JOIN customer c ON o.customer_id = c.customer_id
         WHERE o.order_id = ?
@@ -485,6 +510,7 @@ if ($_POST['ref'] == 'get_order_info') {
             'status' => 'success',
             'ref_no' => $info['ref_no'],
             'receipt' => $info['receipt'],
+            'pickup_time' => $info['pickup_time'] ? date("h:i A", strtotime($info['pickup_time'])) : 'N/A',
             'customer_FN' => $info['customer_FN'],
             'customer_LN' => $info['customer_LN'],
             'customer_contact' => $info['customer_contact']
@@ -611,6 +637,63 @@ if (isset($_POST['ref']) && $_POST['ref'] === 'get_customer_details') {
 
     exit;
 }
+
+//Accept or Reject Order 
+if (isset($_POST['ref']) && $_POST['ref'] === 'review_action') {
+   
+
+    $order_id   = intval($_POST['order_id'] ?? 0);
+    $action     = $_POST['action'] ?? '';
+    $orderType  = $_POST['orderType'] ?? 'online';
+    $reason     = trim($_POST['reason'] ?? ''); // reason for rejection
+
+    if (!$order_id || !$action) {
+        echo json_encode(['status' => 'error', 'message' => 'Invalid request.']);
+        exit;
+    }
+
+    try {
+        if ($orderType === 'online') {
+            // Fetch customer ID
+            $getCust = $db->conn->prepare("SELECT customer_id FROM order_online WHERE order_id = ?");
+            $getCust->execute([$order_id]);
+            $cust = $getCust->fetch(PDO::FETCH_ASSOC);
+            $customer_id = $cust['customer_id'] ?? null;
+
+            if ($action === 'accept') {
+                $stmt = $db->conn->prepare("UPDATE order_online SET status = 2 WHERE order_id = ?");
+                $stmt->execute([$order_id]);
+                $message = "Your order #$order_id has been accepted and is now being prepared.";
+            } elseif ($action === 'reject') {
+                $stmt = $db->conn->prepare("UPDATE order_online SET status = 0, reject_reason = ? WHERE order_id = ?");
+                $stmt->execute([$reason, $order_id]);
+                $message = "Your order #$order_id has been rejected." . ($reason ? " Reason: $reason" : "");
+            }
+
+            // Insert notification with reject_reason
+            if ($customer_id && !empty($message)) {
+                $insert = $db->conn->prepare("
+                    INSERT INTO notifications (customer_id, order_id, message, reject_reason, is_read, created_at)
+                    VALUES (?, ?, ?, ?, 0, NOW())
+                ");
+                $insert->execute([$customer_id, $order_id, $message, $reason]);
+            }
+        }
+
+        echo json_encode([
+            'status'  => 'success',
+            'message' => ($action === 'reject' && $reason) ? $reason : ucfirst($action) . 'ed order successfully.'
+        ]);
+    } catch (Throwable $e) {
+        echo json_encode([
+            'status'  => 'error',
+            'message' => 'Server error: ' . $e->getMessage()
+        ]);
+    }
+    exit;
+}
+
+
 
 
 

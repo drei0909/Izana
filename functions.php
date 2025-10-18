@@ -431,132 +431,139 @@ if (isset($_POST['ref']) && $_POST['ref'] === 'get_cart_count') {
     exit;
 }
 
-
-// Place the order(online cashier)
+// Place Order online
 if (isset($_POST['ref']) && $_POST['ref'] === "place_order") {
-    $customerID = intval($_SESSION['customer_ID']);
-    $refNo      = trim($_POST['ref_no'] ?? '');
-    $receiptPath = null;
+  
+        $customerID = intval($_SESSION['customer_ID'] ?? 0);
+        $refNo      = trim($_POST['ref_no'] ?? '');
+        $receiptPath = null;
 
-    // --- Validate receipt upload ---
-    if (isset($_FILES['pop']) && $_FILES['pop']['error'] === 0) {
-        $ext = strtolower(pathinfo($_FILES['pop']['name'], PATHINFO_EXTENSION));
-        $allowed = ['jpg', 'jpeg', 'png'];
-
-        if (!in_array($ext, $allowed)) {
-            echo json_encode(['status' => 'error', 'message' => 'Invalid file type. Only JPG, JPEG, or PNG allowed.']);
+        if (!$customerID) {
+            echo json_encode(['status' => 'error', 'message' => 'You must be logged in to place an order.']);
             exit();
         }
 
-        if (!is_dir('uploads/receipts')) mkdir('uploads/receipts', 0777, true);
+        // --- Validate receipt upload ---
+        if (isset($_FILES['pop']) && $_FILES['pop']['error'] === 0) {
+            $ext = strtolower(pathinfo($_FILES['pop']['name'], PATHINFO_EXTENSION));
+            $allowed = ['jpg', 'jpeg', 'png'];
 
-        $filename = uniqid('gcash_', true) . '.' . $ext;
-        $target   = 'uploads/receipts/' . $filename;
+            if (!in_array($ext, $allowed)) {
+                echo json_encode(['status' => 'error', 'message' => 'Invalid file type. Only JPG, JPEG, or PNG allowed.']);
+                exit();
+            }
 
-        if (!move_uploaded_file($_FILES['pop']['tmp_name'], $target)) {
-            echo json_encode(['status' => 'error', 'message' => 'Failed to upload receipt.']);
+            if (!is_dir('uploads/receipts')) mkdir('uploads/receipts', 0777, true);
+            $filename = uniqid('gcash_', true) . '.' . $ext;
+            $target = 'uploads/receipts/' . $filename;
+
+            if (!move_uploaded_file($_FILES['pop']['tmp_name'], $target)) {
+                echo json_encode(['status' => 'error', 'message' => 'Failed to upload receipt.']);
+                exit();
+            }
+            $receiptPath = $filename;
+        } else {
+            echo json_encode(['status' => 'error', 'message' => 'Proof of payment is required.']);
             exit();
         }
 
-        $receiptPath = $filename;
-    } else {
-        echo json_encode(['status' => 'error', 'message' => 'Proof of payment is required.']);
-        exit();
-    }
-
-    // --- Calculate total from cart ---
-    $stmt = $db->conn->prepare("
-        SELECT SUM(c.qty * p.product_price) AS total
-        FROM cart c
-        INNER JOIN product p ON c.product_id = p.product_id
-        WHERE c.customer_id = :customer_id
-    ");
-    $stmt->execute([':customer_id' => $customerID]);
-    $total = $stmt->fetchColumn() ?? 0;
-
-    if ($total <= 0) {
-        echo json_encode(['status' => 'error', 'message' => 'Cart is empty.']);
-        exit();
-    }
-
-    try {
-        $db->conn->beginTransaction();
-
-        $insertOrder = $db->conn->prepare("
-            INSERT INTO order_online (customer_id, total_amount, receipt, ref_no, created_at, status)
-            VALUES (:customer_id, :total_amount, :receipt, :ref_no, NOW(), :status)
-        ");
-        $insertOrder->execute([
-            ':customer_id' => $customerID,
-            ':total_amount' => $total,
-            ':receipt'      => $receiptPath,
-            ':ref_no'       => $refNo,
-            ':status'       => 1
-        ]);
-
-        $orderID = $db->conn->lastInsertId();
-
-        // --- Insert each cart item into order_item ---
-        $cartItems = $db->conn->prepare("
-            SELECT c.product_id, c.qty, p.product_price
+        // --- Calculate total from cart ---
+        $stmt = $db->conn->prepare("
+            SELECT SUM(c.qty * p.product_price) AS total
             FROM cart c
             INNER JOIN product p ON c.product_id = p.product_id
             WHERE c.customer_id = :customer_id
         ");
-        $cartItems->execute([':customer_id' => $customerID]);
-        $items = $cartItems->fetchAll(PDO::FETCH_ASSOC);
+        $stmt->execute([':customer_id' => $customerID]);
+        $total = $stmt->fetchColumn() ?? 0;
 
-        $insertItem = $db->conn->prepare("
-            INSERT INTO order_item (order_id, pos_id, product_id, quantity, price)
-            VALUES (:order_id, :pos_id, :product_id, :quantity, :price)
-        ");
-
-        foreach ($items as $item) {
-            $insertItem->execute([
-                ':order_id'   => $orderID,
-                ':pos_id'     => null, 
-                ':product_id' => $item['product_id'],
-                ':quantity'   => $item['qty'],
-                ':price'      => $item['product_price']
-            ]);
+        if ($total <= 0) {
+            echo json_encode(['status' => 'error', 'message' => 'Cart is empty.']);
+            exit();
         }
 
-        // --- Insert payment record ---
-        $insertPayment = $db->conn->prepare("
-            INSERT INTO payment (order_id, payment_date, payment_method, payment_amount, payment_status)
-            VALUES (:order_id, NOW(), :method, :amount, :status)
+        try {
+            $db->conn->beginTransaction();
+
+        $pickupTime = $_POST['pickup_time'] ?? null; // ✅ capture time
+
+        $insertOrder = $db->conn->prepare("
+            INSERT INTO order_online (customer_id, total_amount, receipt, ref_no, created_at, pickup_time, status)
+            VALUES (:customer_id, :total_amount, :receipt, :ref_no, NOW(), :pickup_time, :status)
         ");
-        $insertPayment->execute([
-            ':order_id' => $orderID,
-            ':method'   => 'GCash',
-            ':amount'   => $total,
-            ':status'   => 'Pending'  // admin will confirm later
+        $insertOrder->execute([
+            ':customer_id' => $customerID,
+            ':total_amount' => $total,
+            ':receipt' => $receiptPath,
+            ':ref_no' => $refNo,
+            ':pickup_time' => $pickupTime ?: null, // ✅ store null if empty
+            ':status' => 1
         ]);
 
+            $orderID = $db->conn->lastInsertId();
 
-               // Create "Pending Order" Notification ---
-        if ($customerID && $orderID) {
-            $message = "Your order #$orderID has been placed and is now pending confirmation.";
+            // --- Insert items into order_item ---
+            $cartItems = $db->conn->prepare("
+                SELECT c.product_id, c.qty, p.product_price
+                FROM cart c
+                INNER JOIN product p ON c.product_id = p.product_id
+                WHERE c.customer_id = :customer_id
+            ");
+            $cartItems->execute([':customer_id' => $customerID]);
+            $items = $cartItems->fetchAll(PDO::FETCH_ASSOC);
+
+            $insertItem = $db->conn->prepare("
+                INSERT INTO order_item (order_id, pos_id, product_id, quantity, price)
+                VALUES (:order_id, :pos_id, :product_id, :quantity, :price)
+            ");
+
+            foreach ($items as $item) {
+                $insertItem->execute([
+                    ':order_id' => $orderID,
+                    ':pos_id' => null,
+                    ':product_id' => $item['product_id'],
+                    ':quantity' => $item['qty'],
+                    ':price' => $item['product_price']
+                ]);
+            }
+
+            // --- Insert payment record ---
+            $insertPayment = $db->conn->prepare("
+                INSERT INTO payment (order_id, pos_id, payment_method, payment_amount, payment_status)
+                VALUES (:order_id, :pos_id, :method, :amount, :status)
+            ");
+            $insertPayment->execute([
+                ':order_id' => $orderID,
+                ':pos_id' => null,
+                ':method' => 'GCash',
+                ':amount' => $total,
+                ':status' => 'Pending'
+            ]);
+
+            // --- Notification ---
+            $message = "Your order #$orderID has been placed and is pending confirmation.";
             $notif = $db->conn->prepare("
                 INSERT INTO notifications (customer_id, order_id, message, is_read, created_at)
                 VALUES (?, ?, ?, 0, NOW())
             ");
             $notif->execute([$customerID, $orderID, $message]);
+
+            // --- Clear cart ---
+            $clear = $db->conn->prepare("DELETE FROM cart WHERE customer_id = :customer_id");
+            $clear->execute([':customer_id' => $customerID]);
+
+            $db->conn->commit();
+
+            echo json_encode(['status' => 'success']);
+        } catch (Exception $e) {
+            $db->conn->rollBack();
+            echo json_encode(['status' => 'error', 'message' => 'Order failed: ' . $e->getMessage()]);
         }
 
-        $clear = $db->conn->prepare("DELETE FROM cart WHERE customer_id = :customer_id");
-        $clear->execute([':customer_id' => $customerID]);
-
-        $db->conn->commit();
-
-        echo json_encode(['status' => 'success']);
-    } catch (Exception $e) {
-        $db->conn->rollBack();
-        echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
-    }
-
-    exit();
+        exit();
 }
+
+
 
 // Handle Customer Login
 if (isset($_POST['ref']) && $_POST['ref'] === "login_customer") {
@@ -666,7 +673,7 @@ if (isset($_POST['ref']) && $_POST['ref'] === "forgot_password_request") {
     }
 
     try {
-        // ✅ FIX: Use correct column name "customer_email"
+        //FIX: Use correct column name "customer_email"
         $stmt = $db->conn->prepare("SELECT customer_id, customer_FN FROM customer WHERE customer_email = ?");
         $stmt->execute([$email]);
         $user = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -733,7 +740,7 @@ if (isset($_POST['ref']) && $_POST['ref'] === "forgot_password_request") {
     exit;
 }
 
-// RESET PASSWORD HANDLER
+
 // Handle reset password (AJAX)
 if (isset($_POST['ref']) && $_POST['ref'] === 'reset_password') {
     $token = trim($_POST['token'] ?? '');
@@ -778,7 +785,125 @@ if (isset($_POST['ref']) && $_POST['ref'] === 'reset_password') {
     }
 }
 
+// UPDATE CUSTOMER INFO
+if (isset($_POST['ref']) && $_POST['ref'] === 'update_customer_info') {
+    
 
+    if (!isset($_SESSION['customer_ID'])) {
+        echo json_encode(['status' => 'error', 'message' => 'Session expired. Please log in again.']);
+        exit;
+    }
+
+    $customer_ID = $_SESSION['customer_ID'];
+    $username = trim($_POST['username'] ?? '');
+    $email = trim($_POST['email'] ?? '');
+    $contact = trim($_POST['contact'] ?? '');
+    $password = trim($_POST['password'] ?? '');
+
+    if (empty($username) || empty($email)) {
+        echo json_encode(['status' => 'error', 'message' => 'Username and Email cannot be empty.']);
+        exit;
+    }
+
+    try {
+        // Check for duplicate username or email
+        $check = $db->conn->prepare("
+            SELECT customer_id FROM customer 
+            WHERE (customer_username = ? OR customer_email = ?) AND customer_id != ?
+        ");
+        $check->execute([$username, $email, $customer_ID]);
+        if ($check->rowCount() > 0) {
+            echo json_encode(['status' => 'error', 'message' => 'Username or email already taken.']);
+            exit;
+        }
+
+        if (!empty($password)) {
+            // Hash new password if provided
+            $hashedPassword = password_hash($password, PASSWORD_DEFAULT);
+            $query = "
+                UPDATE customer 
+                SET customer_username = ?, customer_email = ?, customer_contact = ?, customer_password = ?
+                WHERE customer_id = ?
+            ";
+            $params = [$username, $email, $contact, $hashedPassword, $customer_ID];
+        } else {
+            // Update without changing password
+            $query = "
+                UPDATE customer 
+                SET customer_username = ?, customer_email = ?, customer_contact = ?
+                WHERE customer_id = ?
+            ";
+            $params = [$username, $email, $contact, $customer_ID];
+        }
+
+        $stmt = $db->conn->prepare($query);
+        $stmt->execute($params);
+
+        echo json_encode([
+            'status' => 'success',
+            'message' => 'Your account information has been updated successfully.'
+        ]);
+    } catch (PDOException $e) {
+        echo json_encode([
+            'status' => 'error',
+            'message' => 'Database error: ' . $e->getMessage()
+        ]);
+    }
+    exit;
+}
+
+// DELETE CUSTOMER ACCOUNT
+if (isset($_POST['ref']) && $_POST['ref'] === 'delete_account') {
+    
+
+    try {
+        if (!isset($_SESSION['customer_ID'])) {
+            echo json_encode(['status' => 'error', 'message' => 'Not logged in.']);
+            exit;
+        }
+
+        $customer_ID = $_SESSION['customer_ID'];
+
+        // Delete customer record
+        $stmt = $db->conn->prepare("DELETE FROM customer WHERE customer_ID = ?");
+        $result = $stmt->execute([$customer_ID]);
+
+        if ($result) {
+            session_destroy();
+            echo json_encode(['status' => 'success', 'message' => 'Your account has been deleted.']);
+        } else {
+            echo json_encode(['status' => 'error', 'message' => 'Failed to delete your account.']);
+        }
+
+    } catch (Exception $e) {
+        echo json_encode(['status' => 'error', 'message' => 'Server error: ' . $e->getMessage()]);
+    }
+    exit;
+}
+
+// repay order
+if ($_POST['ref'] === 'repay_order') {
+    $order_id = $_POST['order_id'] ?? 0;
+    $payment_receipt = $_FILES['receipt'] ?? null;
+
+    if ($order_id && $payment_receipt) {
+        $targetDir = 'uploads/';
+        $filename = time() . '_' . basename($payment_receipt['name']);
+        $targetFile = $targetDir . $filename;
+
+        if (move_uploaded_file($payment_receipt['tmp_name'], $targetFile)) {
+            $stmt = $db->conn->prepare("UPDATE orders SET receipt = ?, status = 'pending', rejected_reason = NULL WHERE order_id = ?");
+            $stmt->execute([$targetFile, $order_id]);
+            
+            echo json_encode(['status' => 'success', 'msg' => 'Payment updated, awaiting admin review.']);
+        } else {
+            echo json_encode(['status' => 'error', 'msg' => 'Failed to upload receipt.']);
+        }
+    } else {
+        echo json_encode(['status' => 'error', 'msg' => 'Invalid request.']);
+    }
+    exit;
+}
 
 
 ?>
