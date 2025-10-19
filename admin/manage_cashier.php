@@ -71,35 +71,152 @@ function card_html($p) {
 <?php include('templates/header.php'); ?>
 
 <style>
- .menu-card {
-  width: 220px;             
-  height: 300px;            
+/* === MENU CARD STYLING === */
+.menu-card {
+  width: 220px;
+  height: 300px;
   border-radius: 12px;
   background: #fff;
   padding: 10px;
-  transition: transform 0.2s, box-shadow 0.2s;
-  overflow: hidden;          /* prevents content overflow */
   display: flex;
   flex-direction: column;
-  justify-content: space-between; /* ensures content stays balanced */
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.1);
+  justify-content: space-between;
+  box-shadow: 0 3px 8px rgba(0,0,0,0.12);
+  transition: transform 0.2s, box-shadow 0.3s;
 }
-
+.menu-card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 8px 16px rgba(0,0,0,0.2);
+}
 .menu-card img {
   width: 100%;
-  height: 160px;             /* consistent image size */
-  object-fit: cover;         /* prevents distortion */
+  height: 160px;
+  object-fit: cover;
   border-radius: 10px;
+  transition: transform 0.3s;
+}
+.menu-card img:hover {
+  transform: scale(1.05);
+}
+.menu-name {
+  font-size: 16px;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 4px;
+}
+.menu-price {
+  font-size: 16px;
+  font-weight: 700;
+  color: #2e7d32;
 }
 
-  .cart-container { background: #fff; padding: 15px; border-radius: 12px; box-shadow: 0 4px 10px rgba(0,0,0,0.08); }
-  .cart-item { display: flex; justify-content: space-between; align-items: center; padding: 6px 10px; border-radius: 8px; background: #fff7e6; margin-bottom: 6px; font-size: 14px; }
-  .btn-add { background-color: #b07542; border: none; color: #fff; font-size: 13px; }
-  .btn-add:hover { background-color: #8a5c33; }
-  .btn-place { background-color: #6c4b35; border: none; color: #fff; font-weight: bold; }
-  .btn-place:hover { background-color: #8a5c33; }
-  .total-price { font-size: 20px; font-weight: bold; margin-bottom: 10px; }
-  .change-display { font-weight: bold; margin-top: 10px; color: green; }
+/* === CART STYLING === */
+.cart-container {
+  background: #fff;
+  padding: 20px;
+  border-radius: 12px;
+  box-shadow: 0 5px 15px rgba(0,0,0,0.08);
+}
+.cart-container h4 {
+  font-weight: 600;
+  margin-bottom: 15px;
+  color: #5d4037;
+  border-bottom: 1px solid #eee;
+  padding-bottom: 6px;
+}
+.cart-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  border-radius: 8px;
+  background: #fff7e6;
+  margin-bottom: 6px;
+  font-size: 14px;
+  transition: background 0.2s;
+}
+.cart-item:hover {
+  background: #ffe0b2;
+}
+.btn-add {
+  background-color: #b07542;
+  border: none;
+  color: #fff;
+  font-size: 13px;
+  padding: 3px 8px;
+  border-radius: 6px;
+  transition: background 0.2s;
+}
+.btn-add:hover {
+  background-color: #8a5c33;
+}
+.btn-place {
+  background-color: #6c4b35;
+  border: none;
+  color: #fff;
+  font-weight: bold;
+  border-radius: 8px;
+  padding: 8px 0;
+  transition: background 0.2s;
+}
+.btn-place:hover {
+  background-color: #8a5c33;
+}
+.total-price {
+  font-size: 20px;
+  font-weight: bold;
+  margin-bottom: 10px;
+  color: #2e7d32;
+}
+.change-display {
+  font-weight: bold;
+  margin-top: 10px;
+  color: green;
+  font-size: 14px;
+}
+
+/* === SEARCH & FILTER === */
+#searchInput {
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  transition: all 0.2s;
+}
+#searchInput:focus {
+  outline: none;
+  border-color: #b07542;
+  box-shadow: 0 0 5px rgba(176,117,66,0.4);
+}
+#categoryFilter {
+  border-radius: 8px;
+  border: 1px solid #ccc;
+  transition: all 0.2s;
+}
+#categoryFilter:focus {
+  outline: none;
+  border-color: #b07542;
+  box-shadow: 0 0 5px rgba(176,117,66,0.4);
+}
+
+/* === HEADER STYLING === */
+.admin-header h5 {
+  font-weight: 600;
+  font-size: 18px;
+  color: #5d4037;
+}
+.admin-header span {
+  font-size: 14px;
+  color: #999;
+}
+
+/* === RESPONSIVE ENHANCEMENTS === */
+@media (max-width: 768px) {
+  .menu-card {
+    height: auto;
+  }
+  .cart-container {
+    margin-top: 20px;
+  }
+}
 </style>
 
 <div class="wrapper">
@@ -219,12 +336,37 @@ if (cashInput) cashInput.addEventListener('input', updateChange);
 document.getElementById('paymentMethod').addEventListener('change', updateChange);
 
 function updateChange() {
-    let total = parseFloat(document.getElementById('totalPrice').textContent) || 0;
-    let cash = parseFloat(cashInput.value) || 0;
-    let method = document.getElementById('paymentMethod').value;
-    let change = (method === 'Cash') ? Math.max(cash - total, 0) : 0;
-    document.getElementById('changeDisplay').textContent = `Change: ₱${change.toFixed(2)}`;
+    const totalElem = document.getElementById('totalPrice');
+    const cashInput = document.getElementById('cashReceived');
+    const paymentMethod = document.getElementById('paymentMethod');
+    const changeDisplay = document.getElementById('changeDisplay');
+
+    if (!totalElem || !cashInput || !paymentMethod || !changeDisplay) return;
+
+    const total = parseFloat(totalElem.textContent) || 0;
+    const cash = parseFloat(cashInput.value) || 0;
+    const method = paymentMethod.value;
+
+    let change = 0;
+    if (method === 'Cash') {
+        change = Math.max(cash - total, 0);
+        changeDisplay.textContent = `Change: ₱${change.toFixed(2)}`;
+        changeDisplay.style.color = 'green';
+    } else {
+        changeDisplay.textContent = `Change: ₱0.00 (N/A for GCash)`;
+        changeDisplay.style.color = 'gray';
+    }
 }
+
+// ✅ Run listeners after DOM is ready
+document.addEventListener('DOMContentLoaded', () => {
+    const cashInput = document.getElementById('cashReceived');
+    const paymentMethod = document.getElementById('paymentMethod');
+
+    if (cashInput) cashInput.addEventListener('input', updateChange);
+    if (paymentMethod) paymentMethod.addEventListener('change', updateChange);
+});
+
 
 document.getElementById("orderForm").addEventListener("submit", function(e){
     e.preventDefault();
@@ -315,6 +457,18 @@ document.addEventListener("DOMContentLoaded", function () {
 });
 </script>
 
+<script>
+/* === SMOOTH ADD TO CART ANIMATION === */
+function animateAdd(btn) {
+    btn.classList.add("animated");
+    setTimeout(() => btn.classList.remove("animated"), 300);
+}
 
+document.addEventListener('click', function(e) {
+    if (e.target.closest('.add-to-cart')) {
+        animateAdd(e.target.closest('.add-to-cart'));
+    }
+});
+</script>
 </body>
 </html>

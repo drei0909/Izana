@@ -39,7 +39,7 @@ $adminName = htmlspecialchars($_SESSION['admin_FN'] ?? 'Admin');
                                     <option value="All" selected>All Orders</option>
                                     <option value="Online">Online Orders</option>
                                     <option value="POS">POS Orders</option>
-                                    <option value="Cancelled">Cancelled Orders</option>
+                                    <option value="Cancelled">Void Orders</option>
                                 </select>
                             </div>
                         </div>
@@ -75,7 +75,7 @@ $adminName = htmlspecialchars($_SESSION['admin_FN'] ?? 'Admin');
                     <div class="col-md-3">
                         <div class="card text-center">
                             <div class="card-body">
-                                <h6>Cancelled Orders</h6>
+                                <h6>Void Orders</h6>
                                 <h4>₱<span id="cancelledSales">0.00</span></h4>
                             </div>
                         </div>
@@ -107,6 +107,30 @@ $adminName = htmlspecialchars($_SESSION['admin_FN'] ?? 'Admin');
     </div>
 </div>
 
+<!-- View Order Modal -->
+<div class="modal fade" id="viewOrderModal" tabindex="-1" aria-labelledby="viewOrderLabel" aria-hidden="true">
+  <div class="modal-dialog modal-lg modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="viewOrderLabel">Order Details</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <p><strong>Customer:</strong> <span id="modalCustomer"></span></p>
+        <p><strong>Ref No:</strong> <span id="modalRef"></span></p>
+        <p><strong>Pickup Time:</strong> <span id="modalPickup"></span></p>
+        <!-- Total placed under Pickup Time -->
+        <p><strong>Total:</strong> <span id="modalTotal" class="text-success">₱0.00</span></p>
+        <div id="modalItems"></div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
 <!-- JS Libraries -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
@@ -123,89 +147,82 @@ $(document).ready(function(){
     let cancelledSales = 0;
     let totalSales = 0;
 
-  function fetchOrders(orderType = 'All') {
-    $.ajax({
-        url: 'admin_functions.php',
-        type: 'POST',
-        data: { ref: 'fetch_orders' },
-        dataType: 'json',
-        success: function(res) {
-            if (res.status === 'success') {
-                let html = '';
-                walkinSales = 0;
-                onlineSales = 0;
-                cancelledSales = 0;
+    function fetchOrders(orderType = 'All') {
+        $.ajax({
+            url: 'admin_functions.php',
+            type: 'POST',
+            data: { ref: 'fetch_orders' },
+            dataType: 'json',
+            success: function(res) {
+                if (res.status === 'success') {
+                    let html = '';
+                    walkinSales = 0;
+                    onlineSales = 0;
+                    cancelledSales = 0;
 
-                res.orders.forEach(order => {
-                    const status = parseInt(order.order_status); // Ensure numeric
-          
-                    // Filter by order type
-                    if (orderType !== 'All') {
-                        if (orderType === 'Cancelled' && status !== 4) return;
-                        if (orderType !== 'Cancelled' && order.order_channel !== orderType) return;
-                    }
-               
-                    var status_msg = '';
-                    if (status === 4) {
-                        status_msg = '<span class="badge bg-danger">Cancelled</span>';
-                    } else if (status === 5) {
-                        status_msg = '<span class="badge bg-success">Completed</span>';
-                    } else {
-                        status_msg = '<span class="badge bg-warning">Pending</span>';
-                    }
+                    res.orders.forEach(order => {
+                        const status = parseInt(order.order_status);
 
-                    // Build table row
-                    html += `<tr>
+                        // Filter by order type
+                        if (orderType !== 'All') {
+                            if (orderType === 'Cancelled' && status !== 4) return;
+                            if (orderType !== 'Cancelled' && order.order_channel !== orderType) return;
+                        }
+
+                        let payment_msg = '';
+                        if (order.payment_status === 'Completed') payment_msg = '<span class="badge bg-success">Paid</span>';
+                        else if (order.payment_status === 'Pending') payment_msg = '<span class="badge bg-warning">Pending</span>';
+                        else payment_msg = '<span class="badge bg-secondary">N/A</span>';
+
+
+                        html += `<tr>
                         <td>${order.order_channel}</td>
                         <td>${order.customer_name || 'Walk-in Customer'}</td>
                         <td>₱${parseFloat(order.total_amount).toFixed(2)}</td>
-                        <td>${status_msg}</td>
+                        <td>${payment_msg}</td> <!-- <-- Use payment_msg here -->
                         <td>${order.order_date}</td>
                         <td>
-                            <button class="btn btn-outline-danger btn-sm deleteOrder" data-id="${order.id}">Delete</button>
+                            <button class="btn btn-outline-primary btn-sm viewOrder" data-id="${order.id}" data-type="${order.order_channel}">View</button>
+                            <button class="btn btn-outline-danger btn-sm deleteOrder" data-id="${order.id}" data-type="${order.order_channel}">Delete</button>
                         </td>
-                    </tr>`;
+                        </tr>`;
 
-                    // Update sales totals
-                    if (status !== 4) { // Only include active/completed orders
-                        if (order.order_channel === 'Online') onlineSales += parseFloat(order.total_amount);
-                        if (order.order_channel === 'POS') walkinSales += parseFloat(order.total_amount);
-                    } else {
-                        cancelledSales += parseFloat(order.total_amount);
-                    }
-                });
 
-                totalSales = walkinSales + onlineSales;
+                        if (status !== 4) {
+                            if (order.order_channel === 'Online') onlineSales += parseFloat(order.total_amount);
+                            if (order.order_channel === 'POS') walkinSales += parseFloat(order.total_amount);
+                        } else {
+                            cancelledSales += parseFloat(order.total_amount);
+                        }
+                    });
 
-                $('#ordersBody').html(html);
-                $('#walkinSales').text(walkinSales.toFixed(2));
-                $('#onlineSales').text(onlineSales.toFixed(2));
-                $('#totalSales').text(totalSales.toFixed(2));
-                $('#cancelledSales').text(cancelledSales.toFixed(2));
+                    totalSales = walkinSales + onlineSales;
 
-                // Initialize or refresh DataTable
-                if (dataTable) dataTable.destroy();
-                dataTable = $('#ordersTable').DataTable({ order: [[4, 'desc']] }); // date column index = 4
+                    $('#ordersBody').html(html);
+                    $('#walkinSales').text(walkinSales.toFixed(2));
+                    $('#onlineSales').text(onlineSales.toFixed(2));
+                    $('#totalSales').text(totalSales.toFixed(2));
+                    $('#cancelledSales').text(cancelledSales.toFixed(2));
+
+                    if (dataTable) dataTable.destroy();
+                    dataTable = $('#ordersTable').DataTable({ order: [[4, 'desc']] });
+                }
             }
-        },
-        error: function() {
-            console.error('Error fetching orders');
-        }
-    });
-}
+        });
+    }
 
     // Initial load
     fetchOrders();
 
     // Change order type filter
     $('#orderType').change(function(){
-        let type = $(this).val();
-        fetchOrders(type);
+        fetchOrders($(this).val());
     });
 
     // Delete order
     $(document).on('click', '.deleteOrder', function(){
         let orderId = $(this).data('id');
+        let orderType = $(this).data('type');
         Swal.fire({
             title: 'Are you sure?',
             text: "This will delete the order permanently!",
@@ -214,18 +231,31 @@ $(document).ready(function(){
             confirmButtonText: 'Yes, delete it!'
         }).then((result) => {
             if(result.isConfirmed){
-                $.ajax({
-                    url: 'functions.php',
-                    type: 'POST',
-                    data: { ref: 'delete_order', order_id: orderId },
-                    dataType: 'json',
-                    success: function(res){
-                        Swal.fire('Deleted!', res.message || 'Order deleted.', 'success');
-                        fetchOrders($('#orderType').val());
-                    }
-                });
+                $.post('functions.php', { ref: 'cancel_order', order_id: orderId, order_type: orderType }, function(res){
+                    Swal.fire('Deleted!', res.message || 'Order deleted.', 'success');
+                    fetchOrders($('#orderType').val());
+                }, 'json');
             }
         });
+    });
+
+    // View order modal
+    $(document).on('click', '.viewOrder', function(){
+        let orderId = $(this).data('id');
+        let orderType = $(this).data('type').toLowerCase();
+
+        $.post('admin_functions.php', { ref: 'get_order_item', order_id: orderId, order_type: orderType }, function(res){
+            // Inside your AJAX success for .viewOrder click
+            if(res.status === 'success'){
+                $('#modalCustomer').text(res.customer_name || 'Walk-in Customer');
+                $('#modalRef').text(res.ref_no || '-');
+                $('#modalPickup').text(res.pickup_time || '-');
+                $('#modalTotal').text('₱' + parseFloat(res.total_amount).toFixed(2)).addClass('text-success');
+                $('#modalItems').html(res.html);
+                $('#viewOrderModal').modal('show');
+            }
+
+        }, 'json');
     });
 
 });
