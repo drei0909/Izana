@@ -14,24 +14,21 @@ $db = new Database();
 
 // Get the updated cart content
 if ($_POST['ref'] == 'get_order_item') {
-
     $order_id = intval($_POST['order_id']);
-    $order_type = $_POST['order_type'];
-
+    $order_type = $_POST['order_type'] ?? 'online';
     $html = '';
+    $total_amount = 0;
 
     if ($order_type == 'online') {
-        $sql = "SELECT 
-        o.*, p.product_name
-        FROM order_item o
-        INNER JOIN product p ON o.product_id = p.product_id
-        WHERE o.order_id = :id";
+        $sql = "SELECT o.*, p.product_name 
+                FROM order_item o
+                INNER JOIN product p ON o.product_id = p.product_id
+                WHERE o.order_id = :id";
     } else { // POS
-        $sql = "SELECT 
-        o.*, p.product_name
-        FROM order_item o
-        INNER JOIN product p ON o.product_id = p.product_id
-        WHERE o.pos_id = :id";
+        $sql = "SELECT o.*, p.product_name 
+                FROM order_item o
+                INNER JOIN product p ON o.product_id = p.product_id
+                WHERE o.pos_id = :id";
     }
 
     $stmt = $db->conn->prepare($sql);
@@ -40,7 +37,7 @@ if ($_POST['ref'] == 'get_order_item') {
     if ($stmt->execute()) {
         $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        // Fetch receipt from order_onlinee table
+        // Fetch receipt
         $stmtOrder = $db->conn->prepare("SELECT receipt FROM order_online WHERE order_id = :order_id");
         $stmtOrder->bindParam(':order_id', $order_id, PDO::PARAM_INT);
         $stmtOrder->execute();
@@ -48,40 +45,44 @@ if ($_POST['ref'] == 'get_order_item') {
 
         $html .= '<ul class="list-group">';
         foreach ($rows as $row) {
-            $html .= '<li class="list-group-item">
-                        <span class="text-primary fw-bold">' . htmlspecialchars($row['product_name']) . '</span><br>
-                        <span>' . htmlspecialchars($row['quantity']) . 'x</span><br>
-                        <span>₱' . number_format($row['price'], 2) . '</span><br>
+            $subtotal = floatval($row['price']) * intval($row['quantity']);
+            $total_amount += $subtotal;
+
+            $html .= '<li class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <span class="text-primary fw-bold">' . htmlspecialchars($row['product_name']) . '</span><br>
+                            <small>' . intval($row['quantity']) . 'x @ ₱' . number_format($row['price'], 2) . '</small>
+                        </div>
+                        <span class="fw-bold">₱' . number_format($subtotal, 2) . '</span>
                       </li>';
         }
         $html .= '</ul>';
 
-                    if (!empty($order['receipt'])) {
-                $rootPath = "../uploads/receipts/";
-                $html .= '
-                    <div class="text-center mt-3">
-                        <p class="fw-bold mb-1">Receipt:</p>
-                        <img src="' . htmlspecialchars($rootPath . $order['receipt']) . '"
-                            alt="Receipt Image"
-                            class="img-fluid rounded shadow-sm border"
-                            style="max-width: 350px; cursor: zoom-in;"
-                            onclick="window.open(this.src)">
-                    </div>';
-    } else {
-        $html .= '<p class="text-muted text-center mt-3">No receipt uploaded.</p>';
-    }
-
+        if (!empty($order['receipt'])) {
+            $rootPath = "../uploads/receipts/";
+            $html .= '
+                <div class="text-center mt-3">
+                    <p class="fw-bold mb-1">Receipt:</p>
+                    <img src="' . htmlspecialchars($rootPath . $order['receipt']) . '"
+                        alt="Receipt Image"
+                        class="img-fluid rounded shadow-sm border"
+                        style="max-width: 350px; cursor: zoom-in;"
+                        onclick="window.open(this.src)">
+                </div>';
+        } else {
+            $html .= '<p class="text-muted text-center mt-3">No receipt uploaded.</p>';
+        }
 
         echo json_encode([
             'status' => 'success',
-            'html' => $html
+            'html' => $html,
+            'total_amount' => number_format($total_amount, 2)
         ]);
     } else {
-        echo json_encode([
-            'status' => 'error',
-        ]);
+        echo json_encode(['status' => 'error']);
     }
 }
+
 
 
 // Get orders que
@@ -101,17 +102,34 @@ if ($_POST['ref'] == 'get_orders_que') {
                 <ul class="list-group" id="' . strtolower(str_replace(' ', '_', $statusName)) . '">
                     <li class="list-group-item bg-success fw-bold text-white">' . $statusName . '</li>';
 
-        $orders = $db->getOrders($statusId);
+        // Modified query to include rejected (status 0) for Review column
+        if ($statusId == 1) {
+            $orders = $db->getOrders([0, 1]); // get both rejected + review
+        } else {
+            $orders = $db->getOrders($statusId);
+        }
+
         if (!empty($orders)) {
             foreach ($orders as $row) {
-
                 $dataStatus = ($statusName === 'Review') ? 'pending' : strtolower($statusName);
-                $html .= '<li class="list-group-item order-item" data-id="' . htmlspecialchars($row['order_id']) . '" data-order-type="' . $row['order_type'] . '" data-status="' . $dataStatus . '">';
+
+                // Determine visual state (red for rejected without repay)
+                $bgClass = '';
+                if ($row['status'] == 0 && empty($row['repay_receipt'])) {
+                    $bgClass = 'bg-danger bg-opacity-25 border-danger';
+                }
+
+              $liClass = 'list-group-item order-item';
+                    if ($row['status'] == 0) { // rejected
+                        $liClass .= ' rejected-order border-danger bg-light-danger';
+                    }   
+                    $html .= '<li class="' . $liClass . '" data-id="' . htmlspecialchars($row['order_id']) . '" data-order-type="' . $row['order_type'] . '" data-status="' . $dataStatus . '">';
+
                 $html .= '<div class="d-flex justify-content-between align-items-center">';
                 $html .= '<strong>' . htmlspecialchars($row['customer_FN']) . '</strong> <span class="text-muted small">#00' . $row['order_id'] . '</span>';
                 $html .= '</div>';
 
-                // ✅ Receipt Display
+                // Receipt Display
                 $hasOriginal = !empty($row['receipt']);
                 $hasRepay = !empty($row['repay_receipt']);
                 $uploadPath = '../uploads/'; // Adjust if your folder is outside admin (e.g., '../uploads/')
@@ -139,7 +157,13 @@ if ($_POST['ref'] == 'get_orders_que') {
                     $html .= '</div>';
                 }
 
-                // ✅ Action buttons
+                // If rejected but customer reuploaded a receipt, auto-reset status to Review (1)
+                if ($row['status'] == 0 && !empty($row['repay_receipt'])) {
+                    $update = $db->conn->prepare("UPDATE order_online SET status = 1 WHERE order_id = ?");
+                    $update->execute([$row['order_id']]);
+                }
+
+                // Action buttons
                 if ($statusName === 'Review') {
                     $html .= '<div class="mt-2 d-flex gap-1">
                                 <button class="btn btn-sm btn-success btn-accept w-50" data-id="' . $row['order_id'] . '" data-type="' . $row['order_type'] . '">
@@ -419,7 +443,7 @@ if (isset($_POST['ref']) && $_POST['ref'] === 'cancel_order') {
 
             if ($order) {
                 // Insert notification for the customer
-                $notif_msg = "Your order #{$order_id} has been cancelled. Thank you for ordering with us!";
+                $notif_msg = "Your order #{$order_id} has been Void!";
                 $stmtNotif = $db->conn->prepare("
                     INSERT INTO notifications (customer_id, message, order_id, is_read, created_at)
                     VALUES (?, ?, ?, 0, NOW())
@@ -442,7 +466,7 @@ if (isset($_POST['ref']) && $_POST['ref'] === 'cancel_order') {
 
         echo json_encode([
             'status' => 'success',
-            'message' => 'Order has been cancelled.',
+            'message' => 'Order has been Void.',
             'order_id' => $order_id,
             'total_amount' => $order['total_amount'],
             
@@ -693,7 +717,7 @@ if (isset($_POST['ref']) && $_POST['ref'] === 'review_action') {
                     $message = "Your order #$order_id has been accepted and is now being prepared.";
                 } elseif ($action === 'reject') {
         // Keep in 'Review' (status = 1) but mark with reason
-        $stmt = $db->conn->prepare("UPDATE order_online SET status = 1, reject_reason = ? WHERE order_id = ?");
+        $stmt = $db->conn->prepare("UPDATE order_online SET status = 0, reject_reason = ? WHERE order_id = ?");
         $stmt->execute([$reason, $order_id]);
         $message = "Your order #$order_id has been rejected." . ($reason ? " Reason: $reason" : "");
     }

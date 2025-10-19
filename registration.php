@@ -142,6 +142,17 @@
       font-family: 'Montserrat', sans-serif;
     }
 
+        .swal2-html-container::-webkit-scrollbar {
+      width: 7px;
+    }
+    .swal2-html-container::-webkit-scrollbar-thumb {
+      background-color: #b07542;
+      border-radius: 4px;
+    }
+    .swal2-html-container::-webkit-scrollbar-track {
+      background-color: #fff8f3;
+    }
+
     .top-buttons a:hover,
     .top-buttons .info-icon:hover {
       color: #f2c9a0;       
@@ -245,7 +256,7 @@
   <form id="registrationForm" method="POST" autocomplete="off">
     <div class="row g-3">
       <div class="col-md-6">
-        <label for="first_name" class="form-label">First Name</label>
+        <label for="first_name"class="form-label">First Name</label>
         <input type="text" name="first_name" class="form-control" autocomplete="new-first-name" required>
       </div>
       <div class="col-md-6">
@@ -271,6 +282,27 @@
       </div>
     </div>
 
+
+
+   <!-- Terms & Conditions Checkbox -->
+<div class="form-check mt-4 text-start">
+  <input class="form-check-input" type="checkbox" id="terms" required>
+  <label class="form-check-label text-light" for="terms">
+    I agree to the 
+    <a href="#" id="openTerms" 
+       style="
+         color:#f2c9a0; 
+         text-decoration: underline; 
+         text-underline-offset: 4px; 
+         transition:0.3s; 
+       "
+       onmouseover="this.style.color='#ffd9b3';" 
+       onmouseout="this.style.color='#f2c9a0';">
+       Terms and Conditions
+    </a>
+  </label>
+</div>
+
     <button type="submit" class="btn-coffee mt-4" id="registerBtn">Register</button>
   </form>
 
@@ -280,35 +312,94 @@
 </div>
 
 
-  <!-- Info Script -->
-  <script>
-  function showInfo() {
-  Swal.fire({
-    title: 'Need Help Registering?',
-    html: `
-      <div style="text-align: left;">
-        <ul style="list-style: none; padding-left: 0;">
-          <li>✔️ All fields are required</li>
-          <li>✔️ Use a <strong>valid email address</strong></li>
-          <li>✔️ Username must be unique</li>
-          <li>✔️ Contact number format: 09xxxxxxxxx</li>
-          <li>✔️ Password must have:</li>
-          <ul style="list-style: disc; padding-left: 20px;">
-            <li>Minimum 4 characters</li>
-            <li>At least 1 uppercase letter</li>
-            <li>At least 1 number</li>
-            <li>At least 1 special character (e.g., !@#$%^&*)</li>
-          </ul>
-        </ul>
-      </div>`,
-    icon: 'info',
-    confirmButtonColor: '#b07542',
-    background: '#fff8f3',
-    color: '#4b3a2f'
-  });
-}
+<!-- Terms & Conditions Script (No Icon Version) -->
+<script>
+document.getElementById("openTerms").addEventListener("click", function (e) {
+  e.preventDefault();
 
-  </script>
+  Swal.fire({
+    title: `
+      <span style="
+        color:#b07542;
+        text-decoration: underline;
+        text-underline-offset: 6px;
+        font-weight:600;
+        letter-spacing:0.5px;
+      ">
+        Terms & Conditions
+      </span>
+    `,
+    html: `
+      <div style="
+        text-align:left; 
+        max-height:300px; 
+        overflow-y:auto; 
+        padding-right:10px; 
+        font-size:14.5px; 
+        line-height:1.6;
+        scrollbar-width: thin;
+        scrollbar-color: #b07542 #fff8f3;
+      ">
+        <p>
+          Welcome to <strong style="color:#b07542;">Izana</strong>! 
+          By registering and using our platform, you agree to these 
+          <strong>Terms & Conditions</strong> that guide your use of our services.
+        </p>
+
+        <h5 style="color:#b07542; margin-top:16px;">1. Account Information</h5>
+        <p>
+          Provide accurate and complete information during registration. 
+          You are responsible for keeping your login details secure and confidential.
+        </p>
+
+        <h5 style="color:#b07542; margin-top:16px;">2. Privacy</h5>
+        <p>
+          Your personal information (name, email, contact number) is used 
+          only for managing your account and processing orders. 
+          Izana does not share your data without consent.
+        </p>
+
+        <h5 style="color:#b07542; margin-top:16px;">3. Orders & Payments</h5>
+        <p>
+          Payments may be made via <strong>GCash</strong> or <strong>Cash</strong>. 
+          Upload a valid GCash receipt when applicable. 
+          Orders may be canceled if payment verification fails.
+        </p>
+
+        <h5 style="color:#b07542; margin-top:16px;">4. Prohibited Use</h5>
+        <p>
+          Do not submit false details, commit fraudulent actions, or interfere 
+          with our system. Any violations may result in account suspension.
+        </p>
+
+        <h5 style="color:#b07542; margin-top:16px;">5. Updates</h5>
+        <p>
+          Izana reserves the right to modify these terms at any time. 
+          Continued use means you accept any changes made.
+        </p>
+
+        <h5 style="color:#b07542; margin-top:16px;">6. Contact</h5>
+        <p>
+          For assistance, please contact us via our official support email 
+          or through the in-app contact form.
+        </p>
+      </div>
+    `,
+    confirmButtonText: "I Understand",
+    confirmButtonColor: "#b07542",
+    background: "#fff8f3",
+    color: "#4b3a2f",
+    width: 520,
+    showClass: {
+      popup: 'animate__animated animate__fadeInDown'
+    },
+    hideClass: {
+      popup: 'animate__animated animate__fadeOutUp'
+    }
+  });
+});
+</script>
+
 
   <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 

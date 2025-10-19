@@ -348,7 +348,7 @@ if ($_POST['ref'] === 'fetch_notifications') {
 
     // Add flag to show repay button for rejected orders
     foreach ($notifications as &$n) {
-        $n['show_repay'] = ($n['order_status'] == 1); // status = 0 = rejected
+        $n['show_repay'] = ($n['order_status'] == 0); // status = 0 = rejected
     }
 
     // Count unread notifications

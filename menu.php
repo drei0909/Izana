@@ -102,374 +102,374 @@ $html .= '<input type="number" min="1" max="99" value="1" class="quantity-input"
 ?>
 
 <!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<title>Menu | Izana Coffee</title>
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-<link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
-<link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+    <html lang="en">
+    <head>
+    <meta charset="utf-8">
+    <title>Menu | Izana Coffee</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
 
-<style>
-@import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap');
+    <style>
+    @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap');
 
-:root {
-  --accent: #b07542;
-  --accent-dark: #8a5c33;
-  --bg-dark: #1a1a1a;
-  --bg-mid: #232323;
-  --bg-light: #2f2f2f;
-  --text-light: #f5f5f5;
-  --text-muted: #cfcfcf;
-  --shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
-  --glass: rgba(255, 255, 255, 0.06);
-}
-
-/* Body */
-body {
-  margin: 0;
-  font-family: 'Montserrat', sans-serif;
-  color: var(--text-light);
-  background: url('uploads/bgg.jpg') center/cover fixed no-repeat;
-  position: relative;
-}
-
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.55);
-  z-index: -1;
-}
-
-
-.navbar-custom {
-  background: var(--bg-mid);
-  backdrop-filter: blur(8px);
-  border-bottom: 1px solid rgba(255,255,255,0.1);
-  box-shadow: var(--shadow);
-  transition: background 0.3s ease;
-}
-
-.navbar-brand {
-  color: var(--accent) !important;
-  font-weight: 800;
-  font-size: 2rem;
-  letter-spacing: 1px;
-  text-transform: uppercase;
-}
-
-.navbar-brand:hover {
-  color: var(--accent-dark) !important;
-}
-
-.navbar-custom .btn {
-  width: 46px;
-  height: 46px;
-  border-radius: 50%;
-  font-size: 1.2rem;
-  background: var(--accent);
-  color: #fff;
-  transition: all 0.3s ease;
-}
-/* .navbar-custom .btn:hover {
-  background: var(--accent-dark);
-  transform: scale(1.05);
-} */
-
-.navbar-custom .dropdown-menu {
-  background: var(--bg-light);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 10px;
-  box-shadow: var(--shadow);
-}
-.navbar-custom .dropdown-item {
-  color: var(--text-light);
-  transition: 0.3s;
-}
-.navbar-custom .dropdown-item:hover {
-  background: var(--accent);
-  color: #fff;
-}
-
-
-.container-menu {
-  max-width: 1400px;
-  margin: 120px auto 60px;
-}
-
-.layout {
-  display: flex;
-  gap: 30px;
-  flex-wrap: wrap;
-}
-
-
-.sidebar {
-  flex: 0 0 270px;
-  padding: 25px;
-  background: var(--glass);
-  border: 1px solid rgba(255,255,255,0.1);
-  border-radius: 16px;
-  height: calc(85vh);
-  position: sticky;
-  top: 120px;
-  overflow-y: auto;
-  backdrop-filter: blur(12px);
-  box-shadow: var(--shadow);
-  transition: all 0.3s ease;
-}
-
-.sidebar::-webkit-scrollbar {
-  width: 6px;
-}
-.sidebar::-webkit-scrollbar-thumb {
-  background: var(--accent);
-  border-radius: 6px;
-}
-
-.sidebar h5 {
-  color: var(--accent);
-  font-weight: 900;
-  font-size: 1.8rem;  /* 🔥 make it larger */
-  text-transform: uppercase;
-  letter-spacing: 1px;
-  margin-bottom: 25px;
-  text-align: center; /* optional: center title */
-  text-shadow: 0 2px 6px rgba(0,0,0,0.3); /* adds a subtle glow */
-}
-
-
-
-
-  .sidebar a {
-    display: block;
-    color: var(--text-muted);
-    padding: 12px 14px;
-    border-radius: 10px;
-    text-decoration: none;
-    font-weight: 600;
-    font-size: 1rem;
-    margin-bottom: 6px;
-    transition: all 0.3s ease;
-  }
-  .sidebar a:hover, .sidebar a.active {
-    background: var(--accent);
-    color: #fff;
-    transform: translateX(5px);
-  }
-
-  /* ☕ Main Content */
-  main.content {
-    flex: 1;
-  }
-
-  .page-title {
-    text-align: center;
-    font-weight: 800;
-    font-size: 2.5rem;
-    margin-bottom: 40px;
-    color: var(--text-light);
-    text-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
-    letter-spacing: 1px;
-  }
-
-  .controls {
-  display: flex;
-  align-items: center;
-  gap: 10px; /* space between quantity input and Add button */
-}
-
-.quantity-input {
-  width: 60px;
-  text-align: center;
-  border: 1px solid rgba(255,255,255,0.2);
-  border-radius: 8px;
-  background: rgba(255,255,255,0.05);
-  color: #fff;
-  font-weight: 600;
-  padding: 6px 4px;
-}
-
-.quantity-input:disabled {
-  opacity: 0.5;
-}
-
-
-
-  .menu-card {
-    background: var(--glass);
-    border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 16px;
-    overflow: hidden;
-    box-shadow: var(--shadow);
-    transition: all 0.35s ease;
-    display: flex;
-    flex-direction: column;
-    backdrop-filter: blur(10px);
-  }
-  /* .menu-card:hover {
-    transform: translateY(-6px);
-    box-shadow: 0 12px 30px rgba(0,0,0,0.6);
-  } */
-
-  .card-media {
-    position: relative;
-    height: 200px;
-  }
-  .card-media img {
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-  .badge-best {
-    position: absolute;
-    top: 12px;
-    left: 12px;
-    background: linear-gradient(135deg, #b07542, #d89b5c);
-    color: #fff;
-    padding: 5px 12px;
-    border-radius: 20px;
-    font-weight: 700;
-    box-shadow: 0 3px 6px rgba(0,0,0,0.3);
-  }
-
-  .menu-body {
-    flex: 1;
-    padding: 16px;
-    display: flex;
-    flex-direction: column;
-    justify-content: space-between;
-  }
-
-  .menu-name {
-    font-weight: 800;
-    font-size: 1.1rem;
-    color: #fff;
-    line-height: 1.3;
-    margin-bottom: 8px;
-    height: 42px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    -webkit-line-clamp: 2;
-    display: -webkit-box;
-    -webkit-box-orient: vertical;
-  }
-
-
-  
-
-  /* MENU BOTTOM AREA */
-.menu-bottom {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: auto;
-  gap: 12px; /* Adds spacing between elements */
-  flex-wrap: wrap;
-}
-
-/* PRICE STYLING */
-.menu-price {
-  color: var(--accent);
-  font-weight: 800;
-  font-size: 1.15rem;
-  white-space: nowrap;
-}
-
-/* QUANTITY INPUT */
-.quantity-input {
-  width: 60px;
-  height: 38px;
-  text-align: center;
-  border-radius: 8px;
-  border: 1px solid rgba(255,255,255,0.2);
-  background: var(--bg-light);
-  color: var(--text-light);
-  font-weight: 600;
-  font-size: 0.95rem;
-  outline: none;
-  transition: border-color 0.3s ease, background 0.3s ease;
-}
-.quantity-input:focus {
-  border-color: var(--accent);
-  background: var(--bg-mid);
-}
-
-/* ADD BUTTON */
-.btn-coffee {
-  background: var(--accent);
-  color: #fff;
-  border: none;
-  padding: 8px 20px;
-  border-radius: 25px;
-  font-weight: 700;
-  font-size: 0.95rem;
-  transition: all 0.3s ease;
-  box-shadow: 0 3px 8px rgba(0,0,0,0.3);
-}
-.btn-coffee:hover {
-  background: var(--accent-dark);
-  transform: translateY(-2px);
-}
-
-/* FIXED LAYOUT FOR BUTTON + QUANTITY */
-.menu-actions {
-  display: flex;
-  align-items: center;
-  gap: 10px; /* spacing between input and button */
-}
-
-
-  /* 🧾 Modal */
-  .modal-content {
-    background: var(--bg-mid);
-    border-radius: 16px;
-    border: 1px solid rgba(255,255,255,0.1);
-    color: #fff;
-  }
-  .modal-header {
-    background: var(--accent);
-    color: #fff;
-    font-weight: 700;
-  }
-  .modal-footer {
-    background: var(--bg-mid);
-    border-top: 1px solid rgba(255,255,255,0.1);
-  }
-  #cart-total {
-    font-weight: 800;
-    font-size: 1.6rem;
-    text-align: right;
-  }
-
-  /* 📱 Responsive */
-  @media (max-width: 1199px) {
-    .layout {
-      flex-direction: column;
+    :root {
+      --accent: #b07542;
+      --accent-dark: #8a5c33;
+      --bg-dark: #1a1a1a;
+      --bg-mid: #232323;
+      --bg-light: #2f2f2f;
+      --text-light: #f5f5f5;
+      --text-muted: #cfcfcf;
+      --shadow: 0 8px 20px rgba(0, 0, 0, 0.4);
+      --glass: rgba(255, 255, 255, 0.06);
     }
-    .sidebar {
-      width: 100%;
-      height: auto;
+
+    /* Body */
+    body {
+      margin: 0;
+      font-family: 'Montserrat', sans-serif;
+      color: var(--text-light);
+      background: url('uploads/bgg.jpg') center/cover fixed no-repeat;
       position: relative;
     }
-    .navbar-brand {
-      font-size: 1.8rem;
-    }
-  }
 
-  @media (max-width: 767px) {
-    .page-title {
+    body::before {
+      content: '';
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.55);
+      z-index: -1;
+    }
+
+
+    .navbar-custom {
+      background: var(--bg-mid);
+      backdrop-filter: blur(8px);
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      box-shadow: var(--shadow);
+      transition: background 0.3s ease;
+    }
+
+    .navbar-brand {
+      color: var(--accent) !important;
+      font-weight: 800;
       font-size: 2rem;
+      letter-spacing: 1px;
+      text-transform: uppercase;
     }
-    .menu-card {
-      height: auto;
+
+    .navbar-brand:hover {
+      color: var(--accent-dark) !important;
     }
+
+    .navbar-custom .btn {
+      width: 46px;
+      height: 46px;
+      border-radius: 50%;
+      font-size: 1.2rem;
+      background: var(--accent);
+      color: #fff;
+      transition: all 0.3s ease;
+    }
+    /* .navbar-custom .btn:hover {
+      background: var(--accent-dark);
+      transform: scale(1.05);
+    } */
+
+    .navbar-custom .dropdown-menu {
+      background: var(--bg-light);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 10px;
+      box-shadow: var(--shadow);
+    }
+    .navbar-custom .dropdown-item {
+      color: var(--text-light);
+      transition: 0.3s;
+    }
+    .navbar-custom .dropdown-item:hover {
+      background: var(--accent);
+      color: #fff;
+    }
+
+
+    .container-menu {
+      max-width: 1400px;
+      margin: 120px auto 60px;
+    }
+
+    .layout {
+      display: flex;
+      gap: 30px;
+      flex-wrap: wrap;
+    }
+
+
+    .sidebar {
+      flex: 0 0 270px;
+      padding: 25px;
+      background: var(--glass);
+      border: 1px solid rgba(255,255,255,0.1);
+      border-radius: 16px;
+      height: calc(85vh);
+      position: sticky;
+      top: 120px;
+      overflow-y: auto;
+      backdrop-filter: blur(12px);
+      box-shadow: var(--shadow);
+      transition: all 0.3s ease;
+    }
+
+    .sidebar::-webkit-scrollbar {
+      width: 6px;
+    }
+    .sidebar::-webkit-scrollbar-thumb {
+      background: var(--accent);
+      border-radius: 6px;
+    }
+
+    .sidebar h5 {
+      color: var(--accent);
+      font-weight: 900;
+      font-size: 1.8rem;  /* 🔥 make it larger */
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 25px;
+      text-align: center; /* optional: center title */
+      text-shadow: 0 2px 6px rgba(0,0,0,0.3); /* adds a subtle glow */
+    }
+
+
+
+
+      .sidebar a {
+        display: block;
+        color: var(--text-muted);
+        padding: 12px 14px;
+        border-radius: 10px;
+        text-decoration: none;
+        font-weight: 600;
+        font-size: 1rem;
+        margin-bottom: 6px;
+        transition: all 0.3s ease;
+      }
+      .sidebar a:hover, .sidebar a.active {
+        background: var(--accent);
+        color: #fff;
+        transform: translateX(5px);
+      }
+
+      /* ☕ Main Content */
+      main.content {
+        flex: 1;
+      }
+
+      .page-title {
+        text-align: center;
+        font-weight: 800;
+        font-size: 2.5rem;
+        margin-bottom: 40px;
+        color: var(--text-light);
+        text-shadow: 0 2px 6px rgba(0, 0, 0, 0.4);
+        letter-spacing: 1px;
+      }
+
+      .controls {
+      display: flex;
+      align-items: center;
+      gap: 10px; /* space between quantity input and Add button */
+    }
+
+    .quantity-input {
+      width: 60px;
+      text-align: center;
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 8px;
+      background: rgba(255,255,255,0.05);
+      color: #fff;
+      font-weight: 600;
+      padding: 6px 4px;
+    }
+
+    .quantity-input:disabled {
+      opacity: 0.5;
+    }
+
+
+
+      .menu-card {
+        background: var(--glass);
+        border: 1px solid rgba(255,255,255,0.1);
+        border-radius: 16px;
+        overflow: hidden;
+        box-shadow: var(--shadow);
+        transition: all 0.35s ease;
+        display: flex;
+        flex-direction: column;
+        backdrop-filter: blur(10px);
+      }
+      /* .menu-card:hover {
+        transform: translateY(-6px);
+        box-shadow: 0 12px 30px rgba(0,0,0,0.6);
+      } */
+
+      .card-media {
+        position: relative;
+        height: 200px;
+      }
+      .card-media img {
+        width: 100%;
+        height: 100%;
+        object-fit: cover;
+      }
+      .badge-best {
+        position: absolute;
+        top: 12px;
+        left: 12px;
+        background: linear-gradient(135deg, #b07542, #d89b5c);
+        color: #fff;
+        padding: 5px 12px;
+        border-radius: 20px;
+        font-weight: 700;
+        box-shadow: 0 3px 6px rgba(0,0,0,0.3);
+      }
+
+      .menu-body {
+        flex: 1;
+        padding: 16px;
+        display: flex;
+        flex-direction: column;
+        justify-content: space-between;
+      }
+
+      .menu-name {
+        font-weight: 800;
+        font-size: 1.1rem;
+        color: #fff;
+        line-height: 1.3;
+        margin-bottom: 8px;
+        height: 42px;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        -webkit-line-clamp: 2;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+      }
+
+
+      
+
+      /* MENU BOTTOM AREA */
+    .menu-bottom {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: auto;
+      gap: 12px; /* Adds spacing between elements */
+      flex-wrap: wrap;
+    }
+
+    /* PRICE STYLING */
+    .menu-price {
+      color: var(--accent);
+      font-weight: 800;
+      font-size: 1.15rem;
+      white-space: nowrap;
+    }
+
+    /* QUANTITY INPUT */
+    .quantity-input {
+      width: 60px;
+      height: 38px;
+      text-align: center;
+      border-radius: 8px;
+      border: 1px solid rgba(255,255,255,0.2);
+      background: var(--bg-light);
+      color: var(--text-light);
+      font-weight: 600;
+      font-size: 0.95rem;
+      outline: none;
+      transition: border-color 0.3s ease, background 0.3s ease;
+    }
+    .quantity-input:focus {
+      border-color: var(--accent);
+      background: var(--bg-mid);
+    }
+
+    /* ADD BUTTON */
     .btn-coffee {
-      padding: 6px 14px;
+      background: var(--accent);
+      color: #fff;
+      border: none;
+      padding: 8px 20px;
+      border-radius: 25px;
+      font-weight: 700;
+      font-size: 0.95rem;
+      transition: all 0.3s ease;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.3);
     }
-  }
+    .btn-coffee:hover {
+      background: var(--accent-dark);
+      transform: translateY(-2px);
+    }
+
+    /* FIXED LAYOUT FOR BUTTON + QUANTITY */
+    .menu-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px; /* spacing between input and button */
+    }
+
+
+      /* 🧾 Modal */
+      .modal-content {
+        background: var(--bg-mid);
+        border-radius: 16px;
+        border: 1px solid rgba(255,255,255,0.1);
+        color: #fff;
+      }
+      .modal-header {
+        background: var(--accent);
+        color: #fff;
+        font-weight: 700;
+      }
+      .modal-footer {
+        background: var(--bg-mid);
+        border-top: 1px solid rgba(255,255,255,0.1);
+      }
+      #cart-total {
+        font-weight: 800;
+        font-size: 1.6rem;
+        text-align: right;
+      }
+
+      /* 📱 Responsive */
+      @media (max-width: 1199px) {
+        .layout {
+          flex-direction: column;
+        }
+        .sidebar {
+          width: 100%;
+          height: auto;
+          position: relative;
+        }
+        .navbar-brand {
+          font-size: 1.8rem;
+        }
+      }
+
+      @media (max-width: 767px) {
+        .page-title {
+          font-size: 2rem;
+        }
+        .menu-card {
+          height: auto;
+        }
+        .btn-coffee {
+          padding: 6px 14px;
+        }
+      }
 
 </style>
 </head>
@@ -496,8 +496,7 @@ body::before {
           <span class="badge bg-danger rounded-pill position-absolute top-0 start-100 translate-middle" id="notificationCount" style="font-size: 0.7rem; display:none;">0</span>
         </button>
 
-      <!-- 🔔 Dropdown Notifications -->
-<!-- 🔔 Dropdown Notifications -->
+<!--Dropdown Notifications -->
 <div class="dropdown-menu shadow border-0"
     id="notificationDropdown"
     style="
@@ -697,13 +696,13 @@ function loadNotifications() {
                     notifList += `
                     <div class="p-2 border-bottom ${n.is_read == 1 ? 'bg-white' : 'bg-light'}">
                         <small>${n.message}</small><br>
-                        ${n.show_repay ? `
-                            <small>
-                                Reason: ${n.reject_reason || 'N/A'} 
-                                <span class="text-primary fw-bold repayText" 
-                                      data-order-id="${n.order_id}" 
-                                      style="cursor:pointer;">[Repay]</span>
-                            </small><br>` : ''}
+                       ${n.show_repay ? `
+                        <small>
+                            <span class="text-primary fw-bold repayText" 
+                                  data-order-id="${n.order_id}" 
+                                  style="cursor:pointer;">[Repay]</span>
+                        </small><br>` : ''}
+
                         <small class="text-muted" style="font-size: 0.7rem;">${n.created_at}</small>
                     </div>`;
                 });
@@ -842,11 +841,11 @@ loadNotifications();
 updateCartCount();
 loadNotifications();
 
-// setInterval(() => {
-//   updateCartCount();
-//   loadNotifications();
-//   checkAccountStatus();
-// }, 2000); 
+setInterval(() => {
+  updateCartCount();
+  loadNotifications();
+  checkAccountStatus();
+}, 2000); 
 
 
 $("#btnNotification").on("click", function(e) {
