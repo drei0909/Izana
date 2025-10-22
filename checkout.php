@@ -280,10 +280,10 @@ body {
     <!-- PAYMENT / UPLOAD SECTION AFTER ORDERS -->
 
 <div class="col-lg-4 col-md-5 col-12 order-2 text-center">
-    <img src="uploads/Izana Qr.JPG" alt="GCash QR Code" class="img-fluid mb-3" style="max-width:200px; border-radius:10px;">
+    <img src="uploads/Izana Qr.JPEG" alt="GCash QR Code" class="img-fluid mb-3" style="max-width:200px; border-radius:10px;">
     
     <h6 class="fw-bold mb-1">GCash Account Name:</h6>
-    <p class="mb-2" style="color:#b07542;">GIAN ANDREI B.</p>
+    <p class="mb-2" style="color:#b07542;">JOHN CLARENZ.</p>
 
     <h6 class="fw-bold mb-1">GCash Number:</h6>
     <p class="mb-3" style="color:#b07542;">0966-540-4987</p>
