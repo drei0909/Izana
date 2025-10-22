@@ -774,7 +774,7 @@ $(document).on("click", ".repayText", function() {
         html: `
             <div class="text-center mb-2">
                 <p class="mb-1 text-muted" style="font-size:0.85rem;">Scan this QR to pay:</p>
-                <img src="uploads/Izana Qr.JPG" alt="GCash QR" style="width:180px; border-radius:8px; border:1px solid #ccc;">
+                <img src="uploads/Izana Qr.jpg" alt="GCash QR" style="width:180px; border-radius:8px; border:1px solid #ccc;">
             </div>
             <hr>
             <p class="text-muted mb-1" style="font-size:0.85rem;">Then upload your receipt below:</p>
