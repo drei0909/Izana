@@ -86,20 +86,34 @@ public function loginCustomer($username, $password) {
             return ['status' => 'error', 'message' => 'user_not_found'];
         }
 
+        // Check if account is blocked
+        if (isset($user['status']) && strtolower($user['status']) === 'blocked') {
+            return [
+                'status' => 'error',
+                'message' => 'account_blocked',
+                'reason' => $user['block_reason'] ?? 'No reason provided'
+            ];
+        }
+
+        // Check if not verified
         if ((int)$user['is_verified'] === 0) {
             return ['status' => 'error', 'message' => 'account_is_not_verified'];
         }
 
+        // Check password
         if (!password_verify($password, $user['customer_password'])) {
             return ['status' => 'error', 'message' => 'wrong_password'];
         }
 
+        // Successful login
         return ['status' => 'success', 'user' => $user];
 
     } catch (PDOException $e) {
         return ['status' => 'error', 'message' => 'db_error', 'details' => $e->getMessage()];
     }
 }
+
+
 
 
 
@@ -565,12 +579,54 @@ public function saveSalesToHistory($walkinSales, $onlineSales, $totalSales) {
 }
 
 
-// Method to fetch all sales history
+// Get all sales history
 public function getSalesHistory() {
     $sql = "SELECT * FROM sales_history ORDER BY order_date DESC";
     $stmt = $this->conn->query($sql);
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
+
+public function saveSalesHistory($walkIn, $online, $total, $void)
+{
+    $today = date('Y-m-d');
+
+    // Check if today's report already exists
+    $check = $this->conn->prepare("SELECT id FROM sales_history WHERE order_date = ?");
+    $check->execute([$today]);
+    $exists = $check->fetchColumn();
+
+    if ($exists) {
+        // Update existing record
+        $sql = "UPDATE sales_history 
+                SET walk_in_sales = ?, online_sales = ?, total_sales = ?, void_sales = ?, created_at = NOW()
+                WHERE order_date = ?";
+        $stmt = $this->conn->prepare($sql);
+        $result = $stmt->execute([$walkIn, $online, $total, $void, $today]);
+    } else {
+        // Insert new record
+        $sql = "INSERT INTO sales_history (order_date, walk_in_sales, online_sales, total_sales, void_sales)
+                VALUES (?, ?, ?, ?, ?)";
+        $stmt = $this->conn->prepare($sql);
+        $result = $stmt->execute([$today, $walkIn, $online, $total, $void]);
+    }
+
+    if ($result) {
+        // Clear today's orders from both POS and Online tables
+        $this->conn->exec("DELETE FROM order_pos");
+        $this->conn->exec("DELETE FROM order_online");
+    }
+
+    return $result;
+}
+
+
+// Delete a record
+public function deleteSalesHistory($id) {
+    $sql = "DELETE FROM sales_history WHERE id = ?";
+    $stmt = $this->conn->prepare($sql);
+    return $stmt->execute([$id]);
+}
+
 
 
 public function deleteOrder($orderId) {

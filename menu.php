@@ -19,6 +19,26 @@ $stmt->execute([$customer_id]);
 $customer = $stmt->fetch(PDO::FETCH_ASSOC);
 $isBlocked = ($customer && strtolower($customer['status']) === 'blocked');
 
+// Check if the account is blocked
+$stmt = $db->conn->prepare("SELECT status, block_reason FROM customer WHERE customer_id = ?");
+
+$stmt->execute([$_SESSION['customer_ID']]);
+$user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+if ($user && $user['status'] === 'blocked') {
+    session_destroy();
+    echo "<script src='https://cdn.jsdelivr.net/npm/sweetalert2@11'></script>
+    <script>
+      Swal.fire({
+        icon: 'error',
+        title: 'Access Denied',
+        html: `<p>Your account has been blocked by the admin.</p>
+               <p><strong>Reason:</strong> " . addslashes($user['block_reason']) . "</p>`,
+        confirmButtonColor: '#d33'
+      }).then(() => window.location.href = 'login.php');
+    </script>";
+    exit();
+}
 
 // Check if category_id is set in the URL, if not, set it to null or a default value
 $categoryId = isset($_GET['category_id']) ? $_GET['category_id'] : null;
@@ -126,7 +146,7 @@ $html .= '<input type="number" min="1" max="99" value="1" class="quantity-input"
       --glass: rgba(255, 255, 255, 0.06);
     }
 
-    /* Body */
+   
     body {
       margin: 0;
       font-family: 'Montserrat', sans-serif;
@@ -165,25 +185,22 @@ $html .= '<input type="number" min="1" max="99" value="1" class="quantity-input"
     }
 
     .navbar-custom .btn {
-      width: 46px;
-      height: 46px;
-      border-radius: 50%;
-      font-size: 1.2rem;
-      background: var(--accent);
-      color: #fff;
-      transition: all 0.3s ease;
-    }
-    /* .navbar-custom .btn:hover {
-      background: var(--accent-dark);
-      transform: scale(1.05);
-    } */
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    font-size: 1.2rem;
+    background: var(--accent);
+    color: #fff;
+    transition: all 0.3s ease;
+  }
+ 
 
     .navbar-custom .dropdown-menu {
-      background: var(--bg-light);
-      border: 1px solid rgba(255,255,255,0.1);
-      border-radius: 10px;
-      box-shadow: var(--shadow);
-    }
+    background: var(--bg-light);
+    border-radius: 12px;
+    box-shadow: var(--shadow);
+    min-width: auto;
+  }
     .navbar-custom .dropdown-item {
       color: var(--text-light);
       transition: 0.3s;
@@ -232,12 +249,12 @@ $html .= '<input type="number" min="1" max="99" value="1" class="quantity-input"
     .sidebar h5 {
       color: var(--accent);
       font-weight: 900;
-      font-size: 1.8rem;  /* 🔥 make it larger */
+      font-size: 1.8rem;  
       text-transform: uppercase;
       letter-spacing: 1px;
       margin-bottom: 25px;
-      text-align: center; /* optional: center title */
-      text-shadow: 0 2px 6px rgba(0,0,0,0.3); /* adds a subtle glow */
+      text-align: center; 
+      text-shadow: 0 2px 6px rgba(0,0,0,0.3); 
     }
 
 
@@ -260,7 +277,7 @@ $html .= '<input type="number" min="1" max="99" value="1" class="quantity-input"
         transform: translateX(5px);
       }
 
-      /* ☕ Main Content */
+    
       main.content {
         flex: 1;
       }
@@ -278,7 +295,7 @@ $html .= '<input type="number" min="1" max="99" value="1" class="quantity-input"
       .controls {
       display: flex;
       align-items: center;
-      gap: 10px; /* space between quantity input and Add button */
+      gap: 10px; 
     }
 
     .quantity-input {
@@ -309,11 +326,7 @@ $html .= '<input type="number" min="1" max="99" value="1" class="quantity-input"
         flex-direction: column;
         backdrop-filter: blur(10px);
       }
-      /* .menu-card:hover {
-        transform: translateY(-6px);
-        box-shadow: 0 12px 30px rgba(0,0,0,0.6);
-      } */
-
+     
       .card-media {
         position: relative;
         height: 200px;
@@ -360,17 +373,17 @@ $html .= '<input type="number" min="1" max="99" value="1" class="quantity-input"
 
       
 
-      /* MENU BOTTOM AREA */
+  
     .menu-bottom {
       display: flex;
       justify-content: space-between;
       align-items: center;
       margin-top: auto;
-      gap: 12px; /* Adds spacing between elements */
+      gap: 12px;
       flex-wrap: wrap;
     }
 
-    /* PRICE STYLING */
+   
     .menu-price {
       color: var(--accent);
       font-weight: 800;
@@ -378,7 +391,7 @@ $html .= '<input type="number" min="1" max="99" value="1" class="quantity-input"
       white-space: nowrap;
     }
 
-    /* QUANTITY INPUT */
+    
     .quantity-input {
       width: 60px;
       height: 38px;
@@ -397,7 +410,7 @@ $html .= '<input type="number" min="1" max="99" value="1" class="quantity-input"
       background: var(--bg-mid);
     }
 
-    /* ADD BUTTON */
+   
     .btn-coffee {
       background: var(--accent);
       color: #fff;
@@ -414,15 +427,15 @@ $html .= '<input type="number" min="1" max="99" value="1" class="quantity-input"
       transform: translateY(-2px);
     }
 
-    /* FIXED LAYOUT FOR BUTTON + QUANTITY */
+  
     .menu-actions {
       display: flex;
       align-items: center;
-      gap: 10px; /* spacing between input and button */
+      gap: 10px; 
     }
 
 
-      /* 🧾 Modal */
+      
       .modal-content {
         background: var(--bg-mid);
         border-radius: 16px;
@@ -444,7 +457,23 @@ $html .= '<input type="number" min="1" max="99" value="1" class="quantity-input"
         text-align: right;
       }
 
-      /* 📱 Responsive */
+      #notificationDropdown {
+      position: absolute;
+      top: 100%;
+      right: 0;
+      left: auto;
+      transform: none;
+      width: 90vw;
+      max-width: 320px;
+      max-height: 60vh;
+      overflow-y: auto;
+      border-radius: 12px;
+      padding: 0.8rem 1rem;
+      z-index: 1050;
+      background-color: rgba(255,255,255,0.95);
+    }
+
+     
       @media (max-width: 1199px) {
         .layout {
           flex-direction: column;
@@ -470,6 +499,22 @@ $html .= '<input type="number" min="1" max="99" value="1" class="quantity-input"
           padding: 6px 14px;
         }
       }
+
+      @media (max-width: 767px) {
+    .navbar-brand img {
+      height: 60px;
+    }
+    .navbar-custom .btn {
+      width: 40px;
+      height: 40px;
+      font-size: 1rem;
+    }
+    .badge {
+      font-size: 0.6rem;
+      padding: 0.25em 0.45em;
+    }
+  }
+
 
 </style>
 </head>
@@ -729,7 +774,7 @@ $(document).on("click", ".repayText", function() {
         html: `
             <div class="text-center mb-2">
                 <p class="mb-1 text-muted" style="font-size:0.85rem;">Scan this QR to pay:</p>
-                <img src="uploads/qr.JPEG" alt="GCash QR" style="width:180px; border-radius:8px; border:1px solid #ccc;">
+                <img src="uploads/Izana Qr.JPG" alt="GCash QR" style="width:180px; border-radius:8px; border:1px solid #ccc;">
             </div>
             <hr>
             <p class="text-muted mb-1" style="font-size:0.85rem;">Then upload your receipt below:</p>
@@ -783,26 +828,38 @@ $(document).on("click", ".repayText", function() {
   $(".account-status-msg").hide();
   }
 
-  // Check account status periodically
-  function checkAccountStatus() {
-    $.ajax({
-      url: "functions.php",
-      method: "POST",
-      data: { ref: "check_acc_status" },
-      dataType: "json",
-      success: function(res) {
-        if (res.status === "success") {
-
-        if (res.account_status == 'active') {
-          $(".account-status-msg").hide();
-        } else {
-          $(".account-status-msg").show();
-        }
-
+ // Check account status periodically
+function checkAccountStatus() {
+  $.ajax({
+    url: "functions.php",
+    method: "POST",
+    data: { ref: "check_acc_status" },
+    dataType: "json",
+    success: function(res) {
+      if (res.status === "blocked") {
+        Swal.fire({
+          icon: "error",
+          title: "Account Blocked",
+          html: `
+            <p>Your account has been blocked by the admin.</p>
+            ${res.reason ? `<p><strong>Reason:</strong> ${res.reason}</p>` : ""}
+          `,
+          confirmButtonColor: "#d33"
+        }).then(() => {
+          window.location.href = "login.php"; // 🔥 Redirect after logout
+        });
       }
+    },
+    error: function() {
+      console.error("Error checking account status");
     }
   });
-  }
+}
+
+
+// Run every 5 seconds
+setInterval(checkAccountStatus, 5000);
+
 
 // Mark notifications as read
 function markNotificationsRead() {

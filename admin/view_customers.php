@@ -135,31 +135,43 @@
     });
 
     // --- Block Customer ---
-    $(document).on('click', '.block-btn', function() {
-      const id = $(this).data('id');
-      Swal.fire({
-        title: 'Block Customer?',
-        text: 'This user will not be able to log in or order until unblocked.',
-        icon: 'warning',
-        showCancelButton: true,
-        confirmButtonText: 'Yes, Block',
-        cancelButtonText: 'Cancel'
-      }).then((result) => {
-        if (result.isConfirmed) {
-          $.post('admin_functions.php', {
-            ref: 'update_customer_status',
-            customer_id: id,
-            action: 'block'
-          }, function(response) {
-            if (response.status === 'success') {
-              Swal.fire('Blocked!', response.message, 'success').then(() => location.reload());
-            } else {
-              Swal.fire('Error', response.message, 'error');
-            }
-          }, 'json');
+ // --- Block Customer with reason ---
+$(document).on('click', '.block-btn', function() {
+  const id = $(this).data('id');
+
+  Swal.fire({
+    title: 'Block Customer',
+    input: 'textarea',
+    inputLabel: 'Reason for blocking',
+    inputPlaceholder: 'Enter the reason here...',
+    inputAttributes: { 'aria-label': 'Reason' },
+    showCancelButton: true,
+    confirmButtonText: 'Block',
+    cancelButtonText: 'Cancel',
+    preConfirm: (reason) => {
+      if (!reason) {
+        Swal.showValidationMessage('Please enter a reason for blocking');
+      }
+      return reason;
+    }
+  }).then((result) => {
+    if (result.isConfirmed) {
+      $.post('admin_functions.php', {
+        ref: 'update_customer_status',
+        customer_id: id,
+        action: 'block',
+        reason: result.value
+      }, function(response) {
+        if (response.status === 'success') {
+          Swal.fire('Blocked!', response.message, 'success').then(() => location.reload());
+        } else {
+          Swal.fire('Error', response.message, 'error');
         }
-      });
-    });
+      }, 'json');
+    }
+  });
+});
+
 
     // --- Unblock Customer ---
     $(document).on('click', '.unblock-btn', function() {

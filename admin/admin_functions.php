@@ -605,47 +605,61 @@
     }
 
 
-    // BLOCK / UNBLOCK CUSTOMER
-    if (isset($_POST['ref']) && $_POST['ref'] === 'update_customer_status') {
-    header('Content-Type: application/json');
+ // BLOCK / UNBLOCK CUSTOMER
+if (isset($_POST['ref']) && $_POST['ref'] === 'update_customer_status') {
+        header('Content-Type: application/json');
 
-    $customer_id = intval($_POST['customer_id'] ?? 0);
-    $action      = trim($_POST['action'] ?? '');
+        $customer_id = intval($_POST['customer_id'] ?? 0);
+        $action      = trim($_POST['action'] ?? '');
+        $reason      = trim($_POST['reason'] ?? ''); // new field for block reason
 
-    if ($customer_id <= 0 || empty($action)) {
-    echo json_encode(['status' => 'error', 'message' => 'Invalid request.']);
-    exit;
-    }
+        if ($customer_id <= 0 || empty($action)) {
+            echo json_encode(['status' => 'error', 'message' => 'Invalid request.']);
+            exit;
+        }
 
-    try {
-    // Determine new status
-    $newStatus = ($action === 'block') ? 'blocked' : 'active';
+        try {
+            if ($action === 'block') {
+                if (empty($reason)) {
+                    echo json_encode(['status' => 'error', 'message' => 'Block reason is required.']);
+                    exit;
+                }
 
-    // Update in database
-    $stmt = $db->conn->prepare("UPDATE customer SET status = ? WHERE customer_ID = ?");
-    $stmt->execute([$newStatus, $customer_id]);
+                // Block user and save reason
+                $stmt = $db->conn->prepare("UPDATE customer SET status = 'blocked', block_reason = ? WHERE customer_id = ?");
+                $stmt->execute([$reason, $customer_id]);
 
-    // Add a notification to customer (optional)
-    $message = ($action === 'block') 
-        ? "Your account has been temporarily blocked by the admin." 
-        : "Your account has been reactivated. You can now continue ordering.";
+                $message = "Your account has been blocked by the admin. Reason: {$reason}";
 
-    $notif = $db->conn->prepare("
-        INSERT INTO notifications (customer_id, order_id, message, is_read, created_at)
-        VALUES (?, NULL, ?, 0, NOW())
-    ");
-    $notif->execute([$customer_id, $message]);
+            } elseif ($action === 'unblock') {
+                // Unblock user and clear reason
+                $stmt = $db->conn->prepare("UPDATE customer SET status = 'active', block_reason = NULL WHERE customer_id = ?");
+                $stmt->execute([$customer_id]);
 
-    echo json_encode([
-        'status' => 'success',
-        'message' => "Customer has been {$newStatus}.",
-        'new_status' => $newStatus
-    ]);
-    } catch (Exception $e) {
-    echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
-    }
-    exit;
-    }
+                $message = "Your account has been reactivated. You can now continue ordering.";
+            } else {
+                echo json_encode(['status' => 'error', 'message' => 'Invalid action.']);
+                exit;
+            }
+
+            // Optional: insert a notification for the customer
+            $notif = $db->conn->prepare("
+                INSERT INTO notifications (customer_id, order_id, message, is_read, created_at)
+                VALUES (?, NULL, ?, 0, NOW())
+            ");
+            $notif->execute([$customer_id, $message]);
+
+            echo json_encode([
+                'status' => 'success',
+                'message' => "Customer has been {$action}ed.",
+                'new_status' => ($action === 'block') ? 'blocked' : 'active'
+            ]);
+        } catch (Exception $e) {
+            echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+        }
+        exit;
+}
+
 
     // Fetch customer details
     if (isset($_POST['ref']) && $_POST['ref'] === 'get_customer_details') {
@@ -763,7 +777,161 @@
     }
 
 
+    // Save today's sales from Sales Report page
+    if (isset($_POST['ref']) && $_POST['ref'] === 'save_sales') {
+        $walkIn = floatval($_POST['walk_in_sales'] ?? 0);
+        $online = floatval($_POST['online_sales'] ?? 0);
+        $total = floatval($_POST['total_sales'] ?? 0);
+        $void  = floatval($_POST['void_sales'] ?? 0);
 
+        try {
+            $result = $db->saveSalesHistory($walkIn, $online, $total, $void);
+            if ($result) {
+                echo json_encode(['status' => 'success', 'message' => 'Sales saved successfully!']);
+            } else {
+                echo json_encode(['status' => 'error', 'message' => 'Failed to save sales.']);
+            }
+        } catch (Exception $e) {
+            echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+        }
+        exit;
+    }
+
+    //Get sales details for a specific date (Online + POS)
+    if (isset($_POST['ref']) && $_POST['ref'] === 'get_sales_details') {
+        try {
+            $date = $_POST['date'];
+
+            // 🔹 Fetch Online Orders
+            $sqlOnline = "
+                SELECT 
+                    o.order_id AS order_id,
+                    CONCAT(c.customer_FN, ' ', c.customer_LN) AS customer_name,
+                    'Online' AS order_channel,
+                    o.total_amount,
+                    o.status AS order_status,
+                    o.created_at
+                FROM order_online o
+                JOIN customer c ON o.customer_id = c.customer_ID
+                WHERE DATE(o.created_at) = ?
+            ";
+            $stmtOnline = $db->conn->prepare($sqlOnline);
+            $stmtOnline->execute([$date]);
+            $onlineOrders = $stmtOnline->fetchAll(PDO::FETCH_ASSOC);
+
+            // 🔹 Fetch POS Orders (Walk-in)
+            $sqlPOS = "
+                SELECT 
+                    p.pos_id AS order_id,
+                    'Walk-in Customer' AS customer_name,
+                    'POS' AS order_channel,
+                    p.total_amount,
+                    p.status AS order_status,
+                    p.created_at
+                FROM order_pos p
+                WHERE DATE(p.created_at) = ?
+            ";
+            $stmtPOS = $db->conn->prepare($sqlPOS);
+            $stmtPOS->execute([$date]);
+            $posOrders = $stmtPOS->fetchAll(PDO::FETCH_ASSOC);
+
+            // 🔹 Merge Online + POS
+            $data = array_merge($onlineOrders, $posOrders);
+
+            // 🔹 Sort by date (latest first)
+            usort($data, function($a, $b) {
+                return strtotime($b['created_at']) - strtotime($a['created_at']);
+            });
+
+            if (!empty($data)) {
+                echo json_encode(['status' => 'success', 'data' => $data]);
+            } else {
+                echo json_encode(['status' => 'empty']);
+            }
+
+        } catch (Exception $e) {
+            echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+        }
+        exit();
+    }
+
+    // Handle order status updates
+    if (isset($_POST['ref']) && $_POST['ref'] === 'update_order_status') {
+        $orderId = $_POST['order_id'];
+        $action = $_POST['action']; // accept, reject, repay, void, complete
+        $orderType = $_POST['order_type']; // online or pos
+
+        // Determine table
+        $table = ($orderType === 'pos') ? 'order_pos' : 'order_online';
+
+        // Map actions to payment and order statuses
+        $statusMap = [
+            'accept'   => ['order_status' => 'Completed', 'payment_status' => 'Paid'],
+            'reject'   => ['order_status' => 'Pending', 'payment_status' => 'Pending'],
+            'repay'    => ['order_status' => 'Pending', 'payment_status' => 'Pending'],
+            'void'     => ['order_status' => 'Void', 'payment_status' => 'Void'],
+            'complete' => ['order_status' => 'Completed', 'payment_status' => 'Completed'],
+        ];
+
+        if (array_key_exists($action, $statusMap)) {
+            $statuses = $statusMap[$action];
+
+            // Update order record
+            $sql = "
+                UPDATE {$table}
+                SET status = :order_status,
+                    payment_status = :payment_status
+                WHERE " . (($orderType === 'pos') ? "pos_id" : "order_id") . " = :id
+            ";
+            $stmt = $db->conn->prepare($sql);
+            $stmt->execute([
+                ':order_status' => $statuses['order_status'],
+                ':payment_status' => $statuses['payment_status'],
+                ':id' => $orderId
+            ]);
+
+            echo json_encode([
+                'status' => 'success',
+                'message' => 'Order updated successfully.',
+                'new_status' => $statuses
+            ]);
+        } else {
+            echo json_encode(['status' => 'error', 'message' => 'Invalid action.']);
+        }
+        exit();
+    }
+
+    // Delete sales record
+    if ($_POST['ref'] === 'delete_sales_history') {
+        $id = intval($_POST['id']);
+        try {
+            $stmt = $db->conn->prepare("DELETE FROM sales_history WHERE id = ?");
+            $stmt->execute([$id]);
+
+            if ($stmt->rowCount() > 0) {
+                echo json_encode(['status' => 'success', 'message' => 'Sales record deleted successfully.']);
+            } else {
+                echo json_encode(['status' => 'error', 'message' => 'No record found or already deleted.']);
+            }
+        } catch (Exception $e) {
+            echo json_encode(['status' => 'error', 'message' => 'Database error: ' . $e->getMessage()]);
+        }
+        exit();
+    }
+
+    // Fetch product categories
+    if ($_POST['ref'] === 'get_product_categories') {
+        $stmt = $db->conn->prepare("SELECT category_id, category, is_active FROM product_categories ORDER BY created_at DESC");
+        $stmt->execute();
+        $categories = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+        if ($categories) {
+            echo json_encode(['status' => 'success', 'categories' => $categories]);
+        } else {
+            echo json_encode(['status' => 'empty', 'categories' => []]);
+        }
+        exit;
+    }
 
 
 

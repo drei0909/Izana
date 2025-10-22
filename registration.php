@@ -68,16 +68,20 @@
     }
 
     .register-container {
-      width: 100%;
-      max-width: 500px;
-      background: rgba(255, 248, 230, 0.15);
-      border: 1px solid rgba(255,255,255,0.25);
-      border-radius: 18px;
-      padding: 40px 35px;
-      box-shadow: 0 12px 30px rgba(0,0,0,0.35);
-      backdrop-filter: blur(10px);
-      text-align: center;
-    }
+    width: 100%;
+    max-width: 500px;
+    background: rgba(255, 248, 230, 0.15);
+    border: 1px solid rgba(255,255,255,0.25);
+    border-radius: 18px;
+    padding: 40px 35px;
+    box-shadow: 0 12px 30px rgba(0,0,0,0.35);
+    backdrop-filter: blur(10px);
+    text-align: center;
+
+    /* Add top margin so it doesn’t overlap with the fixed home button */
+    margin-top: 80px; 
+}
+
 
     .icon-box { font-size: 3rem; color: #b07542; margin-bottom: 10px; }
     .title {
@@ -234,6 +238,28 @@
         background-position: center;
       }
     }
+
+    @media (max-width: 768px) {
+    .register-container {
+        margin-top: 70px;
+        padding: 25px 20px;
+    }
+}
+
+@media (max-width: 480px) {
+    .register-container {
+        margin-top: 60px;
+        padding: 20px 15px;
+    }
+
+    .back-home {
+        top: 10px;
+        left: 10px;
+        padding: 8px 16px;
+        font-size: 0.9rem;
+    }
+}
+
   </style>
 </head>
 <body>
@@ -361,9 +387,12 @@ document.getElementById("openTerms").addEventListener("click", function (e) {
 
         <h5 style="color:#b07542; margin-top:16px;">3. Orders & Payments</h5>
         <p>
-          Payments may be made via <strong>GCash</strong> or <strong>Cash</strong>. 
-          Upload a valid GCash receipt when applicable. 
-          Orders may be canceled if payment verification fails.
+          Payments may be made via <strong>GCash</strong>. 
+          If an order is canceled due to customer underpayment, 
+          a ₱5 inconvenience fee will be deducted from the refund. 
+          If an order is canceled due to admin or product issues, 
+          a full refund will be issued, 
+          and the customer may place a new order.
         </p>
 
         <h5 style="color:#b07542; margin-top:16px;">4. Prohibited Use</h5>
@@ -372,16 +401,12 @@ document.getElementById("openTerms").addEventListener("click", function (e) {
           with our system. Any violations may result in account suspension.
         </p>
 
-        <h5 style="color:#b07542; margin-top:16px;">5. Updates</h5>
-        <p>
-          Izana reserves the right to modify these terms at any time. 
-          Continued use means you accept any changes made.
-        </p>
 
-        <h5 style="color:#b07542; margin-top:16px;">6. Contact</h5>
+        <h5 style="color:#b07542; margin-top:16px;">5. Contact</h5>
         <p>
-          For assistance, please contact us via our official support email 
-          or through the in-app contact form.
+          For assistance, 
+          please contact us via our number 
+          +63 908 141 4131.
         </p>
       </div>
     `,
@@ -451,4 +476,77 @@ window.addEventListener("load", () => {
 
 
   </body>
+  <script>
+function showInfo() {
+  Swal.fire({
+    title: `
+      <span style="
+        color:#b07542;
+        text-decoration: underline;
+        text-underline-offset: 6px;
+        font-weight:600;
+        letter-spacing:0.5px;
+      ">
+        Registration Info
+      </span>
+    `,
+    html: `
+      <div style="
+        text-align:left;
+        max-height:320px;
+        overflow-y:auto;
+        padding-right:10px;
+        font-size:14.5px;
+        line-height:1.6;
+        scrollbar-width: thin;
+        scrollbar-color: #b07542 #fff8f3;
+      ">
+        <p>
+          Welcome to <strong style="color:#b07542;">Izana</strong>! 
+          Before creating your account, please read these quick reminders to make your registration smooth and secure.
+        </p>
+
+        <h5 style="color:#b07542; margin-top:15px;">1. Required Information</h5>
+        <ul style="margin-left:18px;">
+          <li><strong>First & Last Name</strong> – Please use your real name.</li>
+          <li><strong>Username</strong> – Must be unique and easy to remember.</li>
+          <li><strong>Email</strong> – Used for verification and order updates.</li>
+          <li><strong>Contact Number</strong> – Must follow <code>09xxxxxxxxx</code> format.</li>
+          <li><strong>Password</strong> – Keep it secure and avoid sharing it with others.</li>
+        </ul>
+
+        <h5 style="color:#b07542; margin-top:15px;">2. Email Verification</h5>
+        <p>
+          After registration, check your Gmail inbox for the verification code. 
+          You’ll need to verify your email before logging in to your Izana account.
+        </p>
+
+        <h5 style="color:#b07542; margin-top:15px;">3. Privacy & Security</h5>
+        <p>
+          Izana collects your details only for managing your account and processing coffee orders. 
+          We never share your personal data without your consent.
+        </p>
+
+       
+        <h5 style="color:#b07542; margin-top:15px;">4. Need Help?</h5>
+        <p>
+          For any registration issues, contact our support team or visit the shop in <strong>San Antonio, Quezon</strong>.
+        </p>
+      </div>
+    `,
+    confirmButtonText: "Got it!",
+    confirmButtonColor: "#b07542",
+    background: "#fff8f3",
+    color: "#4b3a2f",
+    width: 520,
+    showClass: {
+      popup: 'animate__animated animate__fadeInDown'
+    },
+    hideClass: {
+      popup: 'animate__animated animate__fadeOutUp'
+    }
+  });
+}
+</script>
+
   </html>

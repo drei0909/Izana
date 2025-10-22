@@ -205,18 +205,18 @@ function card_html($p) {
     }
 
     .back-btn {
-      position: fixed;
-      top: 20px;
-      left: 20px;
-      background: #b07542;
-      color: #fff;
-      border-radius: 25px;
-      padding: 10px 20px;
-      font-weight: 600;
-      text-decoration: none;
-      transition: all 0.3s ease;
-    }
-
+    position: fixed;
+    top: 20px;
+    left: 20px;
+    z-index: 1000; /* ensures it’s above everything */
+    background: #b07542;
+    color: #fff;
+    border-radius: 25px;
+    padding: 10px 20px;
+    font-weight: 600;
+    text-decoration: none;
+    transition: all 0.3s ease;
+}
     .back-btn:hover {
       background: #8c5a33;
     }
@@ -239,6 +239,27 @@ function card_html($p) {
     footer a:hover {
       color: #f2d9be;
     }
+
+    /* Mobile adjustment */
+@media (max-width: 768px) {
+    .back-btn {
+        top: 10px;
+        left: 10px;
+        padding: 8px 16px;
+        font-size: 0.9rem;
+    }
+}
+
+/* Optional: Add spacing so menu content is not hidden under back button */
+.container-menu {
+    margin-top: 70px; /* enough to clear the fixed button */
+}
+
+@media (max-width: 768px) {
+    .container-menu {
+        margin-top: 60px;
+    }
+}
   </style>
 </head>
 
@@ -277,13 +298,13 @@ function card_html($p) {
         <img src="uploads/izana_logo.png" alt="IZANA Logo" style="height: 80px;">
       </a>
     <p class="mb-3" style="color:#e0c6a3; max-width:600px; margin:0 auto;">
-      Brewed with passion in Rosario, Batangas — serving handcrafted coffee and frappes to fuel your day.
+      Brewed with passion in San Antonio, Quezon — serving handcrafted coffee and frappes to fuel your day.
     </p>
     <p class="small mb-1" style="color:#d8b68a;">
-      <i class="fa-solid fa-location-dot me-2"></i>Rosario, Batangas, Philippines
+      <i class="fa-solid fa-location-dot me-2"></i>San Antonio, Quezon, Philippines
     </p>
     <p class="small mb-4" style="color:#d8b68a;">
-      <i class="fa-solid fa-phone me-2"></i>+63 912 345 6789
+      <i class="fa-solid fa-phone me-2"></i>+63 908 141 4131
     </p>
 
     <!-- ACCOUNT LINKS -->

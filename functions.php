@@ -328,73 +328,87 @@ if ($_POST['ref'] === 'fetch_notifications') {
         exit;
     }
 
-    // Fetch notifications with related order info
-    $stmt = $db->conn->prepare("
-        SELECT 
-            n.notification_id, 
-            n.message, 
-            n.order_id, 
-            n.is_read, 
-            n.created_at, 
-            o.status AS order_status, 
-            o.reject_reason
-        FROM notifications n
-        LEFT JOIN order_online o ON n.order_id = o.order_id
-        WHERE n.customer_id = ?
-        ORDER BY n.created_at DESC
-    ");
-    $stmt->execute([$customer_id]);
-    $notifications = $stmt->fetchAll(PDO::FETCH_ASSOC);
+ // Fetch notifications with related order info
+        $stmt = $db->conn->prepare("
+            SELECT 
+                n.notification_id, 
+                n.message, 
+                n.order_id, 
+                n.is_read, 
+                n.created_at, 
+                o.status AS order_status, 
+                o.reject_reason
+            FROM notifications n
+            LEFT JOIN order_online o ON n.order_id = o.order_id
+            WHERE n.customer_id = ?
+            ORDER BY n.created_at DESC
+        ");
+        $stmt->execute([$customer_id]);
+        $notifications = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-    // Add flag to show repay button for rejected orders
-    foreach ($notifications as &$n) {
-        $n['show_repay'] = ($n['order_status'] == 0); // status = 0 = rejected
+        // Add flag to show repay button for rejected orders
+      foreach ($notifications as &$n) {
+        
+        $n['show_repay'] = (!empty($n['order_id']) && $n['order_status'] == 0);
     }
 
-    // Count unread notifications
-    $unread_stmt = $db->conn->prepare("
-        SELECT COUNT(*) AS unread_count 
-        FROM notifications 
-        WHERE customer_id = ? AND is_read = 0
-    ");
-    $unread_stmt->execute([$customer_id]);
-    $unread_count = (int)($unread_stmt->fetch(PDO::FETCH_ASSOC)['unread_count'] ?? 0);
 
-    echo json_encode([
-        "status" => "success",
-        "notifications" => $notifications,
-        "unread_count" => $unread_count
-    ]);
-    exit;
+        // Count unread notifications
+        $unread_stmt = $db->conn->prepare("
+            SELECT COUNT(*) AS unread_count 
+            FROM notifications 
+            WHERE customer_id = ? AND is_read = 0
+        ");
+        $unread_stmt->execute([$customer_id]);
+        $unread_count = (int)($unread_stmt->fetch(PDO::FETCH_ASSOC)['unread_count'] ?? 0);
+
+        echo json_encode([
+            "status" => "success",
+            "notifications" => $notifications,
+            "unread_count" => $unread_count
+        ]);
+        exit;
 }
 
 
 
 // Check Account Status
-if ($_POST['ref'] === 'check_acc_status') {
+if (isset($_POST['ref']) && $_POST['ref'] === 'check_acc_status') {
+    require_once('./classes/database.php');
+    $db = new Database();
 
-    if (session_status() === PHP_SESSION_NONE) {
-        session_start();
-    }
-
-    $customer_id = $_SESSION['customer_ID'] ?? null;
-
-    if (!$customer_id) {
-        echo json_encode(["status" => "error", "message" => "No customer logged in."]);
+    if (!isset($_SESSION['customer_ID'])) {
+        echo json_encode(["status" => "error", "msg" => "No session found"]);
         exit;
     }
 
-    // Fetch all notifications
-    $stmt = $db->conn->prepare("SELECT status FROM customer WHERE customer_id = ?");
-    $stmt->execute([$customer_id]);
-    $account = $stmt->fetch(PDO::FETCH_ASSOC);
+    $stmt = $db->conn->prepare("SELECT status, block_reason FROM customer WHERE customer_id = ?");
+    $stmt->execute([$_SESSION['customer_ID']]);
+    $row = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    echo json_encode([
-        "status" => "success",
-        "account_status" => $account['status']
-    ]);
+    if ($row) {
+        // 🔥 If account is blocked, destroy session immediately
+        if (strtolower($row['status']) === 'blocked') {
+            session_unset();
+            session_destroy();
+            echo json_encode([
+                "status" => "blocked",
+                "reason" => $row['block_reason'] ?? null
+            ]);
+            exit;
+        }
+
+        echo json_encode([
+            "status" => "success",
+            "account_status" => strtolower($row['status']),
+            "reason" => $row['block_reason'] ?? null
+        ]);
+    } else {
+        echo json_encode(["status" => "error", "msg" => "Customer not found"]);
+    }
     exit;
 }
+
 
 
 //Mark all notifications as read
@@ -584,56 +598,61 @@ if (isset($_POST['ref']) && $_POST['ref'] === "place_order") {
 }
 
 
-
 // Handle Customer Login
-if (isset($_POST['ref']) && $_POST['ref'] === "login_customer") {
+if(isset($_POST['ref']) && $_POST['ref'] === "login_customer") {
     header('Content-Type: application/json');
 
     $username = trim($_POST['username'] ?? '');
     $password = trim($_POST['password'] ?? '');
 
-    if ($username === '' || $password === '') {
-        echo json_encode(['status' => 'error', 'message' => 'All fields are required.']);
+    if($username === '' || $password === '') {
+        echo json_encode(['status'=>'error','message'=>'All fields are required.']);
         exit;
     }
 
     $result = $db->loginCustomer($username, $password);
 
-    if ($result['status'] !== 'success') {
+    if($result['status'] === 'error') {
+        // Blocked account
+        if($result['message'] === 'account_blocked') {
+            echo json_encode([
+                'status'=>'error',
+                'message'=>'blocked',
+                'reason'=>$result['reason'] ?? 'No reason provided'
+            ]);
+            exit;
+        }
+
+        // Other errors
         $messages = [
-            'user_not_found' => 'No user found with this username.',
-            'account_is_not_verified' => 'Account not verified yet.',
-            'wrong_password' => 'Incorrect password.',
-            'db_error' => 'Database error occurred. Please try again.'
+            'user_not_found'=>'No user found with this username.',
+            'account_is_not_verified'=>'Account not verified yet.',
+            'wrong_password'=>'Incorrect password.',
+            'db_error'=>'Database error occurred. Please try again.'
         ];
 
-        $msg = $messages[$result['message']] ?? 'Unexpected error.';
-        echo json_encode(['status' => 'error', 'message' => $msg]);
+        $msgKey = $result['message'] ?? 'unexpected_error';
+        $msg = $messages[$msgKey] ?? 'Unexpected error.';
+        echo json_encode(['status'=>'error','message'=>$msg]);
         exit;
     }
 
+    // Success login
     $user = $result['user'];
-
-    // Start session
     $_SESSION['customer_ID'] = $user['customer_id'];
     $_SESSION['customer_FN'] = $user['customer_FN'];
 
-    // Detect new user (first time login)
-    $is_new = empty($user['last_login']);
-    $name = htmlspecialchars($user['customer_FN']);
-
-    // Update last login timestamp
     $stmt = $db->conn->prepare("UPDATE customer SET last_login = NOW() WHERE customer_id = ?");
     $stmt->execute([$user['customer_id']]);
 
     echo json_encode([
-        'status' => 'success',
-        'redirect' => 'menu.php',
-        'is_new' => $is_new,
-        'name' => $name
+        'status'=>'success',
+        'redirect'=>'menu.php'
     ]);
     exit;
 }
+
+
 
 // --- Handle Rebuy Order ---
 if (isset($_POST['ref']) && $_POST['ref'] === 'rebuy_order') {

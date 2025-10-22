@@ -111,6 +111,22 @@ $db = new database();
     z-index: 1000;       
   }
 
+     .back-home {
+      position: fixed;
+      top: 20px;
+      left: 20px;
+      background: #b07542;
+      color: #fff;
+      border-radius: 25px;
+      padding: 10px 20px;
+      font-weight: 600;
+      text-decoration: none;
+      transition: all 0.3s ease;
+    }
+     .back-home:hover {
+      background: #8c5a33;
+    }
+
    
 
     .top-buttons a:hover,
@@ -224,6 +240,9 @@ $db = new database();
 
 
 
+<!-- ✅ Cancel button (styled same as login.php "Home" button) -->
+  <a href="registration.php" class="back-home" id="cancelVerification"><i class="fas fa-times me-2"></i>Cancel</a>
+
 <div class="register-container">
   <div class="icon-box">
     <i class="fas fa-mug-hot"></i>
@@ -233,18 +252,75 @@ $db = new database();
   <form id="emailVerifyForm" method="POST" autocomplete="off">
     <div class="mb-3">
       <label for="email" class="form-label">Email</label>
-     <input type="text" name="email" readonly class="form-control"
-  value="<?= isset($_GET['email']) ? htmlspecialchars($_GET['email']) : '' ?>" required>
+      <input type="text" name="email" readonly class="form-control"
+             value="<?= isset($_GET['email']) ? htmlspecialchars($_GET['email']) : '' ?>" required>
     </div>
+
     <div class="mb-3">
-      <label for="verification_code	" class="form-label">Verification Code</label>
-      <input type="text" name="verification_code" class="form-control" autocomplete="new-first-name" required>
+      <label for="verification_code" class="form-label">Verification Code</label>
+      <input type="text" name="verification_code" class="form-control" required>
     </div>
-    
+
     <button type="submit" class="btn-coffee mt-2" id="verifyBtn">Verify</button>
   </form>
+</div>
 
-  
+  <!-- Cancel confirmation script -->
+<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script>
+  document.getElementById("cancelVerification").addEventListener("click", function(e) {
+    e.preventDefault();
+    Swal.fire({
+      title: "Cancel Verification?",
+      text: "Do you want to cancel the verification process?",
+      icon: "warning",
+      showCancelButton: true,
+      confirmButtonColor: "#b07542",
+      cancelButtonColor: "#6c757d",
+      confirmButtonText: "Yes, cancel",
+      cancelButtonText: "No, stay here"
+    }).then((result) => {
+      if (result.isConfirmed) {
+        window.location.href = "registration.php";
+      }
+    });
+  });
+
+  //Email verification AJAX
+  $("#emailVerifyForm").on("submit", function(e) {
+    e.preventDefault();
+
+    $("#verifyBtn").prop("disabled", true).text("Loading...");
+
+    $.ajax({
+      url: "functions.php",
+      type: "POST",
+      data: $(this).serialize() + "&ref=email_verification",
+      dataType: "json",
+      success: function(response) {
+        if (response.status === "success") {
+          Swal.fire({
+            title: "Verified!",
+            text: response.message,
+            icon: "success",
+            confirmButtonText: "OK"
+          }).then((result) => {
+            if (result.isConfirmed) {
+              window.location.href = "login.php";
+            }
+          });
+        } else {
+          $("#verifyBtn").prop("disabled", false).text("Verify");
+          Swal.fire("Error", response.message, "error");
+        }
+      },
+      error: function() {
+        Swal.fire("Error", "Something went wrong. Please try again.", "error");
+      }
+    });
+  });
+</script>
 
 <!-- Info Script -->
 <script>
