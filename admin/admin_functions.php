@@ -194,174 +194,171 @@
     }
 
 
-
-
     // --- Update Order Status + Notify Customer ---
     if (isset($_POST['ref']) && $_POST['ref'] === 'update_order_stats') {
-    header('Content-Type: application/json; charset=utf-8');
-   
+        header('Content-Type: application/json; charset=utf-8');
+    
 
-    $order_id  = intval($_POST['id'] ?? 0);
-    $status    = intval($_POST['status'] ?? 0);
-    $orderType = $_POST['orderType'] ?? '';
+        $order_id  = intval($_POST['id'] ?? 0);
+        $status    = intval($_POST['status'] ?? 0);
+        $orderType = $_POST['orderType'] ?? '';
 
-    try {
-    // --- Update order table ---
-    if ($orderType === 'online') {
-        $stmt = $db->conn->prepare("UPDATE order_online SET status = ? WHERE order_id = ?");
-        $stmt->execute([$status, $order_id]);
-    } else {
-        $stmt = $db->conn->prepare("UPDATE order_pos SET status = ? WHERE pos_id = ?");
-        $stmt->execute([$status, $order_id]);
-    }
-
-    // --- Get customer for online order ---
-    $customer_id = null;
-    if ($orderType === 'online') {
-        $getCust = $db->conn->prepare("SELECT customer_id FROM order_online WHERE order_id = ?");
-        $getCust->execute([$order_id]);
-        $cust = $getCust->fetch(PDO::FETCH_ASSOC);
-        $customer_id = $cust['customer_id'] ?? null;
-    }
-
-    // --- Insert notification if online ---
-    if ($customer_id) {
-        // $message = match ($status) {
-        //     2       => "Your order #$order_id is now being prepared.",
-        //     3       => "Your order #$order_id is ready for pickup!",
-        //     default => "Your order #$order_id status has been updated.",
-        // };
-
-        switch ($status) {
-                case 1:
-                $message = "Your order #$order_id is for review.";
-                break;
-            case 2:
-                $message = "Your order #$order_id is now being prepared.";
-                break;
-            case 3:
-                $message = "Your order #$order_id is ready for pickup!";
-                break;
-            default:
-                $message = "Your order #$order_id is for review.";
-                break;
+        try {
+        // --- Update order table ---
+        if ($orderType === 'online') {
+            $stmt = $db->conn->prepare("UPDATE order_online SET status = ? WHERE order_id = ?");
+            $stmt->execute([$status, $order_id]);
+        } else {
+            $stmt = $db->conn->prepare("UPDATE order_pos SET status = ? WHERE pos_id = ?");
+            $stmt->execute([$status, $order_id]);
         }
 
-        $insert = $db->conn->prepare("
-            INSERT INTO notifications (customer_id, order_id, message, is_read, created_at)
-            VALUES (?, ?, ?, 0, NOW())
-        ");
-        $insert->execute([$customer_id, $order_id, $message]);
-    }
+        // --- Get customer for online order ---
+        $customer_id = null;
+        if ($orderType === 'online') {
+            $getCust = $db->conn->prepare("SELECT customer_id FROM order_online WHERE order_id = ?");
+            $getCust->execute([$order_id]);
+            $cust = $getCust->fetch(PDO::FETCH_ASSOC);
+            $customer_id = $cust['customer_id'] ?? null;
+        }
 
-    echo json_encode([
-        'status'  => 'success',
-        'message' => 'Order status updated successfully.'
-    ]);
-    } catch (Throwable $e) {
-    echo json_encode([
-        'status'  => 'error',
-        'message' => 'Server error: ' . $e->getMessage()
-    ]);
-    }
-    exit;
-    }
+        // --- Insert notification if online ---
+        if ($customer_id) {
+            // $message = match ($status) {
+            //     2       => "Your order #$order_id is now being prepared.",
+            //     3       => "Your order #$order_id is ready for pickup!",
+            //     default => "Your order #$order_id status has been updated.",
+            // };
 
+            switch ($status) {
+                    case 1:
+                    $message = "Your order #$order_id is for review.";
+                    break;
+                case 2:
+                    $message = "Your order #$order_id is now being prepared.";
+                    break;
+                case 3:
+                    $message = "Your order #$order_id is ready for pickup!";
+                    break;
+                default:
+                    $message = "Your order #$order_id is for review.";
+                    break;
+            }
+
+            $insert = $db->conn->prepare("
+                INSERT INTO notifications (customer_id, order_id, message, is_read, created_at)
+                VALUES (?, ?, ?, 0, NOW())
+            ");
+            $insert->execute([$customer_id, $order_id, $message]);
+        }
+
+        echo json_encode([
+            'status'  => 'success',
+            'message' => 'Order status updated successfully.'
+        ]);
+        } catch (Throwable $e) {
+        echo json_encode([
+            'status'  => 'error',
+            'message' => 'Server error: ' . $e->getMessage()
+        ]);
+        }
+        exit;
+    }
 
 
     // Place the POS order
     if (isset($_POST['ref']) && $_POST['ref'] === "place_pos_order") {
-    header('Content-Type: application/json');
+        header('Content-Type: application/json');
 
-    $cart = json_decode($_POST['cart'] ?? "[]", true);
-    $paymentMethod  = $_POST['payment_method'] ?? 'Cash';
-    $cashReceived   = floatval($_POST['cash_received'] ?? 0);
-    $adminID = isset($_SESSION['admin_ID']) ? intval($_SESSION['admin_ID']) : null;
+        $cart = json_decode($_POST['cart'] ?? "[]", true);
+        $paymentMethod  = $_POST['payment_method'] ?? 'Cash';
+        $cashReceived   = floatval($_POST['cash_received'] ?? 0);
+        $adminID = isset($_SESSION['admin_ID']) ? intval($_SESSION['admin_ID']) : null;
 
-    if (empty($cart)) {
-    echo json_encode(['status' => 'error', 'message' => 'Cart is empty']);
-    exit;
-    }
+        if (empty($cart)) {
+        echo json_encode(['status' => 'error', 'message' => 'Cart is empty']);
+        exit;
+        }
 
-    // Compute total on server
-    $total = 0;
-    foreach ($cart as $item) {
-    $total += floatval($item['price']) * intval($item['quantity']);
-    }
+        // Compute total on server
+        $total = 0;
+        foreach ($cart as $item) {
+        $total += floatval($item['price']) * intval($item['quantity']);
+        }
 
-    $change = ($paymentMethod === 'Cash') ? max($cashReceived - $total, 0) : 0;
+        $change = ($paymentMethod === 'Cash') ? max($cashReceived - $total, 0) : 0;
 
-    try {
-    $db->conn->beginTransaction();
+        try {
+        $db->conn->beginTransaction();
 
-    // Check if order_pos has admin_id column
-    $hasAdminColumnStmt = $db->conn->prepare("
-        SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
-        WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'order_pos' AND COLUMN_NAME = 'admin_id'
-    ");
-    $hasAdminColumnStmt->execute();
-    $hasAdmin = (bool)$hasAdminColumnStmt->fetchColumn();
-
-    if ($hasAdmin && $adminID !== null) {
-        $stmtPos = $db->conn->prepare("
-            INSERT INTO order_pos (total_amount, payment_method, created_at, admin_id)
-            VALUES (:total_amount, :payment_method, NOW(), :admin_id)
+        // Check if order_pos has admin_id column
+        $hasAdminColumnStmt = $db->conn->prepare("
+            SELECT COUNT(*) FROM INFORMATION_SCHEMA.COLUMNS
+            WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = 'order_pos' AND COLUMN_NAME = 'admin_id'
         ");
-        $stmtPos->execute([
-            ':total_amount' => $total,
-            ':payment_method' => $paymentMethod,
-            ':admin_id' => $adminID
-        ]);
-    } else {
-        $stmtPos = $db->conn->prepare("
-            INSERT INTO order_pos (total_amount, payment_method, status, created_at)
-            VALUES (:total_amount, :payment_method, 1, NOW())
+        $hasAdminColumnStmt->execute();
+        $hasAdmin = (bool)$hasAdminColumnStmt->fetchColumn();
+
+        if ($hasAdmin && $adminID !== null) {
+            $stmtPos = $db->conn->prepare("
+                INSERT INTO order_pos (total_amount, payment_method, created_at, admin_id)
+                VALUES (:total_amount, :payment_method, NOW(), :admin_id)
+            ");
+            $stmtPos->execute([
+                ':total_amount' => $total,
+                ':payment_method' => $paymentMethod,
+                ':admin_id' => $adminID
+            ]);
+        } else {
+            $stmtPos = $db->conn->prepare("
+                INSERT INTO order_pos (total_amount, payment_method, status, created_at)
+                VALUES (:total_amount, :payment_method, 1, NOW())
+            ");
+            $stmtPos->execute([
+                ':total_amount' => $total,
+                ':payment_method' => $paymentMethod
+            ]);
+        }
+
+        $posID = $db->conn->lastInsertId();
+
+        $stmtItem = $db->conn->prepare("
+            INSERT INTO order_item (order_id, pos_id, product_id, quantity, price)
+            VALUES (NULL, :pos_id, :product_id, :qty, :price)
         ");
-        $stmtPos->execute([
-            ':total_amount' => $total,
-            ':payment_method' => $paymentMethod
-        ]);
-    }
 
-    $posID = $db->conn->lastInsertId();
+        foreach ($cart as $item) {
+            $stmtItem->execute([
+                ':pos_id' => $posID,
+                ':product_id' => intval($item['id']),
+                ':qty' => intval($item['quantity']),
+                ':price' => floatval($item['price'])
+            ]);
+        }
 
-    $stmtItem = $db->conn->prepare("
-        INSERT INTO order_item (order_id, pos_id, product_id, quantity, price)
-        VALUES (NULL, :pos_id, :product_id, :qty, :price)
-    ");
-
-    foreach ($cart as $item) {
-        $stmtItem->execute([
+        // Insert payment record
+        $stmtPayment = $db->conn->prepare("
+            INSERT INTO payment (order_id, pos_id, payment_date, payment_method, payment_amount, payment_status)
+            VALUES (NULL, :pos_id, NOW(), :method, :amount, 'Completed')
+        ");
+        $stmtPayment->execute([
             ':pos_id' => $posID,
-            ':product_id' => intval($item['id']),
-            ':qty' => intval($item['quantity']),
-            ':price' => floatval($item['price'])
+            ':method' => $paymentMethod,
+            ':amount' => $total
         ]);
-    }
 
-    // Insert payment record
-    $stmtPayment = $db->conn->prepare("
-        INSERT INTO payment (order_id, pos_id, payment_date, payment_method, payment_amount, payment_status)
-        VALUES (NULL, :pos_id, NOW(), :method, :amount, 'Completed')
-    ");
-    $stmtPayment->execute([
-        ':pos_id' => $posID,
-        ':method' => $paymentMethod,
-        ':amount' => $total
-    ]);
+        $db->conn->commit();
 
-    $db->conn->commit();
-
-    echo json_encode([
-        'status' => 'success',
-        'message' => 'POS order placed successfully',
-        'change' => number_format($change, 2)
-    ]);
-    } catch (Exception $e) {
-    $db->conn->rollBack();
-    echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
-    }
-    exit;
+        echo json_encode([
+            'status' => 'success',
+            'message' => 'POS order placed successfully',
+            'change' => number_format($change, 2)
+        ]);
+        } catch (Exception $e) {
+        $db->conn->rollBack();
+        echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+        }
+        exit;
     }
 
 
@@ -580,27 +577,27 @@
 
     // INSERT NOTIFICATION (called after admin updates status)
     if (isset($_POST['ref']) && $_POST['ref'] === 'insert_notification') {
-    $order_id = intval($_POST['order_id']);
-    $message = trim($_POST['message']);
+        $order_id = intval($_POST['order_id']);
+        $message = trim($_POST['message']);
 
-    // Fetch customer ID from the order table
-    $stmt = $db->conn->prepare("SELECT customer_id FROM order_online WHERE order_id = ?");
-    $stmt->execute([$order_id]);
-    $customer = $stmt->fetch(PDO::FETCH_ASSOC);
+        // Fetch customer ID from the order table
+        $stmt = $db->conn->prepare("SELECT customer_id FROM order_online WHERE order_id = ?");
+        $stmt->execute([$order_id]);
+        $customer = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    if ($customer) {
-    $customer_id = $customer['customer_id'];
-    $insert = $db->conn->prepare("
-        INSERT INTO notifications (customer_id, order_id, message, is_read)
-        VALUES (?, ?, ?, 0)
-    ");
-    $insert->execute([$customer_id, $order_id, $message]);
-    echo json_encode(['status' => 'success']);
-    } else {
-    echo json_encode(['status' => 'error', 'message' => 'Customer not found for this order.']);
-    }
+        if ($customer) {
+        $customer_id = $customer['customer_id'];
+        $insert = $db->conn->prepare("
+            INSERT INTO notifications (customer_id, order_id, message, is_read)
+            VALUES (?, ?, ?, 0)
+        ");
+        $insert->execute([$customer_id, $order_id, $message]);
+        echo json_encode(['status' => 'success']);
+        } else {
+        echo json_encode(['status' => 'error', 'message' => 'Customer not found for this order.']);
+        }
 
-    exit();
+        exit();
     }
 
 
