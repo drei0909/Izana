@@ -87,109 +87,109 @@
 
     // Get orders que
     if ($_POST['ref'] == 'get_orders_que') {
-    $html = '<div class="row">';
+        $html = '<div class="row">';
 
-    $statuses = [
-    1 => 'Review',
-    2 => 'Preparing',
-    3 => 'Ready for Pickup',
-    ];
+        $statuses = [
+        1 => 'Review',
+        2 => 'Preparing',
+        3 => 'Ready for Pickup',
+        ];
 
-    foreach ($statuses as $statusId => $statusName) {
-    $html .= '
-    <div class="col-md-4">
-        <div class="mr-1">
-            <ul class="list-group" id="' . strtolower(str_replace(' ', '_', $statusName)) . '">
-                <li class="list-group-item bg-success fw-bold text-white">' . $statusName . '</li>';
+        foreach ($statuses as $statusId => $statusName) {
+        $html .= '
+        <div class="col-md-4">
+            <div class="mr-1">
+                <ul class="list-group" id="' . strtolower(str_replace(' ', '_', $statusName)) . '">
+                    <li class="list-group-item bg-success fw-bold text-white">' . $statusName . '</li>';
 
-    // Modified query to include rejected (status 0) for Review column
-    if ($statusId == 1) {
-        $orders = $db->getOrders([0, 1]); // get both rejected + review
-    } else {
-        $orders = $db->getOrders($statusId);
-    }
-
-    if (!empty($orders)) {
-        foreach ($orders as $row) {
-            $dataStatus = ($statusName === 'Review') ? 'pending' : strtolower($statusName);
-
-            // Determine visual state (red for rejected without repay)
-            $bgClass = '';
-            if ($row['status'] == 0 && empty($row['repay_receipt'])) {
-                $bgClass = 'bg-danger bg-opacity-25 border-danger';
-            }
-
-            $liClass = 'list-group-item order-item';
-                if ($row['status'] == 0) { // rejected
-                    $liClass .= ' rejected-order border-danger bg-light-danger';
-                }   
-                $html .= '<li class="' . $liClass . '" data-id="' . htmlspecialchars($row['order_id']) . '" data-order-type="' . $row['order_type'] . '" data-status="' . $dataStatus . '">';
-
-            $html .= '<div class="d-flex justify-content-between align-items-center">';
-            $html .= '<strong>' . htmlspecialchars($row['customer_FN']) . '</strong> <span class="text-muted small">#00' . $row['order_id'] . '</span>';
-            $html .= '</div>';
-
-            // Receipt Display
-            $hasOriginal = !empty($row['receipt']);
-            $hasRepay = !empty($row['repay_receipt']);
-            $uploadPath = '../uploads/'; // Adjust if your folder is outside admin (e.g., '../uploads/')
-
-            if ($hasOriginal || $hasRepay) {
-                $html .= '<div class="mt-2">';
-                if ($hasOriginal && file_exists($uploadPath . $row['receipt'])) {
-                    $html .= '
-                        <div class="mb-1">
-                            <small class="text-muted">Original Receipt:</small><br>
-                            <a href="' . $uploadPath . htmlspecialchars($row['receipt']) . '" target="_blank">
-                                <img src="' . $uploadPath . htmlspecialchars($row['receipt']) . '" class="img-thumbnail shadow-sm" style="width:75px; height:75px; object-fit:cover;">
-                            </a>
-                        </div>';
-                }
-                if ($hasRepay && file_exists($uploadPath . $row['repay_receipt'])) {
-                    $html .= '
-                        <div>
-                            <small class="text-danger fw-bold">Repay Receipt:</small><br>
-                            <a href="' . $uploadPath . htmlspecialchars($row['repay_receipt']) . '" target="_blank">
-                                <img src="' . $uploadPath . htmlspecialchars($row['repay_receipt']) . '" class="img-thumbnail border-danger shadow-sm" style="width:75px; height:75px; object-fit:cover;">
-                            </a>
-                        </div>';
-                }
-                $html .= '</div>';
-            }
-
-            // If rejected but customer reuploaded a receipt, auto-reset status to Review (1)
-            if ($row['status'] == 0 && !empty($row['repay_receipt'])) {
-                $update = $db->conn->prepare("UPDATE order_online SET status = 1 WHERE order_id = ?");
-                $update->execute([$row['order_id']]);
-            }
-
-            // Action buttons
-            if ($statusName === 'Review') {
-                $html .= '<div class="mt-2 d-flex gap-1">
-                            <button class="btn btn-sm btn-success btn-accept w-50" data-id="' . $row['order_id'] . '" data-type="' . $row['order_type'] . '">
-                                <i class="fas fa-check"></i> Accept
-                            </button>
-                            <button class="btn btn-sm btn-danger btn-reject w-50" data-id="' . $row['order_id'] . '" data-type="' . $row['order_type'] . '">
-                                <i class="fas fa-times"></i> Reject
-                            </button>
-                        </div>';
-            }
-
-            $html .= '</li>';
+        // Modified query to include rejected (status 0) for Review column
+        if ($statusId == 1) {
+            $orders = $db->getOrders([0, 1]); // get both rejected + review
+        } else {
+            $orders = $db->getOrders($statusId);
         }
-    }
 
-    $html .= '
-            </ul>
-        </div>
-    </div>';
-    }
+        if (!empty($orders)) {
+            foreach ($orders as $row) {
+                $dataStatus = ($statusName === 'Review') ? 'pending' : strtolower($statusName);
 
-    $html .= '</div>';
+                // Determine visual state (red for rejected without repay)
+                $bgClass = '';
+                if ($row['status'] == 0 && empty($row['repay_receipt'])) {
+                    $bgClass = 'bg-danger bg-opacity-25 border-danger';
+                }
 
-    echo json_encode([
-    'status' => 'success',
-    'html' => $html
+                $liClass = 'list-group-item order-item';
+                    if ($row['status'] == 0) { // rejected
+                        $liClass .= ' rejected-order border-danger bg-light-danger';
+                    }   
+                    $html .= '<li class="' . $liClass . '" data-id="' . htmlspecialchars($row['order_id']) . '" data-order-type="' . $row['order_type'] . '" data-status="' . $dataStatus . '">';
+
+                $html .= '<div class="d-flex justify-content-between align-items-center">';
+                $html .= '<strong>' . htmlspecialchars($row['customer_FN']) . '</strong> <span class="text-muted small">#00' . $row['order_id'] . '</span>';
+                $html .= '</div>';
+
+                // Receipt Display
+                $hasOriginal = !empty($row['receipt']);
+                $hasRepay = !empty($row['repay_receipt']);
+                $uploadPath = '../uploads/'; // Adjust if your folder is outside admin (e.g., '../uploads/')
+
+                if ($hasOriginal || $hasRepay) {
+                    $html .= '<div class="mt-2">';
+                    if ($hasOriginal && file_exists($uploadPath . $row['receipt'])) {
+                        $html .= '
+                            <div class="mb-1">
+                                <small class="text-muted">Original Receipt:</small><br>
+                                <a href="' . $uploadPath . htmlspecialchars($row['receipt']) . '" target="_blank">
+                                    <img src="' . $uploadPath . htmlspecialchars($row['receipt']) . '" class="img-thumbnail shadow-sm" style="width:75px; height:75px; object-fit:cover;">
+                                </a>
+                            </div>';
+                    }
+                    if ($hasRepay && file_exists($uploadPath . $row['repay_receipt'])) {
+                        $html .= '
+                            <div>
+                                <small class="text-danger fw-bold">Repay Receipt:</small><br>
+                                <a href="' . $uploadPath . htmlspecialchars($row['repay_receipt']) . '" target="_blank">
+                                    <img src="' . $uploadPath . htmlspecialchars($row['repay_receipt']) . '" class="img-thumbnail border-danger shadow-sm" style="width:75px; height:75px; object-fit:cover;">
+                                </a>
+                            </div>';
+                    }
+                    $html .= '</div>';
+                }
+
+                // If rejected but customer reuploaded a receipt, auto-reset status to Review (1)
+                if ($row['status'] == 0 && !empty($row['repay_receipt'])) {
+                    $update = $db->conn->prepare("UPDATE order_online SET status = 1 WHERE order_id = ?");
+                    $update->execute([$row['order_id']]);
+                }
+
+                // Action buttons
+                if ($statusName === 'Review') {
+                    $html .= '<div class="mt-2 d-flex gap-1">
+                                <button class="btn btn-sm btn-success btn-accept w-50" data-id="' . $row['order_id'] . '" data-type="' . $row['order_type'] . '">
+                                    <i class="fas fa-check"></i> Accept
+                                </button>
+                                <button class="btn btn-sm btn-danger btn-reject w-50" data-id="' . $row['order_id'] . '" data-type="' . $row['order_type'] . '">
+                                    <i class="fas fa-times"></i> Reject
+                                </button>
+                            </div>';
+                }
+
+                $html .= '</li>';
+            }
+        }
+
+        $html .= '
+                </ul>
+            </div>
+        </div>';
+        }
+
+        $html .= '</div>';
+
+        echo json_encode([
+        'status' => 'success',
+        'html' => $html
     ]);
     }
 
