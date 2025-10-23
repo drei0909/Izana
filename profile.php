@@ -1,12 +1,12 @@
 <?php
 session_start();
+require_once('./classes/database.php');
+$db = new Database();
+
 if (!isset($_SESSION['customer_ID'])) {
   header("Location: login.php");
   exit();
 }
-
-require_once('./classes/database.php');
-$db = new Database();
 
 $customerID = $_SESSION['customer_ID'];
 $customer = $db->getCustomerByID($customerID);
@@ -38,7 +38,7 @@ function escape($s) {
   <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
 
-  <!-- Montserrat Font -->
+  <!-- Font -->
   <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 
   <style>
@@ -51,14 +51,7 @@ function escape($s) {
     --text-light: #f5f5f5;
   }
 
-  * {
-    font-family: 'Montserrat', sans-serif;
-  }
-
-  .fa, .fas, .far, .fal, .fab {
-    font-family: "Font Awesome 6 Free" !important;
-    font-weight: 900;
-  }
+  * { font-family: 'Montserrat', sans-serif; }
 
   body {
     margin: 0;
@@ -84,7 +77,7 @@ function escape($s) {
   .navbar-brand {
     color: var(--accent) !important;
     font-weight: 800;
-    font-size: 2rem;
+    font-size: 1.8rem;
   }
   .navbar-custom .nav-link {
     color: var(--text-light) !important;
@@ -109,7 +102,7 @@ function escape($s) {
 
   /* Container */
   .container-profile {
-    max-width: 1100px;
+    max-width: 1000px;
     margin: 0 auto 40px auto;
     background: var(--gray-mid);
     border: 1px solid var(--gray-light);
@@ -118,28 +111,14 @@ function escape($s) {
     box-shadow: 0 12px 30px rgba(0,0,0,0.4);
   }
 
-  h2, h4, h5 {
-    font-weight: 700;
-    color: var(--accent);
-  }
+  h2, h4, h5 { font-weight: 700; color: var(--accent); }
 
-  /* Header */
   .profile-header {
     border-bottom: 1px solid var(--gray-light);
     padding-bottom: 15px;
     margin-bottom: 25px;
   }
 
-  .profile-header h2 {
-    font-size: 1.9rem;
-    margin-bottom: 5px;
-  }
-  .profile-header p {
-    color: #ccc;
-    margin-bottom: 3px;
-  }
-
-  /* Cards */
   .card, .order-card {
     background: var(--gray-dark);
     border: 1px solid var(--gray-light);
@@ -148,18 +127,8 @@ function escape($s) {
     padding: 20px;
   }
 
-  .order-card {
-    margin-bottom: 20px;
-    box-shadow: 0 6px 18px rgba(0,0,0,0.3);
-  }
+  .order-card { margin-bottom: 20px; }
 
-  .order-header {
-    font-weight: 700;
-    font-size: 1.1rem;
-    color: var(--accent);
-  }
-
-  /* Buttons */
   .btn-warning {
     background-color: var(--accent);
     border: none;
@@ -172,30 +141,24 @@ function escape($s) {
     transform: translateY(-1px);
   }
 
-  .btn-danger {
-    font-weight: 600;
-  }
-
   .modal-content {
     background: var(--gray-mid);
     border: 1px solid var(--gray-light);
     border-radius: 14px;
     color: var(--text-light);
   }
-  .modal-header {
-    background: var(--accent-dark);
-    color: #fff;
-    border-top-left-radius: 14px;
-    border-top-right-radius: 14px;
+
+  @media (max-width: 992px) {
+    .container-profile { padding: 25px; }
+    .navbar-brand img { height: 50px; }
+    .profile-header h2 { font-size: 1.6rem; }
   }
 
-  @media (max-width: 768px) {
-    .container-profile {
-      padding: 25px;
-    }
-    .profile-header h2 {
-      font-size: 1.5rem;
-    }
+  @media (max-width: 576px) {
+    .container-profile { padding: 20px; }
+    .order-card { padding: 15px; }
+    .btn-sm { width: 100%; margin-top: 5px; }
+    .order-header { font-size: 1rem; }
   }
   </style>
 </head>
@@ -205,7 +168,7 @@ function escape($s) {
 <nav class="navbar navbar-expand-lg navbar-dark navbar-custom fixed-top">
   <div class="container-fluid" style="max-width:1400px;">
     <a class="navbar-brand" href="#">
-      <img src="uploads/izana_logo.png" alt="IZANA" style="height:70px;">
+      <img src="uploads/izana_logo.png" alt="IZANA" style="height:65px;">
     </a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navMenu">
       <span class="navbar-toggler-icon"></span>
@@ -309,11 +272,10 @@ function escape($s) {
       </div>
     <?php endforeach; ?>
   <?php else: ?>
-    <p class="">You have not placed any orders yet.</p>
+    <p>You have not placed any orders yet.</p>
   <?php endif; ?>
 </div>
 
-<!-- Update Info Modal -->
 <!-- Update Info Modal -->
 <div class="modal fade" id="editModal" tabindex="-1">
   <div class="modal-dialog modal-dialog-centered">
@@ -326,28 +288,20 @@ function escape($s) {
         <form id="updateInfoForm">
           <div class="mb-3">
             <label class="form-label">Username</label>
-            <input type="text" name="username" class="form-control" 
-                   value="<?= escape($customer['customer_username']) ?>" required>
+            <input type="text" name="username" class="form-control" value="<?= escape($customer['customer_username']) ?>" required>
           </div>
-
           <div class="mb-3">
             <label class="form-label">Email</label>
-            <input type="email" name="email" class="form-control" 
-                   value="<?= escape($customer['customer_email']) ?>" required>
+            <input type="email" name="email" class="form-control" value="<?= escape($customer['customer_email']) ?>" required>
           </div>
-
           <div class="mb-3">
             <label class="form-label">Contact Number</label>
-            <input type="text" name="contact" class="form-control" 
-                   value="<?= escape($customer['customer_contact'] ?? '') ?>">
+            <input type="text" name="contact" class="form-control" value="<?= escape($customer['customer_contact'] ?? '') ?>">
           </div>
-
           <div class="mb-3">
             <label class="form-label">New Password (optional)</label>
-            <input type="password" name="password" class="form-control" 
-                   placeholder="Leave blank to keep current password">
+            <input type="password" name="password" class="form-control" placeholder="Leave blank to keep current password">
           </div>
-
           <button type="submit" class="btn btn-warning w-100">Save Changes</button>
         </form>
       </div>
@@ -355,19 +309,16 @@ function escape($s) {
   </div>
 </div>
 
-
 <!-- Scripts -->
 <script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-<script src="https://code.jquery.com/jquery-3.6.0.min.js"></script>
-<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
-
 
 <script>
 $(document).ready(function() {
+
+// ✅ Update Info
 $('#updateInfoForm').on('submit', function(e) {
   e.preventDefault();
-
   $.ajax({
     url: 'functions.php',
     type: 'POST',
@@ -380,78 +331,23 @@ $('#updateInfoForm').on('submit', function(e) {
       password: $('input[name="password"]').val()
     },
     success: function(r) {
-      if (r.status === 'success') {
-        Swal.fire({
-          icon: 'success',
-          title: 'Updated!',
-          text: r.message,
-          confirmButtonColor: '#b07542'
-        }).then(() => location.reload());
-      } else {
-        Swal.fire({
-          icon: 'error',
-          title: 'Error',
-          text: r.message,
-          confirmButtonColor: '#b07542'
-        });
-      }
+      Swal.fire({
+        icon: r.status === 'success' ? 'success' : 'error',
+        title: r.status === 'success' ? 'Updated!' : 'Error',
+        text: r.message,
+        confirmButtonColor: '#b07542'
+      }).then(() => {
+        if (r.status === 'success') location.reload();
+      });
     },
-    error: function(xhr, status, error) {
-      console.error('AJAX error:', error);
-      Swal.fire('Error', 'Unable to connect to server.', 'error');
+    error: function() {
+      Swal.fire('Error', 'Unable to connect to the server.', 'error');
     }
   });
 });
 
-
-
-  // // Delete Account
-  // $('#deleteAccountBtn').on('click', function() {
-  //   Swal.fire({
-  //     title: 'Are you sure?',
-  //     text: "This action cannot be undone.",
-  //     icon: 'warning',
-  //     showCancelButton: true,
-  //     confirmButtonColor: '#b07542',
-  //     cancelButtonColor: '#6c757d',
-  //     confirmButtonText: 'Yes, delete it!'
-  //   }).then((result) => {
-  //     if (result.isConfirmed) {
-  //       $.post('functions.php', 
-  //       { ref: 'delete_customer_account' }, function(res) {
-  //         const r = JSON.parse(res);
-  //         if (r.status === 'success') {
-  //           Swal.fire('Deleted!', 'Your account has been removed.', 'success')
-  //             .then(() => window.location.href = 'logout.php');
-  //         } else {
-  //           Swal.fire('Error', r.message, 'error');
-  //         }
-  //       });
-  //     }
-  //   });
-  // });
-
-  // Reorder
-  $('.rebuy-btn').on('click', function() {
-    const id = $(this).data('order-id');
-    $.post('functions.php', { ref: 'rebuy_order', order_id: id }, function(res) {
-      const r = JSON.parse(res);
-      if (r.status === 'success') {
-        Swal.fire({
-          icon: 'success',
-          title: 'Items added to cart!',
-          text: 'Redirecting to checkout...',
-          showConfirmButton: false,
-          timer: 1500
-        });
-        setTimeout(() => window.location.href = 'checkout.php', 1600);
-      } else {
-        Swal.fire('Error', r.message, 'error');
-      }
-    });
-  });
-
- $('#deleteAccountBtn').on('click', function() {
+// ✅ Delete Account
+$('#deleteAccountBtn').on('click', function() {
   Swal.fire({
     title: 'Are you sure?',
     text: 'This will permanently delete your account.',
@@ -463,7 +359,7 @@ $('#updateInfoForm').on('submit', function(e) {
   }).then((result) => {
     if (result.isConfirmed) {
       $.ajax({
-        url: 'functions.php', // ✅ make sure path is correct
+        url: 'functions.php',
         type: 'POST',
         dataType: 'json',
         data: { ref: 'delete_account' },
@@ -474,24 +370,47 @@ $('#updateInfoForm').on('submit', function(e) {
               title: 'Deleted!',
               text: response.message,
               confirmButtonColor: '#b07542'
-            }).then(() => {
-              window.location.href = 'registration.php'; // redirect after delete
-            });
+            }).then(() => window.location.href = 'registration.php');
           } else {
             Swal.fire('Error', response.message, 'error');
           }
         },
-        error: function(xhr, status, error) {
-          console.error('AJAX Error:', error);
-          console.log('Response:', xhr.responseText);
-          Swal.fire('Error', 'Unable to connect to the server.', 'error');
+        error: function() {
+          Swal.fire('Error', 'Unable to connect to server.', 'error');
         }
       });
     }
   });
 });
 
-
+// ✅ Reorder / Rebuy
+$('.rebuy-btn').on('click', function() {
+  const id = $(this).data('order-id');
+  $.ajax({
+    url: 'functions.php',
+    type: 'POST',
+    dataType: 'json',
+    data: { ref: 'rebuy_order', order_id: id },
+    success: function(r) {
+      if (r.status === 'success') {
+        Swal.fire({
+          icon: 'success',
+          title: 'Items added to cart!',
+          text: 'Redirecting to checkout...',
+          showConfirmButton: false,
+          timer: 1200
+        });
+        setTimeout(() => window.location.href = 'checkout.php', 1300);
+      } else {
+        Swal.fire('Error', r.message, 'error');
+      }
+    },
+    error: function(xhr, status, error) {
+      console.error('AJAX error:', error);
+      Swal.fire('Error', 'Unable to connect to server.', 'error');
+    }
+  });
+});
 
 });
 </script>

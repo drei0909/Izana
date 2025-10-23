@@ -656,18 +656,20 @@ if(isset($_POST['ref']) && $_POST['ref'] === "login_customer") {
 
 // --- Handle Rebuy Order ---
 if (isset($_POST['ref']) && $_POST['ref'] === 'rebuy_order') {
-    if (session_status() === PHP_SESSION_NONE) session_start();
+    // ✅ Make sure no output comes before JSON
+    ob_clean();
+    header('Content-Type: application/json; charset=utf-8');
 
     $customer_id = $_SESSION['customer_ID'] ?? null;
-    $order_id = intval($_POST['order_id'] ?? 0);
+    $order_id = isset($_POST['order_id']) ? intval($_POST['order_id']) : 0;
 
-    if (!$customer_id || !$order_id) {
-        echo json_encode(['status' => 'error', 'message' => 'Invalid request.']);
+    if (empty($customer_id) || empty($order_id)) {
+        echo json_encode(['status' => 'error', 'message' => 'Invalid request — missing session or order ID.']);
         exit;
     }
 
     try {
-        // Get previous order items
+        // ✅ Fetch items from the previous order
         $stmt = $db->conn->prepare("
             SELECT product_id, quantity
             FROM order_item
@@ -676,16 +678,16 @@ if (isset($_POST['ref']) && $_POST['ref'] === 'rebuy_order') {
         $stmt->execute([$order_id]);
         $items = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
-        if (!$items) {
+        if (empty($items)) {
             echo json_encode(['status' => 'error', 'message' => 'No items found in this order.']);
             exit;
         }
 
-        // Clear current cart
+        // ✅ Clear customer's current cart
         $clear = $db->conn->prepare("DELETE FROM cart WHERE customer_id = ?");
         $clear->execute([$customer_id]);
 
-        // Insert all items again
+        // ✅ Add each item back into the cart
         $insert = $db->conn->prepare("
             INSERT INTO cart (customer_id, product_id, qty)
             VALUES (?, ?, ?)
@@ -694,12 +696,13 @@ if (isset($_POST['ref']) && $_POST['ref'] === 'rebuy_order') {
             $insert->execute([$customer_id, $item['product_id'], $item['quantity']]);
         }
 
-        echo json_encode(['status' => 'success']);
-    } catch (Exception $e) {
-        echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+        echo json_encode(['status' => 'success', 'message' => 'Items successfully re-added to cart!']);
+    } catch (Throwable $e) {
+        echo json_encode(['status' => 'error', 'message' => 'Server error: ' . $e->getMessage()]);
     }
     exit;
 }
+
 
 
 // Handle Forgot Password Request

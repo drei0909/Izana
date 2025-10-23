@@ -933,6 +933,62 @@ if (isset($_POST['ref']) && $_POST['ref'] === 'update_customer_status') {
         exit;
     }
 
+    //Get sales details for a specific date (Online + POS)
+    if (isset($_POST['ref']) && $_POST['ref'] === 'get_sales_details') {
+        try {
+            $date = $_POST['date'];
 
+            // 🔹 Fetch Online Orders
+            $sqlOnline = "
+                SELECT 
+                    o.order_id AS order_id,
+                    CONCAT(c.customer_FN, ' ', c.customer_LN) AS customer_name,
+                    'Online' AS order_channel,
+                    o.total_amount,
+                    o.status AS order_status,
+                    o.created_at
+                FROM order_online o
+                JOIN customer c ON o.customer_id = c.customer_ID
+                WHERE DATE(o.created_at) = ?
+            ";
+            $stmtOnline = $db->conn->prepare($sqlOnline);
+            $stmtOnline->execute([$date]);
+            $onlineOrders = $stmtOnline->fetchAll(PDO::FETCH_ASSOC);
+
+            // 🔹 Fetch POS Orders (Walk-in)
+            $sqlPOS = "
+                SELECT 
+                    p.pos_id AS order_id,
+                    'Walk-in Customer' AS customer_name,
+                    'POS' AS order_channel,
+                    p.total_amount,
+                    p.status AS order_status,
+                    p.created_at
+                FROM order_pos p
+                WHERE DATE(p.created_at) = ?
+            ";
+            $stmtPOS = $db->conn->prepare($sqlPOS);
+            $stmtPOS->execute([$date]);
+            $posOrders = $stmtPOS->fetchAll(PDO::FETCH_ASSOC);
+
+            // 🔹 Merge Online + POS
+            $data = array_merge($onlineOrders, $posOrders);
+
+            // 🔹 Sort by date (latest first)
+            usort($data, function($a, $b) {
+                return strtotime($b['created_at']) - strtotime($a['created_at']);
+            });
+
+            if (!empty($data)) {
+                echo json_encode(['status' => 'success', 'data' => $data]);
+            } else {
+                echo json_encode(['status' => 'empty']);
+            }
+
+        } catch (Exception $e) {
+            echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+        }
+        exit();
+    }
 
     ?>

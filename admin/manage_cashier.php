@@ -44,7 +44,7 @@ function card_html($p) {
         $img_db = $p['image'];
     }
     
-    $img_src = $img_db ? '../' . ltrim($img_db, '/\\') : '../uploads/bgggg.jpg';
+    $img_src = $img_db ? '../' . ltrim($img_db, '/\\') : '../uploads/default.jpg';
     $img_src = escape($img_src);
 
    
@@ -73,7 +73,7 @@ function card_html($p) {
 <style>
 /* === MENU CARD STYLING === */
 .menu-card {
-  width: 220px;
+  width: 200px;
   height: 300px;
   border-radius: 12px;
   background: #fff;
@@ -84,10 +84,10 @@ function card_html($p) {
   box-shadow: 0 3px 8px rgba(0,0,0,0.12);
   transition: transform 0.2s, box-shadow 0.3s;
 }
-.menu-card:hover {
+/* .menu-card:hover {
   transform: translateY(-5px);
   box-shadow: 0 8px 16px rgba(0,0,0,0.2);
-}
+} */
 .menu-card img {
   width: 100%;
   height: 160px;

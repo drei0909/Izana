@@ -94,7 +94,7 @@ $salesHistory = $db->getSalesHistory();
 $(document).ready(function() {
     $('#salesTable').DataTable({ order: [[0, 'desc']] });
 
-    // 🔹 View Details
+    // 🔹 View Details (show coffee list + total)
     $('.view-details').click(function() {
         const date = $(this).data('date');
         $('#salesDate').text(new Date(date).toLocaleString('en-US', {month: 'long', day: 'numeric', year: 'numeric'}));
@@ -104,40 +104,46 @@ $(document).ready(function() {
         $.ajax({
             url: 'admin_functions.php',
             type: 'POST',
-            data: { ref: 'get_sales_details', date: date },
+            data: { ref: 'get_sales_items', date: date },
             dataType: 'json',
             success: function(res) {
-                if (res.status === 'success') {
+                if (res.status === 'success' && res.items.length > 0) {
                     let html = `
                         <div class="table-responsive">
                             <table class="table table-sm table-bordered align-middle">
                                 <thead class="table-light">
                                     <tr>
-                                        <th>Order ID</th>
-                                        <th>Customer</th>
-                                        <th>Channel</th>
-                                        <th>Total (₱)</th>
-                                        <th>Status</th>
+                                        <th>Qty</th>
+                                        <th>Product</th>
+                                        <th>Price (₱)</th>
+                                        <th>Subtotal (₱)</th>
                                     </tr>
                                 </thead>
                                 <tbody>`;
-                    res.data.forEach(order => {
+                    
+                    let total = 0;
+                    res.items.forEach(item => {
+                        const subtotal = parseFloat(item.price) * parseInt(item.quantity);
+                        total += subtotal;
                         html += `
                             <tr>
-                                <td>${order.order_id}</td>
-                                <td>${order.customer_name || '—'}</td>
-                                <td>${order.order_channel}</td>
-                                <td>${parseFloat(order.total_amount).toFixed(2)}</td>
-                                <td>${order.order_status == 4 ? 
-                                    '<span class="badge bg-danger">Void</span>' : 
-                                    '<span class="badge bg-success">Completed</span>'}
-                                </td>
+                                <td>${item.quantity}</td>
+                                <td>${item.product_name}</td>
+                                <td>${parseFloat(item.price).toFixed(2)}</td>
+                                <td>${subtotal.toFixed(2)}</td>
                             </tr>`;
                     });
-                    html += `</tbody></table></div>`;
+                    
+                    html += `
+                        <tr class="fw-bold bg-light">
+                            <td colspan="3" class="text-end">Total:</td>
+                            <td>₱${total.toFixed(2)}</td>
+                        </tr>
+                        </tbody></table></div>`;
+                    
                     $('#detailsContent').html(html);
                 } else {
-                    $('#detailsContent').html('<p class="text-danger">No records found for this date.</p>');
+                    $('#detailsContent').html('<p class="text-danger">No coffee items found for this date.</p>');
                 }
             },
             error: function() {
