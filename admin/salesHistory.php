@@ -107,44 +107,24 @@ $(document).ready(function() {
             data: { ref: 'get_sales_items', date: date },
             dataType: 'json',
             success: function(res) {
-                if (res.status === 'success' && res.items.length > 0) {
-                    let html = `
-                        <div class="table-responsive">
-                            <table class="table table-sm table-bordered align-middle">
-                                <thead class="table-light">
-                                    <tr>
-                                        <th>Qty</th>
-                                        <th>Product</th>
-                                        <th>Price (₱)</th>
-                                        <th>Subtotal (₱)</th>
-                                    </tr>
-                                </thead>
-                                <tbody>`;
-                    
-                    let total = 0;
-                    res.items.forEach(item => {
-                        const subtotal = parseFloat(item.price) * parseInt(item.quantity);
-                        total += subtotal;
-                        html += `
-                            <tr>
-                                <td>${item.quantity}</td>
-                                <td>${item.product_name}</td>
-                                <td>${parseFloat(item.price).toFixed(2)}</td>
-                                <td>${subtotal.toFixed(2)}</td>
-                            </tr>`;
-                    });
-                    
-                    html += `
-                        <tr class="fw-bold bg-light">
-                            <td colspan="3" class="text-end">Total:</td>
-                            <td>₱${total.toFixed(2)}</td>
-                        </tr>
-                        </tbody></table></div>`;
-                    
-                    $('#detailsContent').html(html);
-                } else {
-                    $('#detailsContent').html('<p class="text-danger">No coffee items found for this date.</p>');
-                }
+                    if (res.status === 'success' && res.items.length > 0) {
+                        // Build the requested simple formatted view
+                        let html = '<div class="text-start fs-6"><pre style="white-space:pre-wrap; font-family:inherit;">';
+                        res.items.forEach(item => {
+                            const qty = parseInt(item.quantity);
+                            const price = parseFloat(item.price);
+                            const subtotal = (qty * price).toFixed(2);
+                            html += `${qty}x ${item.product_name} — ₱${subtotal}\n`;
+                        });
+                        html += '--------------------------\n';
+                        html += `Total: ₱${res.total}\n`;
+                        html += '</pre></div>';
+                        $('#detailsContent').html(html);
+                    } else if (res.status === 'empty') {
+                        $('#detailsContent').html('<p class="text-muted">No coffee items found for this date.</p>');
+                    } else {
+                        $('#detailsContent').html('<p class="text-danger">No coffee items found for this date.</p>');
+                    }
             },
             error: function() {
                 $('#detailsContent').html('<p class="text-danger">Error loading details.</p>');

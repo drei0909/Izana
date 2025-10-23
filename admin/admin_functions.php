@@ -855,6 +855,67 @@ if (isset($_POST['ref']) && $_POST['ref'] === 'update_customer_status') {
         exit();
     }
 
+    // Get sales items (aggregated) for a specific date (used by Sales History -> View Details)
+    if (isset($_POST['ref']) && $_POST['ref'] === 'get_sales_items') {
+        header('Content-Type: application/json; charset=utf-8');
+        try {
+            $date = $_POST['date'] ?? null;
+            if (!$date) {
+                echo json_encode(['status' => 'error', 'message' => 'Date is required']);
+                exit;
+            }
+
+            // Aggregate items from online orders and POS orders for the given date
+            $sql = "
+                SELECT pi.product_id, pi.product_name, SUM(pi.quantity) AS quantity, pi.price_per_unit
+                FROM (
+                    SELECT oi.product_id, p.product_name, SUM(oi.quantity) AS quantity, p.product_price AS price_per_unit
+                    FROM order_item oi
+                    JOIN product p ON oi.product_id = p.product_id
+                    JOIN order_online o ON oi.order_id = o.order_id
+                    WHERE DATE(o.created_at) = ?
+                    GROUP BY oi.product_id
+                    UNION ALL
+                    SELECT oi.product_id, p.product_name, SUM(oi.quantity) AS quantity, p.product_price AS price_per_unit
+                    FROM order_item oi
+                    JOIN product p ON oi.product_id = p.product_id
+                    JOIN order_pos pos ON oi.pos_id = pos.pos_id
+                    WHERE DATE(pos.created_at) = ?
+                    GROUP BY oi.product_id
+                ) AS pi
+                GROUP BY pi.product_id, pi.product_name, pi.price_per_unit
+                ORDER BY SUM(pi.quantity) DESC
+            ";
+
+            $stmt = $db->conn->prepare($sql);
+            $stmt->execute([$date, $date]);
+            $rows = $stmt->fetchAll(PDO::FETCH_ASSOC);
+
+            $items = [];
+            $total = 0.0;
+            foreach ($rows as $r) {
+                $qty = (int)$r['quantity'];
+                $price = (float)$r['price_per_unit'];
+                $subtotal = $qty * $price;
+                $total += $subtotal;
+                $items[] = [
+                    'product_name' => $r['product_name'],
+                    'quantity' => $qty,
+                    'price' => number_format($price, 2)
+                ];
+            }
+
+            if (empty($items)) {
+                echo json_encode(['status' => 'empty']);
+            } else {
+                echo json_encode(['status' => 'success', 'items' => $items, 'total' => number_format($total, 2)]);
+            }
+        } catch (Exception $e) {
+            echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+        }
+        exit();
+    }
+
     // Handle order status updates
     if (isset($_POST['ref']) && $_POST['ref'] === 'update_order_status') {
         $orderId = $_POST['order_id'];
