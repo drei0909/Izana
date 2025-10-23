@@ -50,9 +50,12 @@ $salesHistory = $db->getSalesHistory();
                                         <td><?= number_format($record['total_sales'], 2) ?></td>
                                         <td class="text-danger"><?= number_format($record['void_sales'], 2) ?></td>
                                         <td>
-                                            <button class="btn btn-info btn-sm view-details" data-date="<?= $record['order_date'] ?>">
+                                           <button class="btn btn-info btn-sm view-details" 
+                                                    data-date="<?= $record['order_date'] ?>" 
+                                                    data-display-date="<?= date("F d, Y", strtotime($record['order_date'])) ?>">
                                                 <i class="fas fa-eye"></i> View
                                             </button>
+
                                             <button class="btn btn-danger btn-sm delete-record" data-id="<?= $record['id'] ?>">
                                                 <i class="fas fa-trash-alt"></i> Delete
                                             </button>
@@ -96,41 +99,42 @@ $(document).ready(function() {
 
     // 🔹 View Details (show coffee list + total)
     $('.view-details').click(function() {
-        const date = $(this).data('date');
-        $('#salesDate').text(new Date(date).toLocaleString('en-US', {month: 'long', day: 'numeric', year: 'numeric'}));
-        $('#detailsContent').html('<p class="text-center text-muted">Loading...</p>');
-        $('#viewDetailsModal').modal('show');
+    const date = $(this).data('date');
+    const displayDate = $(this).data('display-date');
+    $('#salesDate').text(displayDate);
+    $('#detailsContent').html('<p class="text-center text-muted">Loading...</p>');
+    $('#viewDetailsModal').modal('show');
 
-        $.ajax({
-            url: 'admin_functions.php',
-            type: 'POST',
-            data: { ref: 'get_sales_items', date: date },
-            dataType: 'json',
-            success: function(res) {
-                    if (res.status === 'success' && res.items.length > 0) {
-                        // Build the requested simple formatted view
-                        let html = '<div class="text-start fs-6"><pre style="white-space:pre-wrap; font-family:inherit;">';
-                        res.items.forEach(item => {
-                            const qty = parseInt(item.quantity);
-                            const price = parseFloat(item.price);
-                            const subtotal = (qty * price).toFixed(2);
-                            html += `${qty}x ${item.product_name} — ₱${subtotal}\n`;
-                        });
-                        html += '--------------------------\n';
-                        html += `Total: ₱${res.total}\n`;
-                        html += '</pre></div>';
-                        $('#detailsContent').html(html);
-                    } else if (res.status === 'empty') {
-                        $('#detailsContent').html('<p class="text-muted">No coffee items found for this date.</p>');
-                    } else {
-                        $('#detailsContent').html('<p class="text-danger">No coffee items found for this date.</p>');
-                    }
-            },
-            error: function() {
-                $('#detailsContent').html('<p class="text-danger">Error loading details.</p>');
+    $.ajax({
+        url: 'admin_functions.php',
+        type: 'POST',
+        data: { ref: 'get_sales_items', date: date },
+        dataType: 'json',
+        success: function(res) {
+            if (res.status === 'success' && res.items.length > 0) {
+                let html = '<div class="text-start fs-6"><pre style="white-space:pre-wrap; font-family:inherit;">';
+                res.items.forEach(item => {
+                    const qty = parseInt(item.quantity);
+                    const price = parseFloat(item.price);
+                    const subtotal = (qty * price).toFixed(2);
+                    html += `${qty}x ${item.product_name} — ₱${subtotal}\n`;
+                });
+                html += '--------------------------\n';
+                html += `Total: ₱${res.total}\n`;
+                html += '</pre></div>';
+                $('#detailsContent').html(html);
+            } else if (res.status === 'empty') {
+                $('#detailsContent').html('<p class="text-muted">No coffee items found for this date.</p>');
+            } else {
+                $('#detailsContent').html('<p class="text-danger">No coffee items found for this date.</p>');
             }
-        });
+        },
+        error: function() {
+            $('#detailsContent').html('<p class="text-danger">Error loading details.</p>');
+        }
     });
+});
+
 
     // 🔹 Delete Record (AJAX)
     $('.delete-record').click(function() {
