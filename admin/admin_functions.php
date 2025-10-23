@@ -199,7 +199,7 @@
     // --- Update Order Status + Notify Customer ---
     if (isset($_POST['ref']) && $_POST['ref'] === 'update_order_stats') {
     header('Content-Type: application/json; charset=utf-8');
-    error_reporting(0);
+   
 
     $order_id  = intval($_POST['id'] ?? 0);
     $status    = intval($_POST['status'] ?? 0);
@@ -421,161 +421,160 @@
 
     // Cancel Order (Void)
     if (isset($_POST['ref']) && $_POST['ref'] === 'cancel_order') {
-    $order_id = intval($_POST['order_id']);
-    $order_type = $_POST['order_type'];
+        $order_id = intval($_POST['order_id']);
+        $order_type = $_POST['order_type'];
 
-    try {
-    // Update order status to 0 (Cancelled)
+        try {
+        // Update order status to 0 (Cancelled)
 
-    if ($order_type == 'online') {
-        $sql_1 = "UPDATE order_online SET status = 4 WHERE order_id = ?";
+        if ($order_type == 'online') {
+            $sql_1 = "UPDATE order_online SET status = 4 WHERE order_id = ?";
 
-        $sql_2 = "SELECT total_amount  FROM order_online WHERE order_id = ?";
+            $sql_2 = "SELECT total_amount  FROM order_online WHERE order_id = ?";
 
-        // Fetch order details and customer info
-        $stmtFetch = $db->conn->prepare("
-            SELECT 
-                o.order_id, 
-                o.total_amount, 
-                o.created_at, 
-                o.customer_id,
-                CONCAT(c.customer_FN, ' ', c.customer_LN) AS customer_name
-            FROM order_online o
-            JOIN customer c ON o.customer_id = c.customer_ID
-            WHERE o.order_id = ?
-        ");
-        $stmtFetch->execute([$order_id]);
-        $order = $stmtFetch->fetch(PDO::FETCH_ASSOC);
-
-        if ($order) {
-            // Insert notification for the customer
-            $notif_msg = "Your order #{$order_id} has been Void!";
-            $stmtNotif = $db->conn->prepare("
-                INSERT INTO notifications (customer_id, message, order_id, is_read, created_at)
-                VALUES (?, ?, ?, 0, NOW())
+            // Fetch order details and customer info
+            $stmtFetch = $db->conn->prepare("
+                SELECT 
+                    o.order_id, 
+                    o.total_amount, 
+                    o.created_at, 
+                    o.customer_id,
+                    CONCAT(c.customer_FN, ' ', c.customer_LN) AS customer_name
+                FROM order_online o
+                JOIN customer c ON o.customer_id = c.customer_ID
+                WHERE o.order_id = ?
             ");
-            $stmtNotif->execute([$order['customer_id'], $notif_msg, $order_id]);
+            $stmtFetch->execute([$order_id]);
+            $order = $stmtFetch->fetch(PDO::FETCH_ASSOC);
+
+            if ($order) {
+                // Insert notification for the customer
+                $notif_msg = "Your order #{$order_id} has been Void!";
+                $stmtNotif = $db->conn->prepare("
+                    INSERT INTO notifications (customer_id, message, order_id, is_read, created_at)
+                    VALUES (?, ?, ?, 0, NOW())
+                ");
+                $stmtNotif->execute([$order['customer_id'], $notif_msg, $order_id]);
+            }
+        } else { // POS
+            $sql_1 = "UPDATE order_pos SET status = 4 WHERE pos_id = ?";
+
+            $sql_2 = "SELECT total_amount  FROM order_pos WHERE pos_id = ?";
         }
-    } else { // POS
-        $sql_1 = "UPDATE order_pos SET status = 4 WHERE pos_id = ?";
 
-        $sql_2 = "SELECT total_amount  FROM order_pos WHERE pos_id = ?";
-    }
+        $stmt = $db->conn->prepare($sql_1);
+        $stmt->execute([$order_id]);
 
-    $stmt = $db->conn->prepare($sql_1);
-    $stmt->execute([$order_id]);
+        // Fetch order details to update Sales Report counters dynamically
+        $stmt2 = $db->conn->prepare($sql_2);
+        $stmt2->execute([$order_id]);
+        $order = $stmt2->fetch(PDO::FETCH_ASSOC);
 
-    // Fetch order details to update Sales Report counters dynamically
-    $stmt2 = $db->conn->prepare($sql_2);
-    $stmt2->execute([$order_id]);
-    $order = $stmt2->fetch(PDO::FETCH_ASSOC);
-
-    echo json_encode([
-        'status' => 'success',
-        'message' => 'Order has been Void.',
-        'order_id' => $order_id,
-        'total_amount' => $order['total_amount'],
-        
-    ]);
-    } catch (Exception $e) {
-    echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
-    }
-    exit;
+        echo json_encode([
+            'status' => 'success',
+            'message' => 'Order has been Void.',
+            'order_id' => $order_id,
+            'total_amount' => $order['total_amount'],
+            
+        ]);
+        } catch (Exception $e) {
+        echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+        }
+        exit;
     }
 
 
     // Complete Order
     if (isset($_POST['ref']) && $_POST['ref'] === 'complete_order') {
-    $order_id = intval($_POST['order_id']);
-    $order_type = $_POST['order_type'];
+        $order_id = intval($_POST['order_id']);
+        $order_type = $_POST['order_type'];
 
-    try {
+        try {
 
 
-    if ($order_type == 'online') {
-        $sql_1 = "UPDATE order_online SET status = 5 WHERE order_id = ?";
+        if ($order_type == 'online') {
+            $sql_1 = "UPDATE order_online SET status = 5 WHERE order_id = ?";
 
-        // Fetch order details and customer info
-        $stmtFetch = $db->conn->prepare("
-            SELECT 
-                o.order_id, 
-                o.total_amount, 
-                o.created_at, 
-                o.customer_id,
-                CONCAT(c.customer_FN, ' ', c.customer_LN) AS customer_name
-            FROM order_online o
-            JOIN customer c ON o.customer_id = c.customer_ID
-            WHERE o.order_id = ?
-        ");
-        $stmtFetch->execute([$order_id]);
-        $order = $stmtFetch->fetch(PDO::FETCH_ASSOC);
-
-        if ($order) {
-            // Insert notification for the customer
-            $notif_msg = "Your order #{$order['order_id']} has been completed. Thank you for ordering with us!";
-            $stmtNotif = $db->conn->prepare("
-                INSERT INTO notifications (customer_id, message, order_id, is_read, created_at)
-                VALUES (?, ?, ?, 0, NOW())
+            // Fetch order details and customer info
+            $stmtFetch = $db->conn->prepare("
+                SELECT 
+                    o.order_id, 
+                    o.total_amount, 
+                    o.created_at, 
+                    o.customer_id,
+                    CONCAT(c.customer_FN, ' ', c.customer_LN) AS customer_name
+                FROM order_online o
+                JOIN customer c ON o.customer_id = c.customer_ID
+                WHERE o.order_id = ?
             ");
-            $stmtNotif->execute([$order['customer_id'], $notif_msg, $order['order_id']]);
+            $stmtFetch->execute([$order_id]);
+            $order = $stmtFetch->fetch(PDO::FETCH_ASSOC);
+
+            if ($order) {
+                // Insert notification for the customer
+                $notif_msg = "Your order #{$order['order_id']} has been completed. Thank you for ordering with us!";
+                $stmtNotif = $db->conn->prepare("
+                    INSERT INTO notifications (customer_id, message, order_id, is_read, created_at)
+                    VALUES (?, ?, ?, 0, NOW())
+                ");
+                $stmtNotif->execute([$order['customer_id'], $notif_msg, $order['order_id']]);
+            }
+        } else { // POS
+            $sql_1 = "UPDATE order_pos SET status = 5 WHERE pos_id = ?";
         }
-    } else { // POS
-        $sql_1 = "UPDATE order_pos SET status = 5 WHERE pos_id = ?";
-    }
 
-    // Update order status to completed (5)
-    $stmt = $db->conn->prepare($sql_1);
-    $stmt->execute([$order_id]);
+        // Update order status to completed (5)
+        $stmt = $db->conn->prepare($sql_1);
+        $stmt->execute([$order_id]);
 
-    // Return success response
-    echo json_encode([
-        'status' => 'success',
-        'message' => 'Order marked as completed and customer notified.'
-    ]);
-    } catch (Exception $e) {
-    echo json_encode([
-        'status' => 'error',
-        'message' => $e->getMessage()
-    ]);
+        // Return success response
+        echo json_encode([
+            'status' => 'success',
+            'message' => 'Order marked as completed and customer notified.'
+        ]);
+        } catch (Exception $e) {
+        echo json_encode([
+            'status' => 'error',
+            'message' => $e->getMessage()
+        ]);
+        }
+        exit;
     }
-    exit;
-    }
-
 
 
     // get order info
     if ($_POST['ref'] == 'get_order_info') {
-    $order_id = $_POST['order_id'];
+        $order_id = $_POST['order_id'];
 
-    $query = $db->conn->prepare("
-    SELECT 
-        o.ref_no, 
-        o.receipt, 
-        o.pickup_time, 
-        c.customer_FN, 
-        c.customer_LN, 
-        c.customer_contact
-    FROM order_online o
-    INNER JOIN customer c ON o.customer_id = c.customer_id
-    WHERE o.order_id = ?
-    ");
-    $query->execute([$order_id]);
-    $info = $query->fetch(PDO::FETCH_ASSOC);
+        $query = $db->conn->prepare("
+        SELECT 
+            o.ref_no, 
+            o.receipt, 
+            o.pickup_time, 
+            c.customer_FN, 
+            c.customer_LN, 
+            c.customer_contact
+        FROM order_online o
+        INNER JOIN customer c ON o.customer_id = c.customer_id
+        WHERE o.order_id = ?
+        ");
+        $query->execute([$order_id]);
+        $info = $query->fetch(PDO::FETCH_ASSOC);
 
-    if ($info) {
-    echo json_encode([
-        'status' => 'success',
-        'ref_no' => $info['ref_no'],
-        'receipt' => $info['receipt'],
-        'pickup_time' => $info['pickup_time'] ? date("h:i A", strtotime($info['pickup_time'])) : 'N/A',
-        'customer_FN' => $info['customer_FN'],
-        'customer_LN' => $info['customer_LN'],
-        'customer_contact' => $info['customer_contact']
-    ]);
-    } else {
-    echo json_encode(['status' => 'error', 'message' => 'Order info not found']);
-    }
-    exit;
+        if ($info) {
+        echo json_encode([
+            'status' => 'success',
+            'ref_no' => $info['ref_no'],
+            'receipt' => $info['receipt'],
+            'pickup_time' => $info['pickup_time'] ? date("h:i A", strtotime($info['pickup_time'])) : 'N/A',
+            'customer_FN' => $info['customer_FN'],
+            'customer_LN' => $info['customer_LN'],
+            'customer_contact' => $info['customer_contact']
+        ]);
+        } else {
+        echo json_encode(['status' => 'error', 'message' => 'Order info not found']);
+        }
+        exit;
     }
 
 
@@ -605,108 +604,108 @@
     }
 
 
- // BLOCK / UNBLOCK CUSTOMER
-if (isset($_POST['ref']) && $_POST['ref'] === 'update_customer_status') {
-        header('Content-Type: application/json');
+    // BLOCK / UNBLOCK CUSTOMER
+    if (isset($_POST['ref']) && $_POST['ref'] === 'update_customer_status') {
+            header('Content-Type: application/json');
 
-        $customer_id = intval($_POST['customer_id'] ?? 0);
-        $action      = trim($_POST['action'] ?? '');
-        $reason      = trim($_POST['reason'] ?? ''); // new field for block reason
+            $customer_id = intval($_POST['customer_id'] ?? 0);
+            $action      = trim($_POST['action'] ?? '');
+            $reason      = trim($_POST['reason'] ?? ''); // new field for block reason
 
-        if ($customer_id <= 0 || empty($action)) {
-            echo json_encode(['status' => 'error', 'message' => 'Invalid request.']);
-            exit;
-        }
-
-        try {
-            if ($action === 'block') {
-                if (empty($reason)) {
-                    echo json_encode(['status' => 'error', 'message' => 'Block reason is required.']);
-                    exit;
-                }
-
-                // Block user and save reason
-                $stmt = $db->conn->prepare("UPDATE customer SET status = 'blocked', block_reason = ? WHERE customer_id = ?");
-                $stmt->execute([$reason, $customer_id]);
-
-                $message = "Your account has been blocked by the admin. Reason: {$reason}";
-
-            } elseif ($action === 'unblock') {
-                // Unblock user and clear reason
-                $stmt = $db->conn->prepare("UPDATE customer SET status = 'active', block_reason = NULL WHERE customer_id = ?");
-                $stmt->execute([$customer_id]);
-
-                $message = "Your account has been reactivated. You can now continue ordering.";
-            } else {
-                echo json_encode(['status' => 'error', 'message' => 'Invalid action.']);
+            if ($customer_id <= 0 || empty($action)) {
+                echo json_encode(['status' => 'error', 'message' => 'Invalid request.']);
                 exit;
             }
 
-            // Optional: insert a notification for the customer
-            $notif = $db->conn->prepare("
-                INSERT INTO notifications (customer_id, order_id, message, is_read, created_at)
-                VALUES (?, NULL, ?, 0, NOW())
-            ");
-            $notif->execute([$customer_id, $message]);
+            try {
+                if ($action === 'block') {
+                    if (empty($reason)) {
+                        echo json_encode(['status' => 'error', 'message' => 'Block reason is required.']);
+                        exit;
+                    }
 
-            echo json_encode([
-                'status' => 'success',
-                'message' => "Customer has been {$action}ed.",
-                'new_status' => ($action === 'block') ? 'blocked' : 'active'
-            ]);
-        } catch (Exception $e) {
-            echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
-        }
-        exit;
-}
+                    // Block user and save reason
+                    $stmt = $db->conn->prepare("UPDATE customer SET status = 'blocked', block_reason = ? WHERE customer_id = ?");
+                    $stmt->execute([$reason, $customer_id]);
+
+                    $message = "Your account has been blocked by the admin. Reason: {$reason}";
+
+                } elseif ($action === 'unblock') {
+                    // Unblock user and clear reason
+                    $stmt = $db->conn->prepare("UPDATE customer SET status = 'active', block_reason = NULL WHERE customer_id = ?");
+                    $stmt->execute([$customer_id]);
+
+                    $message = "Your account has been reactivated. You can now continue ordering.";
+                } else {
+                    echo json_encode(['status' => 'error', 'message' => 'Invalid action.']);
+                    exit;
+                }
+
+                // Optional: insert a notification for the customer
+                $notif = $db->conn->prepare("
+                    INSERT INTO notifications (customer_id, order_id, message, is_read, created_at)
+                    VALUES (?, NULL, ?, 0, NOW())
+                ");
+                $notif->execute([$customer_id, $message]);
+
+                echo json_encode([
+                    'status' => 'success',
+                    'message' => "Customer has been {$action}ed.",
+                    'new_status' => ($action === 'block') ? 'blocked' : 'active'
+                ]);
+            } catch (Exception $e) {
+                echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
+            }
+            exit;
+    }
 
 
     // Fetch customer details
     if (isset($_POST['ref']) && $_POST['ref'] === 'get_customer_details') {
-    header('Content-Type: application/json');
+        header('Content-Type: application/json');
 
-    $customer_id = intval($_POST['customer_id'] ?? 0);
+        $customer_id = intval($_POST['customer_id'] ?? 0);
 
-    if ($customer_id <= 0) {
-    echo json_encode(['status' => 'error', 'message' => 'Invalid customer ID.']);
-    exit;
-    }
+        if ($customer_id <= 0) {
+        echo json_encode(['status' => 'error', 'message' => 'Invalid customer ID.']);
+        exit;
+        }
 
-    try {
-    $stmt = $db->conn->prepare("
-        SELECT 
-            customer_ID,
-            CONCAT(customer_FN, ' ', customer_LN) AS full_name,
-            customer_email AS email,
-            customer_contact AS contact,
-            status,
-            DATE_FORMAT(created_at, '%M %d, %Y %h:%i %p') AS created_at
-        FROM customer
-        WHERE customer_ID = ?
-        LIMIT 1
-    ");
-    $stmt->execute([$customer_id]);
-    $customer = $stmt->fetch(PDO::FETCH_ASSOC);
+        try {
+        $stmt = $db->conn->prepare("
+            SELECT 
+                customer_ID,
+                CONCAT(customer_FN, ' ', customer_LN) AS full_name,
+                customer_email AS email,
+                customer_contact AS contact,
+                status,
+                DATE_FORMAT(created_at, '%M %d, %Y %h:%i %p') AS created_at
+            FROM customer
+            WHERE customer_ID = ?
+            LIMIT 1
+        ");
+        $stmt->execute([$customer_id]);
+        $customer = $stmt->fetch(PDO::FETCH_ASSOC);
 
-    if ($customer) {
-        echo json_encode([
-            'status' => 'success',
-            'data' => $customer
-        ]);
-    } else {
+        if ($customer) {
+            echo json_encode([
+                'status' => 'success',
+                'data' => $customer
+            ]);
+        } else {
+            echo json_encode([
+                'status' => 'error',
+                'message' => 'Customer not found.'
+            ]);
+        }
+        } catch (Exception $e) {
         echo json_encode([
             'status' => 'error',
-            'message' => 'Customer not found.'
+            'message' => 'Database error: ' . $e->getMessage()
         ]);
-    }
-    } catch (Exception $e) {
-    echo json_encode([
-        'status' => 'error',
-        'message' => 'Database error: ' . $e->getMessage()
-    ]);
-    }
+        }
 
-    exit;
+        exit;
     }
 
     // Accept or Reject Order

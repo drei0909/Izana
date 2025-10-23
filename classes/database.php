@@ -429,9 +429,10 @@ public function updateAdminProfile($admin_ID, $firstName, $lastName) {
 }
 
 public function updateAdminPassword($admin_ID, $hashedPassword) {
-    $stmt = $this->conn->prepare("UPDATE admin SET password = ? WHERE admin_ID = ?");
+    $stmt = $this->conn->prepare("UPDATE admin SET admin_password = ? WHERE admin_ID = ?");
     return $stmt->execute([$hashedPassword, $admin_ID]);
 }
+
 
 
 
