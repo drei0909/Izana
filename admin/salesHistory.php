@@ -44,7 +44,8 @@ $salesHistory = $db->getSalesHistory();
                             <tbody>
                                 <?php foreach ($salesHistory as $record): ?>
                                     <tr id="row-<?= $record['id'] ?>">
-                                        <td><?= date("F d, Y", strtotime($record['order_date'])) ?></td>
+                                        <td><?= date("F d, Y h:i A", strtotime($record['created_at'])) ?></td>
+
                                         <td><?= number_format($record['walk_in_sales'], 2) ?></td>
                                         <td><?= number_format($record['online_sales'], 2) ?></td>
                                         <td><?= number_format($record['total_sales'], 2) ?></td>
@@ -110,25 +111,30 @@ $(document).ready(function() {
         type: 'POST',
         data: { ref: 'get_sales_items', date: date },
         dataType: 'json',
-        success: function(res) {
-            if (res.status === 'success' && res.items.length > 0) {
-                let html = '<div class="text-start fs-6"><pre style="white-space:pre-wrap; font-family:inherit;">';
-                res.items.forEach(item => {
-                    const qty = parseInt(item.quantity);
-                    const price = parseFloat(item.price);
-                    const subtotal = (qty * price).toFixed(2);
-                    html += `${qty}x ${item.product_name} — ₱${subtotal}\n`;
-                });
-                html += '--------------------------\n';
-                html += `Total: ₱${res.total}\n`;
-                html += '</pre></div>';
-                $('#detailsContent').html(html);
-            } else if (res.status === 'empty') {
-                $('#detailsContent').html('<p class="text-muted">No coffee items found for this date.</p>');
-            } else {
-                $('#detailsContent').html('<p class="text-danger">No coffee items found for this date.</p>');
-            }
-        },
+                success: function(res) {
+                if (res.status === 'success' && res.items.length > 0) {
+                    let html = '<div class="text-start fs-6"><pre style="white-space:pre-wrap; font-family:inherit;">';
+                    let total = 0;
+
+                    res.items.forEach(item => {
+                        const qty = parseInt(item.quantity);
+                        const price = parseFloat(item.price);
+                        const subtotal = qty * price;
+                        total += subtotal;
+                        html += `${qty}x ${item.product_name} — ₱${subtotal.toFixed(2)}\n`;
+                    });
+
+                    html += '--------------------------\n';
+                    html += `Total: ₱${total.toFixed(2)}\n`;
+                    html += '</pre></div>';
+                    $('#detailsContent').html(html);
+
+                } else if (res.status === 'empty') {
+                    $('#detailsContent').html('<p class="text-muted">No coffee items found for this date.</p>');
+                } else {
+                    $('#detailsContent').html('<p class="text-danger">No coffee items found for this date.</p>');
+                }
+            },
         error: function() {
             $('#detailsContent').html('<p class="text-danger">Error loading details.</p>');
         }
