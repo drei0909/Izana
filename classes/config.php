@@ -1,4 +1,3 @@
 <?php
-$this->conn->exec("SET time_zone = '+08:00'");
-
+date_default_timezone_set('Asia/Manila');
 define("BASE_URL", "https://izanacafe.shop/");
