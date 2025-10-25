@@ -14,6 +14,10 @@ class Database {
                 $this->username, $this->password
             );
             $this->conn->setAttribute(PDO::ATTR_ERRMODE, PDO::ERRMODE_EXCEPTION);
+
+             date_default_timezone_set('Asia/Manila');
+        $this->conn->exec("SET time_zone = '+08:00'");
+        
         } catch(PDOException $e) {
             die("Connection failed: " . $e->getMessage());
         }
