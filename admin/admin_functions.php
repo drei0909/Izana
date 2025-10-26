@@ -657,53 +657,53 @@
     }
 
 
-    // Fetch customer details
-    if (isset($_POST['ref']) && $_POST['ref'] === 'get_customer_details') {
-        header('Content-Type: application/json');
+    // // Fetch customer details
+    // if (isset($_POST['ref']) && $_POST['ref'] === 'get_customer_details') {
+    //     header('Content-Type: application/json');
 
-        $customer_id = intval($_POST['customer_id'] ?? 0);
+    //     $customer_id = intval($_POST['customer_id'] ?? 0);
 
-        if ($customer_id <= 0) {
-        echo json_encode(['status' => 'error', 'message' => 'Invalid customer ID.']);
-        exit;
-        }
+    //     if ($customer_id <= 0) {
+    //     echo json_encode(['status' => 'error', 'message' => 'Invalid customer ID.']);
+    //     exit;
+    //     }
 
-        try {
-        $stmt = $db->conn->prepare("
-            SELECT 
-                customer_ID,
-                CONCAT(customer_FN, ' ', customer_LN) AS full_name,
-                customer_email AS email,
-                customer_contact AS contact,
-                status,
-                DATE_FORMAT(created_at, '%M %d, %Y %h:%i %p') AS created_at
-            FROM customer
-            WHERE customer_ID = ?
-            LIMIT 1
-        ");
-        $stmt->execute([$customer_id]);
-        $customer = $stmt->fetch(PDO::FETCH_ASSOC);
+    //     try {
+    //     $stmt = $db->conn->prepare("
+    //         SELECT 
+    //             customer_ID,
+    //             CONCAT(customer_FN, ' ', customer_LN) AS full_name,
+    //             customer_email AS email,
+    //             customer_contact AS contact,
+    //             status,
+    //             DATE_FORMAT(created_at, '%M %d, %Y %h:%i %p') AS created_at
+    //         FROM customer
+    //         WHERE customer_ID = ?
+    //         LIMIT 1
+    //     ");
+    //     $stmt->execute([$customer_id]);
+    //     $customer = $stmt->fetch(PDO::FETCH_ASSOC);
 
-        if ($customer) {
-            echo json_encode([
-                'status' => 'success',
-                'data' => $customer
-            ]);
-        } else {
-            echo json_encode([
-                'status' => 'error',
-                'message' => 'Customer not found.'
-            ]);
-        }
-        } catch (Exception $e) {
-        echo json_encode([
-            'status' => 'error',
-            'message' => 'Database error: ' . $e->getMessage()
-        ]);
-        }
+    //     if ($customer) {
+    //         echo json_encode([
+    //             'status' => 'success',
+    //             'data' => $customer
+    //         ]);
+    //     } else {
+    //         echo json_encode([
+    //             'status' => 'error',
+    //             'message' => 'Customer not found.'
+    //         ]);
+    //     }
+    //     } catch (Exception $e) {
+    //     echo json_encode([
+    //         'status' => 'error',
+    //         'message' => 'Database error: ' . $e->getMessage()
+    //     ]);
+    //     }
 
-        exit;
-    }
+    //     exit;
+    // }
 
     // Accept or Reject Order
     if (isset($_POST['ref']) && $_POST['ref'] === 'review_action') {
@@ -793,63 +793,7 @@
         exit;
     }
 
-    //Get sales details for a specific date (Online + POS)
-    if (isset($_POST['ref']) && $_POST['ref'] === 'get_sales_details') {
-        try {
-            $date = $_POST['date'];
-
-            // 🔹 Fetch Online Orders
-            $sqlOnline = "
-                SELECT 
-                    o.order_id AS order_id,
-                    CONCAT(c.customer_FN, ' ', c.customer_LN) AS customer_name,
-                    'Online' AS order_channel,
-                    o.total_amount,
-                    o.status AS order_status,
-                    o.created_at
-                FROM order_online o
-                JOIN customer c ON o.customer_id = c.customer_ID
-                WHERE DATE(o.created_at) = ?
-            ";
-            $stmtOnline = $db->conn->prepare($sqlOnline);
-            $stmtOnline->execute([$date]);
-            $onlineOrders = $stmtOnline->fetchAll(PDO::FETCH_ASSOC);
-
-            // 🔹 Fetch POS Orders (Walk-in)
-            $sqlPOS = "
-                SELECT 
-                    p.pos_id AS order_id,
-                    'Walk-in Customer' AS customer_name,
-                    'POS' AS order_channel,
-                    p.total_amount,
-                    p.status AS order_status,
-                    p.created_at
-                FROM order_pos p
-                WHERE DATE(p.created_at) = ?
-            ";
-            $stmtPOS = $db->conn->prepare($sqlPOS);
-            $stmtPOS->execute([$date]);
-            $posOrders = $stmtPOS->fetchAll(PDO::FETCH_ASSOC);
-
-            // 🔹 Merge Online + POS
-            $data = array_merge($onlineOrders, $posOrders);
-
-            // 🔹 Sort by date (latest first)
-            usort($data, function($a, $b) {
-                return strtotime($b['created_at']) - strtotime($a['created_at']);
-            });
-
-            if (!empty($data)) {
-                echo json_encode(['status' => 'success', 'data' => $data]);
-            } else {
-                echo json_encode(['status' => 'empty']);
-            }
-
-        } catch (Exception $e) {
-            echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
-        }
-        exit();
-    }
+    
 
     // Get sales items (aggregated) for a specific date (used by Sales History -> View Details)
     if (isset($_POST['ref']) && $_POST['ref'] === 'get_sales_items') {
@@ -990,62 +934,6 @@
         exit;
     }
 
-    //Get sales details for a specific date (Online + POS)
-    if (isset($_POST['ref']) && $_POST['ref'] === 'get_sales_details') {
-        try {
-            $date = $_POST['date'];
-
-            // 🔹 Fetch Online Orders
-            $sqlOnline = "
-                SELECT 
-                    o.order_id AS order_id,
-                    CONCAT(c.customer_FN, ' ', c.customer_LN) AS customer_name,
-                    'Online' AS order_channel,
-                    o.total_amount,
-                    o.status AS order_status,
-                    o.created_at
-                FROM order_online o
-                JOIN customer c ON o.customer_id = c.customer_ID
-                WHERE DATE(o.created_at) = ?
-            ";
-            $stmtOnline = $db->conn->prepare($sqlOnline);
-            $stmtOnline->execute([$date]);
-            $onlineOrders = $stmtOnline->fetchAll(PDO::FETCH_ASSOC);
-
-            // 🔹 Fetch POS Orders (Walk-in)
-            $sqlPOS = "
-                SELECT 
-                    p.pos_id AS order_id,
-                    'Walk-in Customer' AS customer_name,
-                    'POS' AS order_channel,
-                    p.total_amount,
-                    p.status AS order_status,
-                    p.created_at
-                FROM order_pos p
-                WHERE DATE(p.created_at) = ?
-            ";
-            $stmtPOS = $db->conn->prepare($sqlPOS);
-            $stmtPOS->execute([$date]);
-            $posOrders = $stmtPOS->fetchAll(PDO::FETCH_ASSOC);
-
-            // 🔹 Merge Online + POS
-            $data = array_merge($onlineOrders, $posOrders);
-
-            // 🔹 Sort by date (latest first)
-            usort($data, function($a, $b) {
-                return strtotime($b['created_at']) - strtotime($a['created_at']);
-            });
-
-            if (!empty($data)) {
-                echo json_encode(['status' => 'success', 'data' => $data]);
-            } else {
-                echo json_encode(['status' => 'empty']);
-            }
-
-        } catch (Exception $e) {
-            echo json_encode(['status' => 'error', 'message' => $e->getMessage()]);
-        }
-        exit();
-    }
+   
 
     ?>
